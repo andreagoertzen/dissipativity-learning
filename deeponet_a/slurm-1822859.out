@@ -1,0 +1,7 @@
+<class 'numpy.ndarray'>
+<class 'numpy.ndarray'>
+torch.Size([20000, 4096])
+torch.Size([10000, 4096])
+torch.Size([20000, 64, 64])
+torch.Size([10000, 64, 64])
+torch.Size([20000, 4096])
