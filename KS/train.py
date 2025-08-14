@@ -7,12 +7,26 @@ import matplotlib.pyplot as plt
 import jax
 import model
 from model import run_model_visualization
+import os
+
 
 device = torch.device('cuda')
 torch.manual_seed(0)
-iterations = 1000000
+iterations = 2000000
+# iterations = 200000
 n_save = 1000
 bsize = 10000
+lam_reg_vol = 0.01
+project = False
+tag = 'test'
+model_folder = f'models_{tag}'
+figs_folder = f'figs_{tag}'
+
+
+if not os.path.exists(model_folder):
+    os.makedirs(model_folder)
+if not os.path.exists(figs_folder):
+    os.makedirs(figs_folder)
 
 data = np.load('KS_data_l64.0.npz',allow_pickle=True)
 physical_data = data['Physical']
@@ -35,17 +49,34 @@ def get_batch(x,y,bsize):
     y_batch = y[ind_time,:].to(device)
     return x_batch,y_batch
 
+def ellip_vol(model):
+    # L = torch.tril(model.V.L)
+    # L.diagonal().exp_()
+    # Q = L @ L.t()
+    Q = model.V._construct_Q()
+
+    det_Q = torch.linalg.det(Q)
+    m = model.Branch.m
+    # n = model.state_dim
+    # Correct implementation
+    # vol = torch.sqrt((model.c**2)**n / det_Q)
+    # Legacy implementation
+    vol = torch.sqrt((model.c**2) / det_Q)
+    # we omit the gamma function as it is a constant for the same model
+    vol = np.pi ** (m/2) * vol
+
+    return vol
+
 x_test,y_test = get_data(physical_u[90000:,...],physical_x)
 x_train,y_train = get_data(physical_u[:90000,...],physical_x)
 print(y_test.shape)
 print(y_train.shape)
 
-
 m = s = physical_u.shape[1]
 n = x_train[1].shape[1]
 print(n)
-model = model.DeepONet(m,n).to(device)
-optimizer = torch.optim.Adam(model.parameters(),lr=3e-4)#,weight_decay=1e-4)
+model = model.DeepONet(m,n,project = project).to(device)
+optimizer = torch.optim.Adam(model.parameters(),lr=3e-4)
 num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
 print(f'model params: {num_params}')
 
@@ -63,7 +94,17 @@ for j in range(iterations+1):
     x_batch,y_batch = get_batch(x_train,y_train,bsize=bsize)
     optimizer.zero_grad() 
     u_pred2 = model(x_batch)#.unsqueeze(1)
-    loss = loss_func(u_pred2,y_batch)
+    dynamic_loss = loss_func(u_pred2,y_batch)
+
+    if project:
+        vol = ellip_vol(model)
+        reg_loss = lam_reg_vol * vol.squeeze()
+        # reg_loss = torch.tensor(0.0, device=device)
+    else:
+        reg_loss = torch.tensor(0.0, device=device)
+    
+    loss = dynamic_loss + reg_loss
+
     loss.backward()
     optimizer.step()
 
@@ -77,6 +118,8 @@ for j in range(iterations+1):
         # loss_metric = my_loss(u_test,y_test).to("cpu").detach().numpy()
         print(f"iteration: {j}      train loss: {loss:.2e}      test loss: {loss_test:.2e}")#      test metric: {loss_metric:.2e}")
         print(total_time)
+        if project:
+            print(vol)
 
 
         losses.append(loss)
@@ -90,72 +133,24 @@ for j in range(iterations+1):
         plt.title('Loss over Time')
         plt.grid(True)
         plt.legend()
-        plt.savefig(f"figs2/loss_iter.png")
+        plt.savefig(f"figs_{tag}/loss_iter.png")
         plt.close()
 
         if loss_test < best_loss:
-            torch.save(model.state_dict(),"./models/model_step" + str(j))
+            torch.save(model.state_dict(),f"./models_{tag}/model_step" + str(j))
             best_ind = j
             best_loss = loss_test
         tic = time.time()
     if j%200000 == 0:
         model.eval()
-        run_model_visualization(model,x_test,y_test,s,device)
+        run_model_visualization(model,x_test,y_test,s,device,figs_dir = tag)
 
 print(best_ind)
 
 # best_ind = 93000
 ## inference
-model.load_state_dict(torch.load('models/model_step'+str(best_ind)))
+model.load_state_dict(torch.load(f'models_{tag}/model_step'+str(best_ind)))
 model.eval()
-run_model_visualization(model,x_test,y_test,s,device)
+run_model_visualization(model,x_test,y_test,s,device,figs_dir = tag)
 
-'''
-# 1 time step rollout (on test data)
-u_test = model(x_test)
-fig,axs = plt.subplots(2,1)
-print(y_test.shape)
-print(u_test.shape)
-axs[0].imshow(y_test.T.detach().cpu().numpy().astype(np.float32),extent=[physical_t[90000]*dt,physical_t[-1]*dt,physical_x[0],physical_x[-1]],aspect='auto',vmin=-2.5,vmax=2.5)
-axs[0].set_title('data')
-axs[0].set_xlabel('time (s)')
-axs[0].set_ylabel('position')
-im = axs[1].imshow(u_test.T.detach().cpu().numpy().astype(np.float32),extent=[physical_t[90000]*dt,physical_t[-1]*dt,physical_x[0],physical_x[-1]],aspect='auto',vmin=-2.5,vmax=2.5)
-axs[1].set_title('model')
-axs[1].set_xlabel('time (s)')
-axs[1].set_ylabel('position')
-fig.tight_layout()
-fig.colorbar(im,ax=axs,location='right')
-plt.savefig('figs2/1step')
-
-# long trajectory rollout (on test data)
-n_rollout = 1000
-rollout_traj = torch.zeros(n_rollout,s)
-u_out = x_test[0][0,...]
-for i in range(n_rollout):
-    u_out = model((u_out,x_test[1]))
-    rollout_traj[i,:] = u_out
-plt.figure()
-plt.imshow(rollout_traj.T.detach().numpy().astype(np.float32), extent=[0,n_rollout,0,s],aspect='auto')
-plt.colorbar()
-plt.savefig('figs2/rollout')
-
-# rollout on random IC
-n_rollout = 10000
-key = jax.random.PRNGKey(10)*5
-u0 = jax.random.normal(key, (1,s)) 
-print(u0.shape)
-rollout_traj = torch.zeros(n_rollout,s)
-u_out = torch.tensor(np.array(u0)).to(device)
-for i in range(n_rollout):
-    u_out = model((u_out,x_test[1]))
-    rollout_traj[i,:] = u_out
-plt.figure()
-plt.imshow(rollout_traj.T.detach().numpy().astype(np.float32), extent=[0,n_rollout,0,s],aspect='auto')
-plt.colorbar()
-plt.xlabel('time')
-plt.ylabel('position')
-plt.savefig('figs2/rollout_randomIC')
-# torch.save(rollout_traj,'rolloutdata')
-'''
 

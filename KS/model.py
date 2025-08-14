@@ -204,7 +204,7 @@ def run_model_visualization(
 
     fig.tight_layout()
     fig.colorbar(im, ax=axs, location='right')
-    plt.savefig(f'{figs_dir}/1step_{figs_tag}.png')
+    plt.savefig(f'figs_{figs_dir}/1step.png')
     plt.close(fig)
 
     # --- 2. Long trajectory rollout (on test data) ---
@@ -224,7 +224,7 @@ def run_model_visualization(
     )
     plt.title('Rollout on Test Data')
     plt.colorbar()
-    plt.savefig(f'{figs_dir}/rollout_test_{figs_tag}.png')
+    plt.savefig(f'figs_{figs_dir}/rollout_test.png')
     plt.close()
 
     # --- 3. Rollout from random initial condition ---
@@ -249,5 +249,5 @@ def run_model_visualization(
     plt.colorbar()
     plt.xlabel('Time')
     plt.ylabel('Position')
-    plt.savefig(f'{figs_dir}/rollout_randomIC_{figs_tag}.png')
+    plt.savefig(f'figs_{figs_dir}/rollout_randomIC.png')
     plt.close()
