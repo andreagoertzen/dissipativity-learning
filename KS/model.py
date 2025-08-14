@@ -2,8 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import jax
+
 
 class Branch(nn.Module):
     def __init__(self, m, activation=F.relu):
@@ -23,7 +22,7 @@ class Branch(nn.Module):
         # self.fc1 = nn.Linear(1664, 256) 
         # self.fc1 = nn.Linear(1856, 256) 
         # self.fc1 = nn.Linear(1984, 256) 
-        self.fc1 = nn.Linear(128,128)
+        self.fc1 = nn.Linear(m, 128)
         self.fc2 = nn.Linear(128, 128)
 
     def forward(self, x):
@@ -58,6 +57,7 @@ class Trunk(nn.Module):
         x = self.fc4(x)
         x = self.activation(x)
         return x
+    
 class V_elliptical(nn.Module):
     def __init__(self, m):
         super(V_elliptical, self).__init__()
@@ -124,10 +124,16 @@ class DeepONet(nn.Module):
         self.Trunk = Trunk(n)
         self.project = project
 
-        self.b = torch.nn.Parameter(torch.tensor(0.0))
+        self.fix_c_flag = False
+
+        self.b = nn.Parameter(torch.tensor(0.0))
         if self.project:
             print('Projection layer included')
-            self.c = torch.nn.Parameter(torch.tensor(1.0))
+            
+            self.c = nn.Parameter(torch.tensor(1.1))
+            if self.fix_c_flag:
+                # freeze self.c gradient
+                self.c.requires_grad = False
             self.eps_proj = 1e-3
             self.V = V_elliptical(m)
     
@@ -137,12 +143,18 @@ class DeepONet(nn.Module):
         V = self.V(w_in)
         Q = self.V.Q
         diff = w_in-w0
-        dVdw = torch.einsum('ij,bj->bi',2*Q,diff)
+        # dVdw = torch.einsum('ij,bj->bi',2*Q,diff)
+        dVdw = 2 * (diff @ Q)  # Gradient of V with respect to w_in
 
         # constraint has the form Ay + b(x) <= 0
-        A = dVdw*(1/dt)
-        bx = V-(1/dt) * torch.einsum('bi,bi->b',dVdw, w_in) - self.c**2
-        w_star = w_out - dVdw * (F.relu( torch.einsum('bi,bi->b',A,w_out) + bx)/torch.clamp((dVdw**2).sum(dim=1), min=self.eps_proj)).unsqueeze(1)
+        A = dVdw
+        # bx = V-(1/dt) * torch.einsum('bi,bi->b',dVdw, w_in) - self.c**2
+        # w_star = w_out - dVdw * (F.relu( torch.einsum('bi,bi->b',A,w_out) + bx)/torch.clamp((dVdw**2).sum(dim=1), min=self.eps_proj)).unsqueeze(1)
+        bx = - (A * w_in).sum(dim=1) + dt * (V - self.c ** 2)
+
+        # print((F.relu(A * w_out).sum(dim=1)).unsqueeze(1).shape, A.shape, bx.shape)
+
+        w_star = w_out - A * (F.relu(A * w_out).sum(dim=1) + bx).unsqueeze(1) / torch.clamp((dVdw ** 2).sum(dim=1), min=self.eps_proj).unsqueeze(1)
 
         return w_star
 
@@ -155,99 +167,3 @@ class DeepONet(nn.Module):
         if self.project:
             x_out = self.f_project(x[0],x_out)
         return x_out
-
-
-
-def run_model_visualization(
-    model,
-    x_test,
-    y_test,
-    s,
-    device,
-    figs_dir='figs2',
-    figs_tag = '',
-    rollout_steps_test=1000,
-    rollout_steps_random=10000,
-    random_seed=10,
-):
-
-    # --- 1. One-step prediction visualization ---
-    u_test = model(x_test)
-
-    fig, axs = plt.subplots(2, 1, figsize=(8, 6))
-    # print("y_test shape:", y_test.shape)
-    # print("u_test shape:", u_test.shape)
-
-    # extent = [physical_t[90000] * dt, physical_t[-1] * dt, physical_x[0], physical_x[-1]]
-
-    axs[0].imshow(
-        y_test.T.detach().cpu().numpy().astype(np.float32),
-        #extent=extent,
-        aspect='auto',
-        vmin=-2.5,
-        vmax=2.5,
-    )
-    axs[0].set_title('Ground Truth')
-    axs[0].set_xlabel('Time (s)')
-    axs[0].set_ylabel('Position')
-
-    im = axs[1].imshow(
-        u_test.T.detach().cpu().numpy().astype(np.float32),
-        #extent=extent,
-        aspect='auto',
-        vmin=-2.5,
-        vmax=2.5,
-    )
-    axs[1].set_title('Model Prediction')
-    axs[1].set_xlabel('Time (s)')
-    axs[1].set_ylabel('Position')
-
-    fig.tight_layout()
-    fig.colorbar(im, ax=axs, location='right')
-    plt.savefig(f'figs_{figs_dir}/1step.png')
-    plt.close(fig)
-
-    # --- 2. Long trajectory rollout (on test data) ---
-    rollout_traj = torch.zeros(rollout_steps_test, s)
-    u_out = x_test[0][0, ...]  # initial condition
-    u_out = u_out.unsqueeze(0)
-
-    for i in range(rollout_steps_test):
-        u_out = model((u_out, x_test[1]))
-        rollout_traj[i, :] = u_out
-
-    plt.figure()
-    plt.imshow(
-        rollout_traj.T.detach().numpy().astype(np.float32),
-        extent=[0, rollout_steps_test, 0, s],
-        aspect='auto'
-    )
-    plt.title('Rollout on Test Data')
-    plt.colorbar()
-    plt.savefig(f'figs_{figs_dir}/rollout_test.png')
-    plt.close()
-
-    # --- 3. Rollout from random initial condition ---
-    key = jax.random.PRNGKey(random_seed) * 5
-    u0 = jax.random.normal(key, (1, s))
-    print("Random IC shape:", u0.shape)
-
-    rollout_traj = torch.zeros(rollout_steps_random, s)
-    u_out = torch.tensor(np.array(u0)).to(device)
-
-    for i in range(rollout_steps_random):
-        u_out = model((u_out, x_test[1]))
-        rollout_traj[i, :] = u_out
-
-    plt.figure()
-    plt.imshow(
-        rollout_traj.T.detach().numpy().astype(np.float32),
-        extent=[0, rollout_steps_random, 0, s],
-        aspect='auto'
-    )
-    plt.title('Rollout from Random Initial Condition')
-    plt.colorbar()
-    plt.xlabel('Time')
-    plt.ylabel('Position')
-    plt.savefig(f'figs_{figs_dir}/rollout_randomIC.png')
-    plt.close()
