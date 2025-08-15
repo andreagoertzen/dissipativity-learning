@@ -35,20 +35,24 @@ np.random.seed(0)
 
 
 def train(params):
+    import model
     epochs = params['epochs']
     n_save_epochs = 50
     bsize = params['bsize']
     lam_reg_vol = params['lam_reg_vol']
     project = params['project']
     tag = params['tag']
-    save_name = params['save_name']
+    folder_name = params['folder_name']
     trunk_scale = params['trunk_scale']
+    eps_proj = params['eps_proj']
 
     c0 = params['c_init']
     trainable_c = params['trainable_c']
 
-    model_folder = f'models_{save_name}'
-    figs_folder = f'figs_{save_name}'
+    # model_folder = f'models_{save_name}'
+    # figs_folder = f'figs_{save_name}'
+    model_folder = folder_name
+    figs_folder = folder_name
 
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
@@ -67,8 +71,11 @@ def train(params):
     # Model Optimizer Initialization
     m = s = data['u_batch'].shape[2]  # Assuming u_batch is of shape (num_traj, traj_length, traj_dim)
     n = 1
-    import model
-    model = model.DeepONet(m,n,project = project,trainable_c = trainable_c,c0=c0).to(device)
+
+
+    params['m'] = m
+    params['n'] = n
+    model = model.DeepONet(params).to(device)
     optimizer = torch.optim.Adam(model.parameters(),lr=3e-4)
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
@@ -81,7 +88,7 @@ def train(params):
     val_losses = []
     dynamic_losses = []
     reg_losses = []
-
+    
     # --- Main Training Loop ---
     for epoch in tqdm(range(epochs + 1)):
         model.train()
@@ -190,12 +197,12 @@ def train(params):
                 best_ind = epoch
             
             tic = time.time()
-
-    model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
-    model.eval()
-    x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
-    y_val = val_dataset.targets.to(device)     
-    run_model_visualization(model,x_val,y_val,s,device,figs_dir = figs_folder)
+    
+    # model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
+    # model.eval()
+    # x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
+    # y_val = val_dataset.targets.to(device)    
+    # run_model_visualization(model,x_val,y_val,s,device,figs_dir = figs_folder)
     return model
 
 if __name__ == "__main__":
@@ -208,6 +215,7 @@ if __name__ == "__main__":
     parser.add_argument('--c_init', type=float, help='set initial c', default=1.0)
     parser.add_argument('--trainable_c',type=bool,help='specify whether c is trainable',default=True)
     parser.add_argument('--trunk_scale',type=float,help='scale factor for trunk net input',default=1.0)
+    parser.add_argument('--eps_proj', type=float, help='set projection tolerance', default=1e-4)
 
     args = parser.parse_args()
 
@@ -219,7 +227,8 @@ if __name__ == "__main__":
     'tag': args.tag,
     'c_init': args.c_init,
     'trainable_c': args.trainable_c,
-    'trunk_scale': args.trunk_scale
+    'trunk_scale': args.trunk_scale,
+    'eps_proj': args.eps_proj
     }
 
     reg_name = ''
@@ -229,11 +238,15 @@ if __name__ == "__main__":
         reg_name+='_proj'
         reg_name+=f'_LamRegVol{args.lam_reg_vol}'
         reg_name+=f'_C0{args.c_init}'
+        reg_name+=f'eps_proj{args.eps_proj}'
 
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_{reg_name}_{args.tag}'
+    folder_name = f'E{args.epochs}_TS{args.trunk_scale}_{reg_name}_{args.tag}'
 
-    params['save_name'] = save_name
+    params['folder_name'] = folder_name
 
-    logging.basicConfig(filename=f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    logging.basicConfig(filename=os.path.join(folder_name,f"loss_info.log"), level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
     model = train(params)

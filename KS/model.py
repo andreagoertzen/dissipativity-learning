@@ -117,17 +117,21 @@ class V_elliptical(nn.Module):
 
 
 class DeepONet(nn.Module):
-    def __init__(self,m,n,trainable_c,c0,project=False):
+    def __init__(self,params):
         super(DeepONet,self).__init__()
 
-        self.Branch = Branch(m)
-        self.Trunk = Trunk(n)
-        self.project = project
-        self.c0 = c0
+        self.m = params['m']
+        self.n = params['n']
+        self.project = params['project']
+        self.trainable_c = params['trainable_c']
+        self.c0 = params['c_init']
+        self.eps_proj = params['eps_proj']
 
-        self.trainable_c = trainable_c
+        self.Branch = Branch(self.m)
+        self.Trunk = Trunk(self.n)
 
         self.b = nn.Parameter(torch.tensor(0.0))
+
         if self.project:
             print('Projection layer included')
             
@@ -137,8 +141,8 @@ class DeepONet(nn.Module):
                 self.c.requires_grad = True
             else:
                 self.c.requires_grad = False
-            self.eps_proj = 1e-3
-            self.V = V_elliptical(m)
+
+            self.V = V_elliptical(self.m)
     
 
     def f_project(self,w_in,w_out,dt=1):

@@ -59,7 +59,7 @@ class TrajectoryDataset(Dataset):
         
         return model_input, target
     
-def load_multi_traj_data(data,trunk_scale):
+def load_multi_traj_data(data,trunk_scale=1.0):
     u_all_traj = data['u_batch']
     x_trunk_input = data['x']*trunk_scale
     num_traj = u_all_traj.shape[0]

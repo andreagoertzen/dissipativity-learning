@@ -2,35 +2,29 @@ import numpy as np
 import torch
 import model  # Your model.py file
 import os
-import argparse
-import logging
 # Assuming your Dataset and data loading function are in a 'utils.py' file
 from utils import load_multi_traj_data, run_model_visualization
 
-def main(params):
+def main():
     """
     Main function to load a trained model and run evaluation and visualization.
     """
-
-    folder_name = params['folder_name']
-    trunk_scale = params['trunk_scale']
-
     # --- 1. Configuration ---
     # Set the device to run the model on (GPU if available)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f"Using device: {device}")
+    print(f"Using device: {device}")
 
     # Set the tag to match your training run
-    # tag = '0814_1657_project'
+    tag = '0814_1657_project'
     
     # --- IMPORTANT: Set these paths correctly ---
     # Path to the saved model file
-    model_path = f'{folder_name}/model_epoch_best.pt' 
+    model_path = f'{tag}/model_epoch_best.pt' 
     # Path to the dataset
     data_path = 'Data/KS_data_batched_l100.53_grid512_M8_T500.0_dt0.01_amp5.0/data.npz'
     # Directory to save the output figures
     figs_folder = f'eval_results'
-    figs_folder = os.path.join(folder_name, figs_folder)
+    figs_folder = os.path.join(tag, figs_folder)
 
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
@@ -40,7 +34,7 @@ def main(params):
     data = np.load(data_path, allow_pickle=True)
     
     # Use the same function to split data, then select the validation set
-    _, val_dataset = load_multi_traj_data(data,trunk_scale=trunk_scale)
+    _, val_dataset = load_multi_traj_data(data)
     print(f"Loaded validation dataset with {len(val_dataset)} samples.")
 
     # Prepare the full validation set for visualization
@@ -55,13 +49,11 @@ def main(params):
     
     # We need to know if the saved model was trained with the projection layer
     # Set this to match the training configuration of the saved model
-    project = params['project'] 
-    params['m'] = m
-    params['n'] = n
+    project = True 
     
     print(f"Initializing model with m={m}, n={n}, project={project}...")
     # Create an instance of the model architecture
-    eval_model = model.DeepONet(params).to(device)
+    eval_model = model.DeepONet(m, n, project=project).to(device)
     
     # Load the saved weights into the model instance
     print(f"Loading saved model weights from {model_path}...")
@@ -85,45 +77,5 @@ def main(params):
     
     print("\nEvaluation complete.")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs',type=int,help='specify number of epochs', default=10000)
-    parser.add_argument('--bsize',type=int,help='specify batch size',default=2048)
-    parser.add_argument('--lam_reg_vol',type=float,help='specify regularization lambda',default=1.0)
-    parser.add_argument('--project',type=bool,help='True for including projection layer',default=False)
-    parser.add_argument('--tag',type=str,help='tag for file names',default='')
-    parser.add_argument('--c_init', type=float, help='set initial c', default=1.0)
-    parser.add_argument('--trainable_c',type=bool,help='specify whether c is trainable',default=True)
-    parser.add_argument('--trunk_scale',type=float,help='scale factor for trunk net input',default=1.0)
-    parser.add_argument('--eps_proj', type=float, help='set projection tolerance', default=1e-4)
-
-    args = parser.parse_args()
-
-    params = {
-    'epochs': args.epochs,
-    'bsize': args.bsize,
-    'lam_reg_vol': args.lam_reg_vol,
-    'project': args.project,
-    'tag': args.tag,
-    'c_init': args.c_init,
-    'trainable_c': args.trainable_c,
-    'trunk_scale': args.trunk_scale,
-    'eps_proj': args.eps_proj
-    }
-
-    reg_name = ''
-    if params['trainable_c']:
-        reg_name+='cTrain'
-    if params['project']:
-        reg_name+='_proj'
-        reg_name+=f'_LamRegVol{args.lam_reg_vol}'
-        reg_name+=f'_C0{args.c_init}'
-        reg_name+=f'eps_proj{args.eps_proj}'
-
-    folder_name = f'E{args.epochs}_TS{args.trunk_scale}_{reg_name}_{args.tag}'
-
-    params['folder_name'] = folder_name
-
-    logging.basicConfig(filename=os.path.join(folder_name,f"loss_info.log"), level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-
-    main(params)
+if __name__ == '__main__':
+    main()
