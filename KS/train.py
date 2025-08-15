@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import model
 import os
-from utils import TrajectoryDataset, load_multi_traj_data
+from utils import TrajectoryDataset, load_multi_traj_data, val_onestep_visual
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
@@ -237,3 +237,7 @@ if __name__ == "__main__":
     logging.basicConfig(filename=f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
     model = train(params)
+
+# print(f"Training complete. Best validation loss: {best_loss:.3e} at epoch {best_ind}.")
+# model.eval()
+# val_onestep_visual(model, data, device, figs_dir=figs_folder)
