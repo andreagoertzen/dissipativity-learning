@@ -77,6 +77,55 @@ def load_multi_traj_data(data,trunk_scale):
 
     return train_dataset, val_dataset
 
+def val_onestep_visual(model, data, device, figs_dir='figs'):
+	"""
+	Generates and saves a plot comparing the one-step model prediction
+	against the ground truth for an entire trajectory.
+
+	Args:
+		model (torch.nn.Module): The trained DeepONet model.
+		x_test (tuple): A tuple containing branch and trunk inputs for the test set.
+		y_test (torch.Tensor): The ground truth target values for the test set.
+		figs_dir (str): The directory where the output plot will be saved.
+	"""
+	print("Generating one-step prediction plot...")
+	model.eval()
+
+	num_train_traj = int(0.8 * data['u_batch'].shape[0])
+	traj_val = data['u_batch'][num_train_traj:, :, :]
+	x_trunk_input = torch.tensor(data['x'], dtype=torch.float32).to(device)
+	x_trunk_input = x_trunk_input.unsqueeze(1)
+
+	num_val_traj = traj_val.shape[0]
+
+	for i in range(num_val_traj):
+		x_test = (torch.tensor(traj_val[i, :, :], dtype=torch.float32).to(device), x_trunk_input)
+		with torch.no_grad():
+			u_test_pred = model(x_test)
+
+		fig, axs = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+		
+		# Plot Ground Truth
+		im1 = axs[0].imshow(
+			traj_val[i, :, :].T,
+			aspect='auto', vmin=-2.5, vmax=2.5, cmap='viridis'
+		)
+		axs[0].set_title('Ground Truth')
+		axs[0].set_ylabel('Position')
+
+		# Plot Model Prediction
+		im2 = axs[1].imshow(
+			u_test_pred.T.detach().cpu().numpy(),
+			aspect='auto', vmin=-2.5, vmax=2.5, cmap='viridis'
+		)
+		axs[1].set_title('Model One-Step Prediction')
+		axs[1].set_xlabel('Time (steps)')
+		axs[1].set_ylabel('Position')
+
+		fig.tight_layout()
+		fig.colorbar(im2, ax=axs, location='right', label='Value')
+		plt.savefig(f'{figs_dir}/1_one_step_prediction_traj{i}.png', dpi=300)
+		plt.close(fig)
 
 def run_model_visualization(
     model,
@@ -130,6 +179,7 @@ def run_model_visualization(
     # --- 2. Long trajectory rollout (on test data) ---
     rollout_traj = torch.zeros(rollout_steps_test, s)
     u_out = x_test[0][0, ...]  # initial condition
+    print(u_out.shape)
     u_out = u_out.unsqueeze(0)
 
     for i in range(rollout_steps_test):
