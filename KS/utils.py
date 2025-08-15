@@ -59,9 +59,9 @@ class TrajectoryDataset(Dataset):
         
         return model_input, target
     
-def load_multi_traj_data(data):
+def load_multi_traj_data(data,trunk_scale):
     u_all_traj = data['u_batch']
-    x_trunk_input = data['x']
+    x_trunk_input = data['x']*trunk_scale
     num_traj = u_all_traj.shape[0]
 
     # Split trajectories into training and validation sets (80/20)

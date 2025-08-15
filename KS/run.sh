@@ -8,4 +8,4 @@ source /etc/profile
 module load anaconda/2023a-pytorch
 
 # Run the script
-python -u train.py 
+python -u train.py "$@"
