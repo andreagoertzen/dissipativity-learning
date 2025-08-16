@@ -209,6 +209,9 @@ def train(params):
     x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
     y_val = val_dataset.targets.to(device)     
     run_model_visualization(model, x_val, y_val, s, device, figs_dir=figs_folder)
+
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
     return model
 
 
