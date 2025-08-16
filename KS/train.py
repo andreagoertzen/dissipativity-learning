@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 import matplotlib.pyplot as plt
-import model
+from model import DeepONet
 import os
 from utils import TrajectoryDataset, load_multi_traj_data, val_onestep_visual
 from torch.utils.data import DataLoader
@@ -13,6 +13,7 @@ from tqdm import tqdm
 import argparse
 import logging
 from utils import run_model_visualization
+from datetime import datetime
 
 def ellip_vol(model):
     d = model.V.log_diag_L.numel()
@@ -29,7 +30,8 @@ def ellip_vol(model):
         vol = det_factor
     return vol
 
-device = torch.device('cuda')
+# choose whether to use GPU or CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -41,14 +43,12 @@ def train(params):
     lam_reg_vol = params['lam_reg_vol']
     project = params['project']
     tag = params['tag']
-    save_name = params['save_name']
+    model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
 
-    c0 = params['c_init']
-    trainable_c = params['trainable_c']
 
-    model_folder = f'models_{save_name}'
-    figs_folder = f'figs_{save_name}'
+    model_folder = model_dir
+    figs_folder = os.path.join(model_dir, 'eval_results')
 
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
@@ -56,9 +56,9 @@ def train(params):
         os.makedirs(figs_folder)
 
     file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T500.0_dt0.01_amp5.0/data.npz'
-    data = np.load(file_dir,allow_pickle=True)
+    data = np.load(file_dir, allow_pickle=True)
 
-    train_dataset, val_dataset = load_multi_traj_data(data,trunk_scale)
+    train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
 
     train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=4)
     val_loader = DataLoader(val_dataset, batch_size=bsize, shuffle=False)
@@ -67,9 +67,22 @@ def train(params):
     # Model Optimizer Initialization
     m = s = data['u_batch'].shape[2]  # Assuming u_batch is of shape (num_traj, traj_length, traj_dim)
     n = 1
-    import model
-    model = model.DeepONet(m,n,project = project,trainable_c = trainable_c,c0=c0).to(device)
-    optimizer = torch.optim.Adam(model.parameters(),lr=3e-4)
+
+    model_params = {
+        'm': m,
+        'n': n,
+        'trainable_c': params['trainable_c'],
+        'c0': params['c_init'],
+        'project': params['project'],
+        'diag_Q': params['diag_Q'],
+        'branch_conv_channels': params['branch_conv_channels'],
+        'branch_fc_dims': params['branch_fc_dims'],
+        'trunk_hidden_dims': params['trunk_hidden_dims'],
+        'output_dim': params['output_dim']
+    }
+
+    model = DeepONet(model_params).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
@@ -195,48 +208,61 @@ def train(params):
     model.eval()
     x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
     y_val = val_dataset.targets.to(device)     
-    run_model_visualization(model,x_val,y_val,s,device,figs_dir = figs_folder)
+    run_model_visualization(model, x_val, y_val, s, device, figs_dir=figs_folder)
     return model
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs',type=int,help='specify number of epochs', default=10000)
-    parser.add_argument('--bsize',type=int,help='specify batch size',default=2048)
-    parser.add_argument('--lam_reg_vol',type=float,help='specify regularization lambda',default=1.0)
-    parser.add_argument('--project',type=bool,help='True for including projection layer',default=False)
-    parser.add_argument('--tag',type=str,help='tag for file names',default='')
+    parser.add_argument('--epochs', type=int, help='specify number of epochs', default=10000)
+    parser.add_argument('--bsize', type=int, help='specify batch size', default=2048)
+    parser.add_argument('--lam_reg_vol', type=float, help='specify regularization lambda', default=1.0)
+    parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
+    parser.add_argument('--tag', type=str, help='tag for file names', default='')
     parser.add_argument('--c_init', type=float, help='set initial c', default=1.0)
-    parser.add_argument('--trainable_c',type=bool,help='specify whether c is trainable',default=True)
-    parser.add_argument('--trunk_scale',type=float,help='scale factor for trunk net input',default=1.0)
+    parser.add_argument('--trainable_c', action='store_true', help='specify whether c is trainable')
+    parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
+    parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
+
+    # Model parameters
+    parser.add_argument('--output_dim', type=int, default=128,
+                        help='Output dimension for both branch and trunk nets.')
+    
+    parser.add_argument('--branch_conv_channels', type=int, nargs='*', default=[32, 64, 128],
+                        help='List of output channels for branch conv layers.')
+
+    parser.add_argument('--branch_fc_dims', type=int, nargs='+', default=[128],
+                        help='List of hidden layer dimensions for branch FC net.')
+
+    parser.add_argument('--trunk_hidden_dims', type=int, nargs='+', default=[128, 128],
+                        help='List of hidden layer dimensions for trunk net.')
 
     args = parser.parse_args()
 
-    params = {
-    'epochs': args.epochs,
-    'bsize': args.bsize,
-    'lam_reg_vol': args.lam_reg_vol,
-    'project': args.project,
-    'tag': args.tag,
-    'c_init': args.c_init,
-    'trainable_c': args.trainable_c,
-    'trunk_scale': args.trunk_scale
-    }
+    params = vars(args)
 
     reg_name = ''
     if params['trainable_c']:
-        reg_name+='cTrain'
+        reg_name += 'cTrain'
     if params['project']:
-        reg_name+='_proj'
-        reg_name+=f'_LamRegVol{args.lam_reg_vol}'
-        reg_name+=f'_C0{args.c_init}'
-
+        reg_name += '_proj'
+        reg_name += f'_LamRegVol{args.lam_reg_vol}'
+        reg_name += f'_C0{args.c_init}'
+    if params['diag_Q']:
+        reg_name += '_diagQ'
+        
+    # Set up directory for saving models and plots
+    now = datetime.now()
+    save_time_str = now.strftime("%m%d_%H")
+    save_dir = 'Trained_Models/' + save_time_str
     save_name = f'E{args.epochs}_TS{args.trunk_scale}_{reg_name}_{args.tag}'
+    save_dir = os.path.join(save_dir, save_name)
+    params['save_dir'] = save_dir
 
-    params['save_name'] = save_name
-
-    logging.basicConfig(filename=f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-
+    logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    
     model = train(params)
+    
 
 # print(f"Training complete. Best validation loss: {best_loss:.3e} at epoch {best_ind}.")
 # model.eval()
