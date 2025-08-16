@@ -4,65 +4,119 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Branch(nn.Module):
-    def __init__(self, m, activation=F.relu):
-        super(Branch, self).__init__()
-        self.m = m
-        self.activation = activation
+# class Branch(nn.Module):
+#     def __init__(self, m, activation=F.relu):
+#         super(Branch, self).__init__()
+#         self.m = m
+#         self.activation = activation
 
-        # self.reshape = lambda x: x.view(-1, 1, 28, 28)
+#         # self.reshape = lambda x: x.view(-1, 1, 28, 28)
+#         self.reshape = lambda x: x.view(-1, 1, m)
+#         self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=5, stride=2)
+#         self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
+#         self.conv3 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, stride=2)
+#         self.conv4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=5, stride=2)
+#         self.flatten = nn.Flatten()
+#         # self.fc1 = nn.Linear(128 * 4 * 4, 128) 
+#         # self.fc1 = nn.Linear(1280, 256) 
+#         # self.fc1 = nn.Linear(1664, 256) 
+#         # self.fc1 = nn.Linear(1856, 256) 
+#         # self.fc1 = nn.Linear(1984, 256) 
+#         self.fc1 = nn.Linear(m, 128)
+#         self.fc2 = nn.Linear(128, 128)
+
+#     def forward(self, x):
+#         x = self.reshape(x)
+#         # x = self.activation(self.conv1(x))
+#         # x = self.activation(self.conv2(x))
+#         # x = self.activation(self.conv3(x))
+#         # x = self.activation(self.conv4(x))
+#         x = self.flatten(x)
+#         x = self.activation(self.fc1(x))
+#         x = self.fc2(x)
+#         return x
+
+class Branch(nn.Module):
+    def __init__(self, m, conv_config, fc_dims, output_dim=128, activation=nn.ReLU()):
+        super(Branch, self).__init__()
+        self.activation = activation
         self.reshape = lambda x: x.view(-1, 1, m)
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=5, stride=2)
-        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
-        self.conv3 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, stride=2)
-        self.conv4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=5, stride=2)
-        self.flatten = nn.Flatten()
-        # self.fc1 = nn.Linear(128 * 4 * 4, 128) 
-        # self.fc1 = nn.Linear(1280, 256) 
-        # self.fc1 = nn.Linear(1664, 256) 
-        # self.fc1 = nn.Linear(1856, 256) 
-        # self.fc1 = nn.Linear(1984, 256) 
-        self.fc1 = nn.Linear(m, 128)
-        self.fc2 = nn.Linear(128, 128)
+
+        # --- 1. Build the Convolutional Part Programmatically ---
+        conv_layers = []
+        in_channels = 1
+        for cfg in conv_config:
+            conv_layers.append(
+                nn.Conv1d(
+                    in_channels=in_channels,
+                    out_channels=cfg['out_channels'],
+                    kernel_size=cfg['kernel_size'],
+                    stride=cfg['stride']
+                )
+            )
+            conv_layers.append(self.activation)
+            in_channels = cfg['out_channels'] # Update for the next layer
+        
+        self.conv_net = nn.Sequential(*conv_layers)
+
+        # --- 2. Use a Dummy Forward Pass to Find the Flattened Size ---
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 1, m) # Batch size of 1, 1 channel
+            dummy_output = self.conv_net(dummy_input)
+            flattened_size = dummy_output.flatten(1).shape[1]
+            print(f"Auto-detected flattened size for FC layer: {flattened_size}")
+
+        # --- 3. Build the Fully-Connected Part Programmatically ---
+        all_fc_dims = [flattened_size] + fc_dims + [output_dim]
+        fc_layers = []
+        for i in range(len(all_fc_dims) - 1):
+            fc_layers.append(nn.Linear(all_fc_dims[i], all_fc_dims[i+1]))
+            if i < len(all_fc_dims) - 2: # No activation on the final output
+                fc_layers.append(self.activation)
+        
+        self.fc_net = nn.Sequential(*fc_layers)
+
 
     def forward(self, x):
         x = self.reshape(x)
-        # x = self.activation(self.conv1(x))
-        # x = self.activation(self.conv2(x))
-        # x = self.activation(self.conv3(x))
-        # x = self.activation(self.conv4(x))
-        x = self.flatten(x)
-        x = self.activation(self.fc1(x))
-        x = self.fc2(x)
+        x = self.conv_net(x)
+        x = x.flatten(1) # Flatten all dimensions except batch
+        x = self.fc_net(x)
         return x
 
 class Trunk(nn.Module):
-    def __init__(self, n, activation=F.relu):
+    def __init__(self, n, hidden_dims, output_dim=128, activation=nn.ReLU()):
         super(Trunk, self).__init__()
-        self.n = n
         self.activation = activation
-
-        self.fc1 = nn.Linear(n, 128) 
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, 128)
-        self.fc4 = nn.Linear(128, 128)
+        
+        # Create a list of all layer dimensions
+        all_dims = [n] + hidden_dims + [output_dim]
+        
+        layers = []
+        for i in range(len(all_dims) - 1):
+            layers.append(nn.Linear(all_dims[i], all_dims[i+1]))
+            # Add activation to all layers except the last one
+            if i < len(all_dims) - 2:
+                layers.append(self.activation)
+        
+        # Create the sequential model
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.activation(x)
-        # x = self.fc2(x)
-        # x = self.activation(x)
-        # x = self.fc3(x)
-        # x = self.activation(x)
-        x = self.fc4(x)
-        x = self.activation(x)
-        return x
+        return self.net(x)
     
 class V_elliptical(nn.Module):
     def __init__(self, m, diag_flag):
         super(V_elliptical, self).__init__()
 
         self.latent_dim = m
+        
+        self.diag_Q = diag_flag
+        if self.diag_Q:
+            print("V_elliptical initialized with a DIAGONAL Q.")
+        else:
+            print("V_elliptical initialized with a FULL Q.")
+        
         # diagonal elements of the lower triangular matrix L
         self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
 
@@ -78,7 +132,7 @@ class V_elliptical(nn.Module):
         self.x_0 = nn.Parameter(torch.randn(1, m))
 
         self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``
-        self.diag_Q = diag_flag
+
 
     def _construct_Q(self):
         """
@@ -94,8 +148,6 @@ class V_elliptical(nn.Module):
         if not self.diag_Q:
             # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
             L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
-        else:
-            print("Diagonal Q is used.")    # For debugging purposes
 
         # Compute Q = LLᵀ
         Q = torch.matmul(L, L.T)
@@ -120,11 +172,48 @@ class V_elliptical(nn.Module):
 
 
 class DeepONet(nn.Module):
-    def __init__(self,m,n,trainable_c,c0,project=False, diag_Q=True):
+    def __init__(self,model_params):
         super(DeepONet,self).__init__()
 
-        self.Branch = Branch(m)
-        self.Trunk = Trunk(n)
+        m = model_params['m']
+        n = model_params['n']
+        trainable_c = model_params['trainable_c']
+        c0 = model_params['c0']
+        project = model_params['project']
+        diag_Q = model_params['diag_Q']
+        
+        branch_conv_channels = model_params['branch_conv_channels']
+        branch_fc_dims = model_params['branch_fc_dims']
+        
+        trunk_hidden_dims = model_params['trunk_hidden_dims']
+        
+        output_dim = model_params['output_dim']
+
+        # Define a configuration for the convolutional layers
+        # Define the desired output channels for each convolutional layer
+        conv_channels = branch_conv_channels
+
+        # Define the kernel and stride you want to use for all layers
+        kernel = 5
+        stride = 2
+
+        # Use a list comprehension to build the configuration list
+        conv_setup = [
+            {'out_channels': channels, 'kernel_size': kernel, 'stride': stride}
+            for channels in conv_channels
+        ]
+
+        # Create the Branch Net
+        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim)
+        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim)
+
+        # Check network structure (for debugging)
+        print("--- Initialized Branch Net Structure ---")
+        print(self.Branch)
+        print("\n--- Initialized Trunk Net Structure ---")
+        print(self.Trunk)
+        print("-" * 40)
+        
         self.project = project
         self.c0 = c0
 

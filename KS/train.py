@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 import matplotlib.pyplot as plt
-import model
+from model import DeepONet
 import os
 from utils import TrajectoryDataset, load_multi_traj_data, val_onestep_visual
 from torch.utils.data import DataLoader
@@ -30,8 +30,8 @@ def ellip_vol(model):
         vol = det_factor
     return vol
 
-
-device = torch.device('cuda')
+# choose whether to use GPU or CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -46,8 +46,6 @@ def train(params):
     model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
 
-    c0 = params['c_init']
-    trainable_c = params['trainable_c']
 
     model_folder = model_dir
     figs_folder = os.path.join(model_dir, 'eval_results')
@@ -69,8 +67,21 @@ def train(params):
     # Model Optimizer Initialization
     m = s = data['u_batch'].shape[2]  # Assuming u_batch is of shape (num_traj, traj_length, traj_dim)
     n = 1
-    import model
-    model = model.DeepONet(m, n, trainable_c=trainable_c, c0=c0, project=project, diag_Q=params['diag_Q']).to(device)
+
+    model_params = {
+        'm': m,
+        'n': n,
+        'trainable_c': params['trainable_c'],
+        'c0': params['c_init'],
+        'project': params['project'],
+        'diag_Q': params['diag_Q'],
+        'branch_conv_channels': params['branch_conv_channels'],
+        'branch_fc_dims': params['branch_fc_dims'],
+        'trunk_hidden_dims': params['trunk_hidden_dims'],
+        'output_dim': params['output_dim']
+    }
+
+    model = DeepONet(model_params).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
@@ -213,6 +224,19 @@ if __name__ == "__main__":
     parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
 
+    # Model parameters
+    parser.add_argument('--output_dim', type=int, default=128,
+                        help='Output dimension for both branch and trunk nets.')
+    
+    parser.add_argument('--branch_conv_channels', type=int, nargs='*', default=[32, 64, 128],
+                        help='List of output channels for branch conv layers.')
+
+    parser.add_argument('--branch_fc_dims', type=int, nargs='+', default=[128],
+                        help='List of hidden layer dimensions for branch FC net.')
+
+    parser.add_argument('--trunk_hidden_dims', type=int, nargs='+', default=[128, 128],
+                        help='List of hidden layer dimensions for trunk net.')
+
     args = parser.parse_args()
 
     params = vars(args)
@@ -235,8 +259,8 @@ if __name__ == "__main__":
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
-    logging.basicConfig(filename=f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-
+    logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    
     model = train(params)
     
 
