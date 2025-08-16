@@ -59,13 +59,12 @@ class Trunk(nn.Module):
         return x
     
 class V_elliptical(nn.Module):
-    def __init__(self, m):
+    def __init__(self, m, diag_flag):
         super(V_elliptical, self).__init__()
 
         self.latent_dim = m
         # diagonal elements of the lower triangular matrix L
         self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
-        self.log_diag_L = nn.Parameter(torch.ones(self.latent_dim)*0.1)
 
         # 2. Learnable parameters for the strictly lower triangular (off-diagonal) elements of L.
         # Get the indices for the lower triangular part of an n x n matrix (excluding the diagonal).
@@ -79,6 +78,7 @@ class V_elliptical(nn.Module):
         self.x_0 = nn.Parameter(torch.randn(1, m))
 
         self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``
+        self.diag_Q = diag_flag
 
     def _construct_Q(self):
         """
@@ -91,8 +91,11 @@ class V_elliptical(nn.Module):
         # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
         L.diagonal().copy_(torch.exp(self.log_diag_L))
 
-        # Set the off-diagonal elements from the learned parameters.
-        L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+        if not self.diag_Q:
+            # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
+            L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+        else:
+            print("Diagonal Q is used.")    # For debugging purposes
 
         # Compute Q = LLᵀ
         Q = torch.matmul(L, L.T)
@@ -117,7 +120,7 @@ class V_elliptical(nn.Module):
 
 
 class DeepONet(nn.Module):
-    def __init__(self,m,n,trainable_c,c0,project=False):
+    def __init__(self,m,n,trainable_c,c0,project=False, diag_Q=True):
         super(DeepONet,self).__init__()
 
         self.Branch = Branch(m)
@@ -138,8 +141,8 @@ class DeepONet(nn.Module):
             else:
                 self.c.requires_grad = False
             self.eps_proj = 1e-3
-            self.V = V_elliptical(m)
-    
+            self.V = V_elliptical(m=m, diag_flag=diag_Q)
+
 
     def f_project(self,w_in,w_out,dt=1):
         w0 = self.V.x_0
