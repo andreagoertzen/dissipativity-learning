@@ -96,122 +96,122 @@ def train(params):
     dynamic_losses = []
     reg_losses = []
 
-    # # --- Main Training Loop ---
-    # for epoch in tqdm(range(epochs + 1)):
-    #     model.train()
-    #     epoch_train_loss = 0
-    #     epoch_dynamic_loss = 0
-    #     epoch_reg_loss = 0
-    #     # Iterate over batches from the DataLoader
-    #     for x_batch, y_batch in train_loader:
-    #         # The dataloader gives us a tuple for x_batch
-    #         branch_batch, trunk_batch = x_batch
+    # --- Main Training Loop ---
+    for epoch in tqdm(range(epochs + 1)):
+        model.train()
+        epoch_train_loss = 0
+        epoch_dynamic_loss = 0
+        epoch_reg_loss = 0
+        # Iterate over batches from the DataLoader
+        for x_batch, y_batch in train_loader:
+            # The dataloader gives us a tuple for x_batch
+            branch_batch, trunk_batch = x_batch
             
-    #         # Move batch to the correct device
-    #         branch_batch = branch_batch.to(device)
-    #         trunk_batch = trunk_batch.to(device)
-    #         # Transpose the trunk input
+            # Move batch to the correct device
+            branch_batch = branch_batch.to(device)
+            trunk_batch = trunk_batch.to(device)
+            # Transpose the trunk input
             
-    #         trunk_input = trunk_batch[0]
-    #         y_batch = y_batch.to(device)
+            trunk_input = trunk_batch[0]
+            y_batch = y_batch.to(device)
             
-    #         optimizer.zero_grad()
+            optimizer.zero_grad()
             
-    #         # The model expects a tuple of (branch_input, trunk_input)
-    #         u_pred = model((branch_batch, trunk_input))
-    #         dynamic_loss = loss_func(u_pred, y_batch)
+            # The model expects a tuple of (branch_input, trunk_input)
+            u_pred = model((branch_batch, trunk_input))
+            dynamic_loss = loss_func(u_pred, y_batch)
 
-    #         # Calculate regularization loss if projection is enabled
-    #         if project:
-    #             vol = ellip_vol(model)
-    #             reg_loss = lam_reg_vol * vol.squeeze()
-    #         else:
-    #             reg_loss = torch.tensor(0.0, device=device)
+            # Calculate regularization loss if projection is enabled
+            if project:
+                vol = ellip_vol(model)
+                reg_loss = lam_reg_vol * vol.squeeze()
+            else:
+                reg_loss = torch.tensor(0.0, device=device)
             
-    #         loss = dynamic_loss + reg_loss
-    #         loss.backward()
+            loss = dynamic_loss + reg_loss
+            loss.backward()
 
-    #         if epoch % n_save_epochs == 0:
-    #             for name, param in model.named_parameters():
-    #                 if param.grad is not None:
-    #                     grad_norm = param.grad.data.norm(2).item()
-    #                     print(f'Gradient norm for {name}: {grad_norm:.6f}')
+            if epoch % n_save_epochs == 0:
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        grad_norm = param.grad.data.norm(2).item()
+                        print(f'Gradient norm for {name}: {grad_norm:.6f}')
 
-    #         # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0)
-    #         optimizer.step()
-    #         epoch_train_loss += loss.item()
-    #         epoch_dynamic_loss += dynamic_loss.item()
-    #         epoch_reg_loss += reg_loss.item()
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0)
+            optimizer.step()
+            epoch_train_loss += loss.item()
+            epoch_dynamic_loss += dynamic_loss.item()
+            epoch_reg_loss += reg_loss.item()
 
-    #     # --- Evaluation, Logging, and Checkpointing ---
-    #     if epoch % n_save_epochs == 0:
-    #         model.eval()
-    #         epoch_val_loss = 0
-    #         with torch.no_grad():
-    #             for x_val, y_val in val_loader:
-    #                 branch_val, trunk_val = x_val
-    #                 branch_val, trunk_val = branch_val.to(device), trunk_val.to(device)
-    #                 trunk_val_input = trunk_val[0]
-    #                 y_val = y_val.to(device)
+        # --- Evaluation, Logging, and Checkpointing ---
+        if epoch % n_save_epochs == 0:
+            model.eval()
+            epoch_val_loss = 0
+            with torch.no_grad():
+                for x_val, y_val in val_loader:
+                    branch_val, trunk_val = x_val
+                    branch_val, trunk_val = branch_val.to(device), trunk_val.to(device)
+                    trunk_val_input = trunk_val[0]
+                    y_val = y_val.to(device)
 
-    #                 u_val_pred = model((branch_val, trunk_val_input))
-    #                 epoch_val_loss += loss_func(u_val_pred, y_val).item()
+                    u_val_pred = model((branch_val, trunk_val_input))
+                    epoch_val_loss += loss_func(u_val_pred, y_val).item()
 
-    #         avg_train_loss = epoch_train_loss / len(train_loader)
-    #         avg_val_loss = epoch_val_loss / len(val_loader)
-    #         avg_dynamic_loss = epoch_dynamic_loss / len(train_loader)
-    #         avg_reg_loss = epoch_reg_loss / len(train_loader)
+            avg_train_loss = epoch_train_loss / len(train_loader)
+            avg_val_loss = epoch_val_loss / len(val_loader)
+            avg_dynamic_loss = epoch_dynamic_loss / len(train_loader)
+            avg_reg_loss = epoch_reg_loss / len(train_loader)
             
-    #         train_losses.append(avg_train_loss)
-    #         val_losses.append(avg_val_loss)
-    #         dynamic_losses.append(avg_dynamic_loss)
-    #         reg_losses.append(avg_reg_loss)
+            train_losses.append(avg_train_loss)
+            val_losses.append(avg_val_loss)
+            dynamic_losses.append(avg_dynamic_loss)
+            reg_losses.append(avg_reg_loss)
 
-    #         plt.figure(figsize=(6, 4))
-    #         plot_x = np.linspace(0, epoch, int(epoch / n_save_epochs + 1))
+            plt.figure(figsize=(6, 4))
+            plot_x = np.linspace(0, epoch, int(epoch / n_save_epochs + 1))
 
-    #         # Create figure and first axis
-    #         fig, ax1 = plt.subplots(figsize=(6, 4))
+            # Create figure and first axis
+            fig, ax1 = plt.subplots(figsize=(6, 4))
 
-    #         # Primary y-axis plots
-    #         ax1.plot(plot_x, train_losses, label='Training Loss')
-    #         ax1.plot(plot_x, dynamic_losses, label='Dynamic Loss')
-    #         ax1.plot(plot_x, val_losses, label='Val Loss')
+            # Primary y-axis plots
+            ax1.plot(plot_x, train_losses, label='Training Loss')
+            ax1.plot(plot_x, dynamic_losses, label='Dynamic Loss')
+            ax1.plot(plot_x, val_losses, label='Val Loss')
 
-    #         ax1.set_xlabel('Iteration')
-    #         ax1.set_ylabel('Loss (log scaled)')
-    #         ax1.set_yscale('log')
-    #         ax1.grid(True)
+            ax1.set_xlabel('Iteration')
+            ax1.set_ylabel('Loss (log scaled)')
+            ax1.set_yscale('log')
+            ax1.grid(True)
 
-    #         # Secondary y-axis (right side)
-    #         ax2 = ax1.twinx()
-    #         ax2.plot(plot_x, reg_losses, 'r--', label='Reg Loss')
-    #         ax2.set_ylabel('Regularization Loss (log scaled)', color='r')
-    #         ax2.set_yscale('log')
-    #         ax2.tick_params(axis='y', labelcolor='r')
+            # Secondary y-axis (right side)
+            ax2 = ax1.twinx()
+            ax2.plot(plot_x, reg_losses, 'r--', label='Reg Loss')
+            ax2.set_ylabel('Regularization Loss (log scaled)', color='r')
+            ax2.set_yscale('log')
+            ax2.tick_params(axis='y', labelcolor='r')
 
-    #         # Combine legends from both axes
-    #         lines1, labels1 = ax1.get_legend_handles_labels()
-    #         lines2, labels2 = ax2.get_legend_handles_labels()
-    #         ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+            # Combine legends from both axes
+            lines1, labels1 = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
 
-    #         plt.title('Loss over Time')
-    #         plt.tight_layout()
-    #         plt.savefig(f"{figs_folder}/loss_iter.png")
-    #         plt.close('all')
+            plt.title('Loss over Time')
+            plt.tight_layout()
+            plt.savefig(f"{figs_folder}/loss_iter.png")
+            plt.close('all')
 
-    #         total_time = time.time() - tic
+            total_time = time.time() - tic
 
-    #         logging.info(f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e} | Time: {total_time:.2f}s")
+            logging.info(f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e} | Time: {total_time:.2f}s")
 
-    #         # Save the model if it has the best validation loss so far
-    #         if avg_val_loss < best_loss:
-    #             logging.info(f"New best model found at epoch {epoch} with validation loss {avg_val_loss:.3e}. Saving...")
-    #             torch.save(model.state_dict(), f"./{model_folder}/model_epoch_best.pt")
-    #             best_loss = avg_val_loss
-    #             best_ind = epoch
+            # Save the model if it has the best validation loss so far
+            if avg_val_loss < best_loss:
+                logging.info(f"New best model found at epoch {epoch} with validation loss {avg_val_loss:.3e}. Saving...")
+                torch.save(model.state_dict(), f"./{model_folder}/model_epoch_best.pt")
+                best_loss = avg_val_loss
+                best_ind = epoch
             
-    #         tic = time.time()
+            tic = time.time()
 
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
