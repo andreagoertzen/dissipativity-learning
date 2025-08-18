@@ -181,7 +181,8 @@ class DeepONet(nn.Module):
         c0 = model_params['c0']
         project = model_params['project']
         diag_Q = model_params['diag_Q']
-        
+        dt = model_params['dt']
+
         branch_conv_channels = model_params['branch_conv_channels']
         branch_fc_dims = model_params['branch_fc_dims']
         
@@ -216,6 +217,7 @@ class DeepONet(nn.Module):
         
         self.project = project
         self.c0 = c0
+        self.dt = dt
 
         self.trainable_c = trainable_c
 
@@ -233,7 +235,7 @@ class DeepONet(nn.Module):
             self.V = V_elliptical(m=m, diag_flag=diag_Q)
 
 
-    def f_project(self,w_in,w_out,dt=1):
+    def f_project(self,w_in,w_out,dt):
         w0 = self.V.x_0
         V = self.V(w_in)
         Q = self.V.Q
@@ -260,5 +262,5 @@ class DeepONet(nn.Module):
         x_out = torch.einsum("bi,ai->ba",x1,x2)
         x_out += self.b
         if self.project:
-            x_out = self.f_project(x[0],x_out)
+            x_out = self.f_project(x[0],x_out, dt=self.dt)
         return x_out

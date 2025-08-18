@@ -55,7 +55,7 @@ def train(params):
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
-    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T500.0_dt0.01_amp5.0/data.npz'
+    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
     data = np.load(file_dir, allow_pickle=True)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
@@ -78,7 +78,8 @@ def train(params):
         'branch_conv_channels': params['branch_conv_channels'],
         'branch_fc_dims': params['branch_fc_dims'],
         'trunk_hidden_dims': params['trunk_hidden_dims'],
-        'output_dim': params['output_dim']
+        'output_dim': params['output_dim'],
+        'dt': params['dt']
     }
 
     model = DeepONet(model_params).to(device)
@@ -240,6 +241,7 @@ if __name__ == "__main__":
     parser.add_argument('--trainable_c', action='store_true', help='specify whether c is trainable')
     parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
+    parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
