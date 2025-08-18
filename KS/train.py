@@ -55,7 +55,7 @@ def train(params):
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
-    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
+    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
     data = np.load(file_dir, allow_pickle=True)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
@@ -213,14 +213,15 @@ def train(params):
             
             tic = time.time()
 
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
+    
     model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
     model.eval()
     x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
     y_val = val_dataset.targets.to(device)     
     run_model_visualization(model, x_val, y_val, s, device, figs_dir=figs_folder)
 
-    # save model_params dictionary in the model location, perhaps as an npz
-    np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
     model.eval()

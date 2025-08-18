@@ -1,0 +1,10 @@
+2025-08-18 16:19:57,540:INFO:Created DataLoaders with 2994 training samples and 998 validation samples.
+2025-08-18 16:19:59,599:INFO:model params: 526849
+2025-08-18 16:25:30,741:INFO:Created DataLoaders with 2994 training samples and 998 validation samples.
+2025-08-18 16:25:32,003:INFO:model params: 526849
+2025-08-18 16:27:40,723:INFO:Created DataLoaders with 2994 training samples and 998 validation samples.
+2025-08-18 16:27:41,279:INFO:model params: 526849
+2025-08-18 16:30:36,955:INFO:Created DataLoaders with 2994 training samples and 998 validation samples.
+2025-08-18 16:30:38,296:INFO:model params: 526849
+2025-08-18 16:32:00,225:INFO:Created DataLoaders with 2994 training samples and 998 validation samples.
+2025-08-18 16:32:00,766:INFO:model params: 526849
