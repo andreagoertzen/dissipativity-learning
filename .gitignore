@@ -2,3 +2,4 @@
 KS/whiteboards
 **/*.pyc
 train_local.sh
+*.out
