@@ -251,7 +251,7 @@ class DeepONet(nn.Module):
 
         # print((F.relu(A * w_out).sum(dim=1)).unsqueeze(1).shape, A.shape, bx.shape)
 
-        w_star = w_out - A * (F.relu(A * w_out).sum(dim=1) + bx).unsqueeze(1) / torch.clamp((dVdw ** 2).sum(dim=1), min=self.eps_proj).unsqueeze(1)
+        w_star = w_out - A * (F.relu( (A * w_out).sum(dim=1) + bx) ).unsqueeze(1) / torch.clamp((dVdw ** 2).sum(dim=1), min=self.eps_proj).unsqueeze(1)
 
         return w_star
 
