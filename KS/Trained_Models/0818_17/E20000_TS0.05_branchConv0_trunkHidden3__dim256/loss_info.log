@@ -343,3 +343,5 @@
 2025-08-18 17:31:33,613:INFO:Epoch: 13200/20000 | Train Loss: 3.639e-01 | Dynamic Loss: 3.639e-01 | Regularization Loss: 0.000e+00 | Val Loss: 5.077e-01 | Time: 5.04s
 2025-08-18 17:31:46,050:INFO:Epoch: 13250/20000 | Train Loss: 3.376e-01 | Dynamic Loss: 3.376e-01 | Regularization Loss: 0.000e+00 | Val Loss: 4.772e-01 | Time: 12.44s
 2025-08-18 17:31:51,137:INFO:Epoch: 13300/20000 | Train Loss: 3.093e-01 | Dynamic Loss: 3.093e-01 | Regularization Loss: 0.000e+00 | Val Loss: 4.490e-01 | Time: 5.09s
+2025-08-18 17:53:53,565:INFO:Created DataLoaders with 5994 training samples and 1998 validation samples.
+2025-08-18 17:53:54,983:INFO:model params: 395009

@@ -308,3 +308,5 @@
 2025-08-18 17:31:33,943:INFO:Epoch: 12550/20000 | Train Loss: nan | Dynamic Loss: nan | Regularization Loss: nan | Val Loss: nan | Time: 5.88s
 2025-08-18 17:31:41,731:INFO:Epoch: 12600/20000 | Train Loss: nan | Dynamic Loss: nan | Regularization Loss: nan | Val Loss: nan | Time: 7.79s
 2025-08-18 17:31:47,621:INFO:Epoch: 12650/20000 | Train Loss: nan | Dynamic Loss: nan | Regularization Loss: nan | Val Loss: nan | Time: 5.89s
+2025-08-18 17:53:43,970:INFO:Created DataLoaders with 5994 training samples and 1998 validation samples.
+2025-08-18 17:53:44,555:INFO:model params: 526850
