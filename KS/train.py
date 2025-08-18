@@ -129,6 +129,14 @@ def train(params):
             
             loss = dynamic_loss + reg_loss
             loss.backward()
+
+            if epoch % n_save_epochs == 0:
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        grad_norm = param.grad.data.norm(2).item()
+                        print(f'Gradient norm for {name}: {grad_norm:.6f}')
+
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0)
             optimizer.step()
             epoch_train_loss += loss.item()
             epoch_dynamic_loss += dynamic_loss.item()
@@ -189,7 +197,7 @@ def train(params):
             plt.title('Loss over Time')
             plt.tight_layout()
             plt.savefig(f"{figs_folder}/loss_iter.png")
-            plt.close()
+            plt.close('all')
 
             total_time = time.time() - tic
 
@@ -212,6 +220,12 @@ def train(params):
 
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
+
+    model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
+    model.eval()
+    x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
+    y_val = val_dataset.targets.to(device)    
+    run_model_visualization(model,x_val,y_val,s,device,figs_dir = figs_folder)
     return model
 
 
@@ -253,16 +267,22 @@ if __name__ == "__main__":
         reg_name += f'_C0{args.c_init}'
     if params['diag_Q']:
         reg_name += '_diagQ'
+
+    print(args.branch_conv_channels)
         
     # Set up directory for saving models and plots
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
-    logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    logging.basicConfig(filename=save_dir + '/' + f"loss_info.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
     
     model = train(params)
     
