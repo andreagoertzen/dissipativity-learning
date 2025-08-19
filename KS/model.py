@@ -238,19 +238,17 @@ class DeepONet(nn.Module):
             self.eps_proj = 1e-3
             self.V = V_elliptical(m=m, diag_flag=diag_Q)
 
-    def discrete_project(self, w_in, w_out, smooth_gamma=False):
+    def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.999):
         w_0 = self.V.x_0
         V = self.V(w_in)
 
         # The constraint is w^T Q w \leq b, and b = (1 - gamma) * V + gamma * self.c ** 2
         # Equivalently, V(w_out) - V(w_in) + gamma (V - c) \leq 0
-        if smooth_gamma:
-            k = 10.0
-            gamma = 1 - torch.sigmoid(k * (V - self.c ** 2))
-        else:
-            gamma = (V <= self.c ** 2).float()
         
-        b = (1 - gamma) * V + gamma * self.c ** 2
+        
+        # b = (1 - gamma) * V + gamma * self.c ** 2
+        b = V + nn.ReLU(-V + self.c ** 2)
+        b = scale_level_set * b
         w = w_out - w_0
         
         # Assuming Q is diagonal
@@ -261,10 +259,21 @@ class DeepONet(nn.Module):
         w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
         z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero
         sqrt_b = torch.sqrt(b).unsqueeze(1)
-        w_star = w_0 + sqrt_b * z @ Q_inv_sqrt
+        w_proj = w_0 + sqrt_b * z @ Q_inv_sqrt
         
+        V_out = self.V(w_out)
+        if smooth_choice:
+            k_choice = 100.0
+            choice = 1 - torch.sigmoid(k_choice * (V_out - b))
+        else:
+            choice = (V_out <= b).float()
+        choice = choice.reshape(-1, 1)  # Ensure choice is a column vector
+        # print(choice.shape)
+        
+        w_star = choice * w_out + (1 - choice) * w_proj
+
         return w_star
-    
+
     def f_project(self,w_in,w_out,dt):
         w0 = self.V.x_0
         V = self.V(w_in)
