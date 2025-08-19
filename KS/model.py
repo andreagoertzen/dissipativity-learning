@@ -247,7 +247,7 @@ class DeepONet(nn.Module):
         
         
         # b = (1 - gamma) * V + gamma * self.c ** 2
-        b = V + nn.ReLU(-V + self.c ** 2)
+        b = V + F.relu(-V + self.c ** 2)
         b = scale_level_set * b
         w = w_out - w_0
         
