@@ -245,13 +245,13 @@ class DeepONet(nn.Module):
 
         # constraint has the form Ay + b(x) <= 0
         A = dVdw
-        # bx = V-(1/dt) * torch.einsum('bi,bi->b',dVdw, w_in) - self.c**2
-        # w_star = w_out - dVdw * (F.relu( torch.einsum('bi,bi->b',A,w_out) + bx)/torch.clamp((dVdw**2).sum(dim=1), min=self.eps_proj)).unsqueeze(1)
-        bx = - (A * w_in).sum(dim=1) + dt * (V - self.c ** 2)
+        bx = V-(1/dt) * torch.einsum('bi,bi->b',dVdw, w_in) - self.c**2
+        w_star = w_out - dVdw * (F.relu( torch.einsum('bi,bi->b',A,w_out) + bx)/torch.clamp((dVdw**2).sum(dim=1), min=self.eps_proj)).unsqueeze(1)
+        # bx = - (A * w_in).sum(dim=1) + dt * (V - self.c ** 2)
 
         # print((F.relu(A * w_out).sum(dim=1)).unsqueeze(1).shape, A.shape, bx.shape)
 
-        w_star = w_out - A * (F.relu( (A * w_out).sum(dim=1) + bx) ).unsqueeze(1) / torch.clamp((dVdw ** 2).sum(dim=1), min=self.eps_proj).unsqueeze(1)
+        # w_star = w_out - A * (F.relu( (A * w_out).sum(dim=1) + bx) ).unsqueeze(1) / torch.clamp((dVdw ** 2).sum(dim=1), min=self.eps_proj).unsqueeze(1)
 
         return w_star
 
