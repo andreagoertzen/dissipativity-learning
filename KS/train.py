@@ -79,7 +79,8 @@ def train(params):
         'branch_fc_dims': params['branch_fc_dims'],
         'trunk_hidden_dims': params['trunk_hidden_dims'],
         'output_dim': params['output_dim'],
-        'dt': params['dt']
+        'dt': params['dt'],
+        'discrete_proj': params['discrete_proj'],
     }
 
     model = DeepONet(model_params).to(device)
@@ -131,11 +132,11 @@ def train(params):
             loss = dynamic_loss + reg_loss
             loss.backward()
 
-            if epoch % n_save_epochs == 0:
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        grad_norm = param.grad.data.norm(2).item()
-                        print(f'Gradient norm for {name}: {grad_norm:.6f}')
+            # if epoch % n_save_epochs == 0:
+            #     for name, param in model.named_parameters():
+            #         if param.grad is not None:
+            #             grad_norm = param.grad.data.norm(2).item()
+            #             print(f'Gradient norm for {name}: {grad_norm:.6f}')
 
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0)
             optimizer.step()
@@ -237,6 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
+    parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -271,7 +273,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_{args.discrete_proj}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
