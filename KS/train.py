@@ -45,7 +45,7 @@ def train(params):
     tag = params['tag']
     model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
-
+    lr = params['lr']
 
     model_folder = model_dir
     figs_folder = os.path.join(model_dir, 'eval_results')
@@ -84,7 +84,8 @@ def train(params):
     }
 
     model = DeepONet(model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    print(f'Training with Learning rate: {lr}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
@@ -228,7 +229,7 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, help='specify number of epochs', default=10000)
+    parser.add_argument('--epochs', type=int, help='specify number of epochs', default=20000)
     parser.add_argument('--bsize', type=int, help='specify batch size', default=2048)
     parser.add_argument('--lam_reg_vol', type=float, help='specify regularization lambda', default=1.0)
     parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
@@ -239,6 +240,7 @@ if __name__ == "__main__":
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
+    parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
