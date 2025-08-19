@@ -240,8 +240,8 @@ class DeepONet(nn.Module):
         V = self.V(w_in)
         Q = self.V.Q
         diff = w_in-w0
-        # dVdw = torch.einsum('ij,bj->bi',2*Q,diff)
-        dVdw = 2 * (diff @ Q)  # Gradient of V with respect to w_in
+        dVdw = torch.einsum('ij,bj->bi',2*Q,diff)
+        # dVdw = 2 * (diff @ Q)  # Gradient of V with respect to w_in
 
         # constraint has the form Ay + b(x) <= 0
         A = dVdw
