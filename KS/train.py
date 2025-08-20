@@ -48,7 +48,7 @@ def train(params):
     model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
     lr = params['lr']
-    warm_start = params['warm_start']
+    # warm_start = params['warm_start']
 
     model_folder = model_dir
     figs_folder = os.path.join(model_dir, 'eval_results')
@@ -105,6 +105,7 @@ def train(params):
     val_losses = []
     dynamic_losses = []
     reg_losses = []
+    projection_percentages = []
 
     # --- Main Training Loop ---
     for epoch in tqdm(range(epochs + 1)):
@@ -112,7 +113,7 @@ def train(params):
         epoch_train_loss = 0
         epoch_dynamic_loss = 0
         epoch_reg_loss = 0
-
+        epoch_active_projection_percentage = 0.0
 
         # if warm_start:
         #     if epoch == 10000:
@@ -137,6 +138,10 @@ def train(params):
             
             # The model expects a tuple of (branch_input, trunk_input)
             u_pred = model((branch_batch, trunk_input))
+
+            if project and model_params['discrete_proj']:
+                epoch_active_projection_percentage += model.active_projection_percentage
+
             dynamic_loss = loss_func(u_pred, y_batch)
 
             # Calculate regularization loss if projection is enabled
@@ -179,11 +184,13 @@ def train(params):
             avg_val_loss = epoch_val_loss / len(val_loader)
             avg_dynamic_loss = epoch_dynamic_loss / len(train_loader)
             avg_reg_loss = epoch_reg_loss / len(train_loader)
-            
+            avg_projection_percentage = epoch_active_projection_percentage / len(train_loader)
+
             train_losses.append(avg_train_loss)
             val_losses.append(avg_val_loss)
             dynamic_losses.append(avg_dynamic_loss)
             reg_losses.append(avg_reg_loss)
+            projection_percentages.append(avg_projection_percentage)
 
             plt.figure(figsize=(6, 4))
             plot_x = np.linspace(0, epoch, int(epoch / n_save_epochs + 1))
@@ -219,8 +226,24 @@ def train(params):
             plt.close('all')
 
             total_time = time.time() - tic
-
-            logging.info(f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e} | Time: {total_time:.2f}s")
+    
+            plt.figure(figsize=(6, 4))
+            plt.plot(plot_x, projection_percentages, label='Active Projection %', color='green')
+            plt.xlabel('Iteration')
+            plt.ylabel('Percentage (%)')
+            plt.title('Percentage of Batch with Active Projection')
+            plt.grid(True)
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(f"{figs_folder}/projection_percentage_iter.png")
+            plt.close('all')
+            
+            log_string = (f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e}")
+            if project and model_params['discrete_proj']:
+                log_string += f" | Active Proj %: {avg_projection_percentage:.2f}"
+                
+            log_string += f" | Time: {total_time:.2f}s"
+            logging.info(log_string)
 
             # Save the model if it has the best validation loss so far
             if avg_val_loss < best_loss:

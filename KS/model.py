@@ -229,6 +229,8 @@ class DeepONet(nn.Module):
         if self.project:
             print('Projection layer included')
             
+            self.active_projection_percentage = 0.0
+            
             self.c = nn.Parameter(torch.tensor(self.c0))
             if self.trainable_c:
                 # freeze self.c gradient
@@ -269,6 +271,12 @@ class DeepONet(nn.Module):
             choice = (V_out <= b).float()
         choice = choice.reshape(-1, 1)  # Ensure choice is a column vector
         # print(choice.shape)
+        
+        active_threshold = 1e-5
+        active_proj_count = torch.sum(choice < active_threshold)
+        
+        batch_size = w_in.shape[0]
+        self.active_projection_percentage = active_proj_count.item() / batch_size * 100
         
         w_star = choice * w_out + (1 - choice) * w_proj
 
