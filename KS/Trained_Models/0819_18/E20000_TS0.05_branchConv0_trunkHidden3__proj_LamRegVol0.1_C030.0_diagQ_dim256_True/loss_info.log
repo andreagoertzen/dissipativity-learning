@@ -1,0 +1,511 @@
+2025-08-19 18:12:27,599:INFO:Created DataLoaders with 5994 training samples and 1998 validation samples.
+2025-08-19 18:12:28,157:INFO:model params: 526849
+2025-08-19 18:12:31,183:INFO:Epoch: 0/20000 | Train Loss: 2.911e+00 | Dynamic Loss: 2.816e+00 | Regularization Loss: 9.509e-02 | Val Loss: 2.350e+00 | Time: 3.03s
+2025-08-19 18:12:31,183:INFO:New best model found at epoch 0 with validation loss 2.350e+00. Saving...
+2025-08-19 18:12:37,015:INFO:Epoch: 50/20000 | Train Loss: 1.777e+00 | Dynamic Loss: 1.773e+00 | Regularization Loss: 4.073e-03 | Val Loss: 1.738e+00 | Time: 5.82s
+2025-08-19 18:12:37,016:INFO:New best model found at epoch 50 with validation loss 1.738e+00. Saving...
+2025-08-19 18:12:42,882:INFO:Epoch: 100/20000 | Train Loss: 1.638e+00 | Dynamic Loss: 1.637e+00 | Regularization Loss: 1.610e-03 | Val Loss: 1.671e+00 | Time: 5.86s
+2025-08-19 18:12:42,882:INFO:New best model found at epoch 100 with validation loss 1.671e+00. Saving...
+2025-08-19 18:12:49,278:INFO:Epoch: 150/20000 | Train Loss: 1.549e+00 | Dynamic Loss: 1.548e+00 | Regularization Loss: 8.983e-04 | Val Loss: 1.593e+00 | Time: 6.38s
+2025-08-19 18:12:49,278:INFO:New best model found at epoch 150 with validation loss 1.593e+00. Saving...
+2025-08-19 18:12:59,582:INFO:Epoch: 200/20000 | Train Loss: 1.469e+00 | Dynamic Loss: 1.468e+00 | Regularization Loss: 5.839e-04 | Val Loss: 1.506e+00 | Time: 10.29s
+2025-08-19 18:12:59,582:INFO:New best model found at epoch 200 with validation loss 1.506e+00. Saving...
+2025-08-19 18:13:05,655:INFO:Epoch: 250/20000 | Train Loss: 1.406e+00 | Dynamic Loss: 1.405e+00 | Regularization Loss: 4.138e-04 | Val Loss: 1.440e+00 | Time: 6.06s
+2025-08-19 18:13:05,655:INFO:New best model found at epoch 250 with validation loss 1.440e+00. Saving...
+2025-08-19 18:13:11,663:INFO:Epoch: 300/20000 | Train Loss: 1.332e+00 | Dynamic Loss: 1.332e+00 | Regularization Loss: 3.101e-04 | Val Loss: 1.378e+00 | Time: 6.00s
+2025-08-19 18:13:11,663:INFO:New best model found at epoch 300 with validation loss 1.378e+00. Saving...
+2025-08-19 18:13:17,764:INFO:Epoch: 350/20000 | Train Loss: 1.274e+00 | Dynamic Loss: 1.274e+00 | Regularization Loss: 2.416e-04 | Val Loss: 1.326e+00 | Time: 6.09s
+2025-08-19 18:13:17,764:INFO:New best model found at epoch 350 with validation loss 1.326e+00. Saving...
+2025-08-19 18:13:24,042:INFO:Epoch: 400/20000 | Train Loss: 1.202e+00 | Dynamic Loss: 1.202e+00 | Regularization Loss: 1.936e-04 | Val Loss: 1.254e+00 | Time: 6.27s
+2025-08-19 18:13:24,042:INFO:New best model found at epoch 400 with validation loss 1.254e+00. Saving...
+2025-08-19 18:13:33,911:INFO:Epoch: 450/20000 | Train Loss: 1.153e+00 | Dynamic Loss: 1.153e+00 | Regularization Loss: 1.586e-04 | Val Loss: 1.210e+00 | Time: 9.86s
+2025-08-19 18:13:33,911:INFO:New best model found at epoch 450 with validation loss 1.210e+00. Saving...
+2025-08-19 18:13:40,098:INFO:Epoch: 500/20000 | Train Loss: 1.119e+00 | Dynamic Loss: 1.119e+00 | Regularization Loss: 1.322e-04 | Val Loss: 1.181e+00 | Time: 6.18s
+2025-08-19 18:13:40,098:INFO:New best model found at epoch 500 with validation loss 1.181e+00. Saving...
+2025-08-19 18:13:46,820:INFO:Epoch: 550/20000 | Train Loss: 1.062e+00 | Dynamic Loss: 1.062e+00 | Regularization Loss: 1.117e-04 | Val Loss: 1.137e+00 | Time: 6.71s
+2025-08-19 18:13:46,821:INFO:New best model found at epoch 550 with validation loss 1.137e+00. Saving...
+2025-08-19 18:13:53,114:INFO:Epoch: 600/20000 | Train Loss: 1.022e+00 | Dynamic Loss: 1.022e+00 | Regularization Loss: 9.553e-05 | Val Loss: 1.099e+00 | Time: 6.28s
+2025-08-19 18:13:53,114:INFO:New best model found at epoch 600 with validation loss 1.099e+00. Saving...
+2025-08-19 18:13:59,320:INFO:Epoch: 650/20000 | Train Loss: 9.782e-01 | Dynamic Loss: 9.781e-01 | Regularization Loss: 8.245e-05 | Val Loss: 1.061e+00 | Time: 6.20s
+2025-08-19 18:13:59,320:INFO:New best model found at epoch 650 with validation loss 1.061e+00. Saving...
+2025-08-19 18:14:11,120:INFO:Epoch: 700/20000 | Train Loss: 9.596e-01 | Dynamic Loss: 9.596e-01 | Regularization Loss: 7.174e-05 | Val Loss: 1.056e+00 | Time: 11.79s
+2025-08-19 18:14:11,120:INFO:New best model found at epoch 700 with validation loss 1.056e+00. Saving...
+2025-08-19 18:14:17,284:INFO:Epoch: 750/20000 | Train Loss: 9.125e-01 | Dynamic Loss: 9.124e-01 | Regularization Loss: 6.286e-05 | Val Loss: 9.975e-01 | Time: 6.16s
+2025-08-19 18:14:17,284:INFO:New best model found at epoch 750 with validation loss 9.975e-01. Saving...
+2025-08-19 18:14:23,482:INFO:Epoch: 800/20000 | Train Loss: 9.314e-01 | Dynamic Loss: 9.313e-01 | Regularization Loss: 5.539e-05 | Val Loss: 1.006e+00 | Time: 6.19s
+2025-08-19 18:14:29,805:INFO:Epoch: 850/20000 | Train Loss: 8.655e-01 | Dynamic Loss: 8.654e-01 | Regularization Loss: 4.907e-05 | Val Loss: 9.514e-01 | Time: 6.32s
+2025-08-19 18:14:29,805:INFO:New best model found at epoch 850 with validation loss 9.514e-01. Saving...
+2025-08-19 18:14:36,188:INFO:Epoch: 900/20000 | Train Loss: 8.437e-01 | Dynamic Loss: 8.437e-01 | Regularization Loss: 4.367e-05 | Val Loss: 9.306e-01 | Time: 6.37s
+2025-08-19 18:14:36,189:INFO:New best model found at epoch 900 with validation loss 9.306e-01. Saving...
+2025-08-19 18:14:42,590:INFO:Epoch: 950/20000 | Train Loss: 8.225e-01 | Dynamic Loss: 8.224e-01 | Regularization Loss: 3.901e-05 | Val Loss: 9.074e-01 | Time: 6.39s
+2025-08-19 18:14:42,590:INFO:New best model found at epoch 950 with validation loss 9.074e-01. Saving...
+2025-08-19 18:14:49,433:INFO:Epoch: 1000/20000 | Train Loss: 7.943e-01 | Dynamic Loss: 7.943e-01 | Regularization Loss: 3.497e-05 | Val Loss: 8.895e-01 | Time: 6.83s
+2025-08-19 18:14:49,433:INFO:New best model found at epoch 1000 with validation loss 8.895e-01. Saving...
+2025-08-19 18:15:01,557:INFO:Epoch: 1050/20000 | Train Loss: 7.874e-01 | Dynamic Loss: 7.873e-01 | Regularization Loss: 3.145e-05 | Val Loss: 8.685e-01 | Time: 12.11s
+2025-08-19 18:15:01,557:INFO:New best model found at epoch 1050 with validation loss 8.685e-01. Saving...
+2025-08-19 18:15:08,028:INFO:Epoch: 1100/20000 | Train Loss: 7.579e-01 | Dynamic Loss: 7.578e-01 | Regularization Loss: 2.836e-05 | Val Loss: 8.491e-01 | Time: 6.46s
+2025-08-19 18:15:08,028:INFO:New best model found at epoch 1100 with validation loss 8.491e-01. Saving...
+2025-08-19 18:15:14,191:INFO:Epoch: 1150/20000 | Train Loss: 7.362e-01 | Dynamic Loss: 7.361e-01 | Regularization Loss: 2.564e-05 | Val Loss: 8.286e-01 | Time: 6.15s
+2025-08-19 18:15:14,191:INFO:New best model found at epoch 1150 with validation loss 8.286e-01. Saving...
+2025-08-19 18:15:20,849:INFO:Epoch: 1200/20000 | Train Loss: 7.290e-01 | Dynamic Loss: 7.290e-01 | Regularization Loss: 2.324e-05 | Val Loss: 8.207e-01 | Time: 6.65s
+2025-08-19 18:15:20,850:INFO:New best model found at epoch 1200 with validation loss 8.207e-01. Saving...
+2025-08-19 18:15:27,634:INFO:Epoch: 1250/20000 | Train Loss: 6.998e-01 | Dynamic Loss: 6.997e-01 | Regularization Loss: 2.110e-05 | Val Loss: 7.977e-01 | Time: 6.78s
+2025-08-19 18:15:27,634:INFO:New best model found at epoch 1250 with validation loss 7.977e-01. Saving...
+2025-08-19 18:15:33,987:INFO:Epoch: 1300/20000 | Train Loss: 6.865e-01 | Dynamic Loss: 6.865e-01 | Regularization Loss: 1.920e-05 | Val Loss: 7.870e-01 | Time: 6.34s
+2025-08-19 18:15:33,987:INFO:New best model found at epoch 1300 with validation loss 7.870e-01. Saving...
+2025-08-19 18:15:40,208:INFO:Epoch: 1350/20000 | Train Loss: 6.627e-01 | Dynamic Loss: 6.627e-01 | Regularization Loss: 1.749e-05 | Val Loss: 7.667e-01 | Time: 6.21s
+2025-08-19 18:15:40,208:INFO:New best model found at epoch 1350 with validation loss 7.667e-01. Saving...
+2025-08-19 18:15:52,248:INFO:Epoch: 1400/20000 | Train Loss: 6.565e-01 | Dynamic Loss: 6.565e-01 | Regularization Loss: 1.596e-05 | Val Loss: 7.581e-01 | Time: 12.03s
+2025-08-19 18:15:52,248:INFO:New best model found at epoch 1400 with validation loss 7.581e-01. Saving...
+2025-08-19 18:15:58,592:INFO:Epoch: 1450/20000 | Train Loss: 6.392e-01 | Dynamic Loss: 6.392e-01 | Regularization Loss: 1.461e-05 | Val Loss: 7.518e-01 | Time: 6.34s
+2025-08-19 18:15:58,592:INFO:New best model found at epoch 1450 with validation loss 7.518e-01. Saving...
+2025-08-19 18:16:04,870:INFO:Epoch: 1500/20000 | Train Loss: 6.262e-01 | Dynamic Loss: 6.262e-01 | Regularization Loss: 1.336e-05 | Val Loss: 7.399e-01 | Time: 6.27s
+2025-08-19 18:16:04,871:INFO:New best model found at epoch 1500 with validation loss 7.399e-01. Saving...
+2025-08-19 18:16:11,749:INFO:Epoch: 1550/20000 | Train Loss: 6.577e-01 | Dynamic Loss: 6.577e-01 | Regularization Loss: 1.225e-05 | Val Loss: 7.653e-01 | Time: 6.87s
+2025-08-19 18:16:18,191:INFO:Epoch: 1600/20000 | Train Loss: 5.978e-01 | Dynamic Loss: 5.978e-01 | Regularization Loss: 1.124e-05 | Val Loss: 7.125e-01 | Time: 6.44s
+2025-08-19 18:16:18,191:INFO:New best model found at epoch 1600 with validation loss 7.125e-01. Saving...
+2025-08-19 18:16:24,368:INFO:Epoch: 1650/20000 | Train Loss: 5.934e-01 | Dynamic Loss: 5.934e-01 | Regularization Loss: 1.032e-05 | Val Loss: 7.022e-01 | Time: 6.17s
+2025-08-19 18:16:24,368:INFO:New best model found at epoch 1650 with validation loss 7.022e-01. Saving...
+2025-08-19 18:16:30,674:INFO:Epoch: 1700/20000 | Train Loss: 6.379e-01 | Dynamic Loss: 6.379e-01 | Regularization Loss: 9.490e-06 | Val Loss: 7.327e-01 | Time: 6.30s
+2025-08-19 18:16:37,070:INFO:Epoch: 1750/20000 | Train Loss: 5.624e-01 | Dynamic Loss: 5.624e-01 | Regularization Loss: 8.753e-06 | Val Loss: 6.787e-01 | Time: 6.40s
+2025-08-19 18:16:37,070:INFO:New best model found at epoch 1750 with validation loss 6.787e-01. Saving...
+2025-08-19 18:16:43,738:INFO:Epoch: 1800/20000 | Train Loss: 5.780e-01 | Dynamic Loss: 5.780e-01 | Regularization Loss: 8.060e-06 | Val Loss: 6.856e-01 | Time: 6.66s
+2025-08-19 18:16:50,154:INFO:Epoch: 1850/20000 | Train Loss: 5.499e-01 | Dynamic Loss: 5.499e-01 | Regularization Loss: 7.424e-06 | Val Loss: 6.634e-01 | Time: 6.42s
+2025-08-19 18:16:50,154:INFO:New best model found at epoch 1850 with validation loss 6.634e-01. Saving...
+2025-08-19 18:16:56,737:INFO:Epoch: 1900/20000 | Train Loss: 5.462e-01 | Dynamic Loss: 5.462e-01 | Regularization Loss: 6.876e-06 | Val Loss: 6.579e-01 | Time: 6.57s
+2025-08-19 18:16:56,737:INFO:New best model found at epoch 1900 with validation loss 6.579e-01. Saving...
+2025-08-19 18:17:04,643:INFO:Epoch: 1950/20000 | Train Loss: 5.322e-01 | Dynamic Loss: 5.322e-01 | Regularization Loss: 6.349e-06 | Val Loss: 6.497e-01 | Time: 7.90s
+2025-08-19 18:17:04,643:INFO:New best model found at epoch 1950 with validation loss 6.497e-01. Saving...
+2025-08-19 18:17:11,260:INFO:Epoch: 2000/20000 | Train Loss: 5.282e-01 | Dynamic Loss: 5.282e-01 | Regularization Loss: 5.859e-06 | Val Loss: 6.381e-01 | Time: 6.61s
+2025-08-19 18:17:11,260:INFO:New best model found at epoch 2000 with validation loss 6.381e-01. Saving...
+2025-08-19 18:17:23,750:INFO:Epoch: 2050/20000 | Train Loss: 5.029e-01 | Dynamic Loss: 5.029e-01 | Regularization Loss: 5.442e-06 | Val Loss: 6.311e-01 | Time: 12.48s
+2025-08-19 18:17:23,750:INFO:New best model found at epoch 2050 with validation loss 6.311e-01. Saving...
+2025-08-19 18:17:30,059:INFO:Epoch: 2100/20000 | Train Loss: 4.994e-01 | Dynamic Loss: 4.994e-01 | Regularization Loss: 5.033e-06 | Val Loss: 6.287e-01 | Time: 6.30s
+2025-08-19 18:17:30,059:INFO:New best model found at epoch 2100 with validation loss 6.287e-01. Saving...
+2025-08-19 18:17:37,892:INFO:Epoch: 2150/20000 | Train Loss: 4.837e-01 | Dynamic Loss: 4.837e-01 | Regularization Loss: 4.666e-06 | Val Loss: 6.218e-01 | Time: 7.82s
+2025-08-19 18:17:37,892:INFO:New best model found at epoch 2150 with validation loss 6.218e-01. Saving...
+2025-08-19 18:17:44,581:INFO:Epoch: 2200/20000 | Train Loss: 4.930e-01 | Dynamic Loss: 4.930e-01 | Regularization Loss: 4.313e-06 | Val Loss: 6.264e-01 | Time: 6.68s
+2025-08-19 18:17:51,168:INFO:Epoch: 2250/20000 | Train Loss: 4.765e-01 | Dynamic Loss: 4.765e-01 | Regularization Loss: 3.997e-06 | Val Loss: 6.020e-01 | Time: 6.59s
+2025-08-19 18:17:51,168:INFO:New best model found at epoch 2250 with validation loss 6.020e-01. Saving...
+2025-08-19 18:17:57,733:INFO:Epoch: 2300/20000 | Train Loss: 4.543e-01 | Dynamic Loss: 4.543e-01 | Regularization Loss: 3.703e-06 | Val Loss: 6.005e-01 | Time: 6.56s
+2025-08-19 18:17:57,733:INFO:New best model found at epoch 2300 with validation loss 6.005e-01. Saving...
+2025-08-19 18:18:04,452:INFO:Epoch: 2350/20000 | Train Loss: 4.347e-01 | Dynamic Loss: 4.347e-01 | Regularization Loss: 3.432e-06 | Val Loss: 5.739e-01 | Time: 6.71s
+2025-08-19 18:18:04,452:INFO:New best model found at epoch 2350 with validation loss 5.739e-01. Saving...
+2025-08-19 18:18:10,732:INFO:Epoch: 2400/20000 | Train Loss: 4.631e-01 | Dynamic Loss: 4.630e-01 | Regularization Loss: 3.170e-06 | Val Loss: 5.764e-01 | Time: 6.27s
+2025-08-19 18:18:17,065:INFO:Epoch: 2450/20000 | Train Loss: 4.422e-01 | Dynamic Loss: 4.422e-01 | Regularization Loss: 2.944e-06 | Val Loss: 5.960e-01 | Time: 6.33s
+2025-08-19 18:18:23,221:INFO:Epoch: 2500/20000 | Train Loss: 4.232e-01 | Dynamic Loss: 4.232e-01 | Regularization Loss: 2.737e-06 | Val Loss: 5.646e-01 | Time: 6.16s
+2025-08-19 18:18:23,222:INFO:New best model found at epoch 2500 with validation loss 5.646e-01. Saving...
+2025-08-19 18:18:29,665:INFO:Epoch: 2550/20000 | Train Loss: 4.069e-01 | Dynamic Loss: 4.069e-01 | Regularization Loss: 2.541e-06 | Val Loss: 5.427e-01 | Time: 6.43s
+2025-08-19 18:18:29,665:INFO:New best model found at epoch 2550 with validation loss 5.427e-01. Saving...
+2025-08-19 18:18:36,389:INFO:Epoch: 2600/20000 | Train Loss: 4.595e-01 | Dynamic Loss: 4.595e-01 | Regularization Loss: 2.246e-06 | Val Loss: 5.750e-01 | Time: 6.71s
+2025-08-19 18:18:42,807:INFO:Epoch: 2650/20000 | Train Loss: 4.038e-01 | Dynamic Loss: 4.038e-01 | Regularization Loss: 2.183e-06 | Val Loss: 5.536e-01 | Time: 6.42s
+2025-08-19 18:18:49,445:INFO:Epoch: 2700/20000 | Train Loss: 4.640e-01 | Dynamic Loss: 4.640e-01 | Regularization Loss: 2.107e-06 | Val Loss: 6.713e-01 | Time: 6.64s
+2025-08-19 18:18:55,874:INFO:Epoch: 2750/20000 | Train Loss: 4.035e-01 | Dynamic Loss: 4.035e-01 | Regularization Loss: 2.030e-06 | Val Loss: 5.340e-01 | Time: 6.43s
+2025-08-19 18:18:55,875:INFO:New best model found at epoch 2750 with validation loss 5.340e-01. Saving...
+2025-08-19 18:19:03,160:INFO:Epoch: 2800/20000 | Train Loss: 4.295e-01 | Dynamic Loss: 4.295e-01 | Regularization Loss: 1.919e-06 | Val Loss: 5.450e-01 | Time: 7.28s
+2025-08-19 18:19:09,338:INFO:Epoch: 2850/20000 | Train Loss: 4.141e-01 | Dynamic Loss: 4.141e-01 | Regularization Loss: 1.711e-06 | Val Loss: 5.358e-01 | Time: 6.18s
+2025-08-19 18:19:16,029:INFO:Epoch: 2900/20000 | Train Loss: 3.775e-01 | Dynamic Loss: 3.775e-01 | Regularization Loss: 1.616e-06 | Val Loss: 5.121e-01 | Time: 6.69s
+2025-08-19 18:19:16,030:INFO:New best model found at epoch 2900 with validation loss 5.121e-01. Saving...
+2025-08-19 18:19:22,587:INFO:Epoch: 2950/20000 | Train Loss: 3.896e-01 | Dynamic Loss: 3.896e-01 | Regularization Loss: 1.503e-06 | Val Loss: 5.148e-01 | Time: 6.55s
+2025-08-19 18:19:29,457:INFO:Epoch: 3000/20000 | Train Loss: 3.847e-01 | Dynamic Loss: 3.847e-01 | Regularization Loss: 1.483e-06 | Val Loss: 5.180e-01 | Time: 6.87s
+2025-08-19 18:19:35,671:INFO:Epoch: 3050/20000 | Train Loss: 3.665e-01 | Dynamic Loss: 3.665e-01 | Regularization Loss: 1.502e-06 | Val Loss: 5.011e-01 | Time: 6.21s
+2025-08-19 18:19:35,671:INFO:New best model found at epoch 3050 with validation loss 5.011e-01. Saving...
+2025-08-19 18:19:42,568:INFO:Epoch: 3100/20000 | Train Loss: 3.703e-01 | Dynamic Loss: 3.703e-01 | Regularization Loss: 1.441e-06 | Val Loss: 5.194e-01 | Time: 6.88s
+2025-08-19 18:19:48,876:INFO:Epoch: 3150/20000 | Train Loss: 4.534e-01 | Dynamic Loss: 4.534e-01 | Regularization Loss: 1.301e-06 | Val Loss: 5.430e-01 | Time: 6.31s
+2025-08-19 18:19:55,313:INFO:Epoch: 3200/20000 | Train Loss: 3.677e-01 | Dynamic Loss: 3.677e-01 | Regularization Loss: 1.106e-06 | Val Loss: 4.967e-01 | Time: 6.44s
+2025-08-19 18:19:55,313:INFO:New best model found at epoch 3200 with validation loss 4.967e-01. Saving...
+2025-08-19 18:20:01,863:INFO:Epoch: 3250/20000 | Train Loss: 1.238e+00 | Dynamic Loss: 1.238e+00 | Regularization Loss: 1.091e-06 | Val Loss: 1.011e+00 | Time: 6.54s
+2025-08-19 18:20:08,408:INFO:Epoch: 3300/20000 | Train Loss: 3.490e-01 | Dynamic Loss: 3.490e-01 | Regularization Loss: 8.285e-07 | Val Loss: 4.836e-01 | Time: 6.54s
+2025-08-19 18:20:08,409:INFO:New best model found at epoch 3300 with validation loss 4.836e-01. Saving...
+2025-08-19 18:20:15,215:INFO:Epoch: 3350/20000 | Train Loss: 3.461e-01 | Dynamic Loss: 3.461e-01 | Regularization Loss: 8.458e-07 | Val Loss: 4.764e-01 | Time: 6.80s
+2025-08-19 18:20:15,216:INFO:New best model found at epoch 3350 with validation loss 4.764e-01. Saving...
+2025-08-19 18:20:22,087:INFO:Epoch: 3400/20000 | Train Loss: 3.858e-01 | Dynamic Loss: 3.858e-01 | Regularization Loss: 2.221e-06 | Val Loss: 5.059e-01 | Time: 6.86s
+2025-08-19 18:20:28,695:INFO:Epoch: 3450/20000 | Train Loss: 3.398e-01 | Dynamic Loss: 3.398e-01 | Regularization Loss: 2.140e-06 | Val Loss: 5.226e-01 | Time: 6.61s
+2025-08-19 18:20:35,481:INFO:Epoch: 3500/20000 | Train Loss: 3.342e-01 | Dynamic Loss: 3.342e-01 | Regularization Loss: 2.143e-06 | Val Loss: 4.664e-01 | Time: 6.79s
+2025-08-19 18:20:35,482:INFO:New best model found at epoch 3500 with validation loss 4.664e-01. Saving...
+2025-08-19 18:20:41,905:INFO:Epoch: 3550/20000 | Train Loss: 3.312e-01 | Dynamic Loss: 3.312e-01 | Regularization Loss: 1.882e-06 | Val Loss: 4.641e-01 | Time: 6.41s
+2025-08-19 18:20:41,905:INFO:New best model found at epoch 3550 with validation loss 4.641e-01. Saving...
+2025-08-19 18:20:48,388:INFO:Epoch: 3600/20000 | Train Loss: 3.319e-01 | Dynamic Loss: 3.319e-01 | Regularization Loss: 1.895e-06 | Val Loss: 4.627e-01 | Time: 6.47s
+2025-08-19 18:20:48,388:INFO:New best model found at epoch 3600 with validation loss 4.627e-01. Saving...
+2025-08-19 18:20:57,979:INFO:Epoch: 3650/20000 | Train Loss: 3.452e-01 | Dynamic Loss: 3.452e-01 | Regularization Loss: 1.475e-06 | Val Loss: 4.726e-01 | Time: 9.58s
+2025-08-19 18:21:04,648:INFO:Epoch: 3700/20000 | Train Loss: 3.195e-01 | Dynamic Loss: 3.195e-01 | Regularization Loss: 1.495e-06 | Val Loss: 4.520e-01 | Time: 6.67s
+2025-08-19 18:21:04,649:INFO:New best model found at epoch 3700 with validation loss 4.520e-01. Saving...
+2025-08-19 18:21:18,029:INFO:Epoch: 3750/20000 | Train Loss: 3.214e-01 | Dynamic Loss: 3.214e-01 | Regularization Loss: 1.501e-06 | Val Loss: 4.580e-01 | Time: 13.37s
+2025-08-19 18:21:24,700:INFO:Epoch: 3800/20000 | Train Loss: 3.483e-01 | Dynamic Loss: 3.483e-01 | Regularization Loss: 1.384e-06 | Val Loss: 4.580e-01 | Time: 6.67s
+2025-08-19 18:21:37,732:INFO:Epoch: 3850/20000 | Train Loss: 3.250e-01 | Dynamic Loss: 3.250e-01 | Regularization Loss: 1.410e-06 | Val Loss: 4.510e-01 | Time: 13.03s
+2025-08-19 18:21:37,732:INFO:New best model found at epoch 3850 with validation loss 4.510e-01. Saving...
+2025-08-19 18:21:44,537:INFO:Epoch: 3900/20000 | Train Loss: 3.055e-01 | Dynamic Loss: 3.055e-01 | Regularization Loss: 1.426e-06 | Val Loss: 4.380e-01 | Time: 6.80s
+2025-08-19 18:21:44,537:INFO:New best model found at epoch 3900 with validation loss 4.380e-01. Saving...
+2025-08-19 18:21:50,963:INFO:Epoch: 3950/20000 | Train Loss: 3.440e-01 | Dynamic Loss: 3.440e-01 | Regularization Loss: 1.363e-06 | Val Loss: 4.586e-01 | Time: 6.42s
+2025-08-19 18:21:57,286:INFO:Epoch: 4000/20000 | Train Loss: 4.179e-01 | Dynamic Loss: 4.179e-01 | Regularization Loss: 1.110e-06 | Val Loss: 5.675e-01 | Time: 6.32s
+2025-08-19 18:22:04,214:INFO:Epoch: 4050/20000 | Train Loss: 5.894e-01 | Dynamic Loss: 5.894e-01 | Regularization Loss: 8.751e-07 | Val Loss: 1.118e+00 | Time: 6.93s
+2025-08-19 18:22:10,756:INFO:Epoch: 4100/20000 | Train Loss: 2.993e-01 | Dynamic Loss: 2.993e-01 | Regularization Loss: 6.861e-07 | Val Loss: 4.337e-01 | Time: 6.54s
+2025-08-19 18:22:10,756:INFO:New best model found at epoch 4100 with validation loss 4.337e-01. Saving...
+2025-08-19 18:22:17,521:INFO:Epoch: 4150/20000 | Train Loss: 3.049e-01 | Dynamic Loss: 3.049e-01 | Regularization Loss: 6.447e-07 | Val Loss: 4.336e-01 | Time: 6.76s
+2025-08-19 18:22:17,521:INFO:New best model found at epoch 4150 with validation loss 4.336e-01. Saving...
+2025-08-19 18:22:24,110:INFO:Epoch: 4200/20000 | Train Loss: 2.938e-01 | Dynamic Loss: 2.938e-01 | Regularization Loss: 7.017e-07 | Val Loss: 4.267e-01 | Time: 6.58s
+2025-08-19 18:22:24,110:INFO:New best model found at epoch 4200 with validation loss 4.267e-01. Saving...
+2025-08-19 18:22:30,487:INFO:Epoch: 4250/20000 | Train Loss: 2.864e-01 | Dynamic Loss: 2.864e-01 | Regularization Loss: 7.409e-07 | Val Loss: 4.177e-01 | Time: 6.37s
+2025-08-19 18:22:30,487:INFO:New best model found at epoch 4250 with validation loss 4.177e-01. Saving...
+2025-08-19 18:22:37,227:INFO:Epoch: 4300/20000 | Train Loss: 3.002e-01 | Dynamic Loss: 3.002e-01 | Regularization Loss: 7.898e-07 | Val Loss: 4.222e-01 | Time: 6.73s
+2025-08-19 18:22:43,718:INFO:Epoch: 4350/20000 | Train Loss: 2.803e-01 | Dynamic Loss: 2.803e-01 | Regularization Loss: 8.123e-07 | Val Loss: 4.123e-01 | Time: 6.49s
+2025-08-19 18:22:43,718:INFO:New best model found at epoch 4350 with validation loss 4.123e-01. Saving...
+2025-08-19 18:22:50,301:INFO:Epoch: 4400/20000 | Train Loss: 3.034e-01 | Dynamic Loss: 3.034e-01 | Regularization Loss: 8.249e-07 | Val Loss: 4.372e-01 | Time: 6.57s
+2025-08-19 18:22:56,937:INFO:Epoch: 4450/20000 | Train Loss: 3.273e-01 | Dynamic Loss: 3.273e-01 | Regularization Loss: 8.723e-07 | Val Loss: 4.318e-01 | Time: 6.64s
+2025-08-19 18:23:03,328:INFO:Epoch: 4500/20000 | Train Loss: 3.773e-01 | Dynamic Loss: 3.773e-01 | Regularization Loss: 8.418e-07 | Val Loss: 4.413e-01 | Time: 6.39s
+2025-08-19 18:23:09,735:INFO:Epoch: 4550/20000 | Train Loss: 3.210e-01 | Dynamic Loss: 3.210e-01 | Regularization Loss: 6.429e-07 | Val Loss: 4.349e-01 | Time: 6.41s
+2025-08-19 18:23:23,188:INFO:Epoch: 4600/20000 | Train Loss: 4.015e-01 | Dynamic Loss: 4.015e-01 | Regularization Loss: 6.020e-07 | Val Loss: 4.869e-01 | Time: 13.45s
+2025-08-19 18:23:29,732:INFO:Epoch: 4650/20000 | Train Loss: 3.618e-01 | Dynamic Loss: 3.618e-01 | Regularization Loss: 5.749e-07 | Val Loss: 5.056e-01 | Time: 6.54s
+2025-08-19 18:23:36,440:INFO:Epoch: 4700/20000 | Train Loss: 4.285e-01 | Dynamic Loss: 4.285e-01 | Regularization Loss: 5.368e-07 | Val Loss: 5.415e-01 | Time: 6.71s
+2025-08-19 18:23:43,117:INFO:Epoch: 4750/20000 | Train Loss: 2.829e-01 | Dynamic Loss: 2.829e-01 | Regularization Loss: 5.337e-07 | Val Loss: 4.049e-01 | Time: 6.68s
+2025-08-19 18:23:43,117:INFO:New best model found at epoch 4750 with validation loss 4.049e-01. Saving...
+2025-08-19 18:23:49,719:INFO:Epoch: 4800/20000 | Train Loss: 3.005e-01 | Dynamic Loss: 3.005e-01 | Regularization Loss: 4.514e-07 | Val Loss: 4.262e-01 | Time: 6.59s
+2025-08-19 18:23:56,185:INFO:Epoch: 4850/20000 | Train Loss: 3.803e-01 | Dynamic Loss: 3.803e-01 | Regularization Loss: 3.952e-07 | Val Loss: 5.316e-01 | Time: 6.47s
+2025-08-19 18:24:02,583:INFO:Epoch: 4900/20000 | Train Loss: 3.731e-01 | Dynamic Loss: 3.731e-01 | Regularization Loss: 2.384e-06 | Val Loss: 4.897e-01 | Time: 6.40s
+2025-08-19 18:24:09,129:INFO:Epoch: 4950/20000 | Train Loss: 4.198e-01 | Dynamic Loss: 4.198e-01 | Regularization Loss: 2.227e-06 | Val Loss: 4.758e-01 | Time: 6.55s
+2025-08-19 18:24:16,086:INFO:Epoch: 5000/20000 | Train Loss: 3.748e-01 | Dynamic Loss: 3.748e-01 | Regularization Loss: 2.253e-06 | Val Loss: 4.906e-01 | Time: 6.96s
+2025-08-19 18:24:22,606:INFO:Epoch: 5050/20000 | Train Loss: 2.971e-01 | Dynamic Loss: 2.971e-01 | Regularization Loss: 2.194e-06 | Val Loss: 4.218e-01 | Time: 6.52s
+2025-08-19 18:24:29,404:INFO:Epoch: 5100/20000 | Train Loss: 3.386e-01 | Dynamic Loss: 3.386e-01 | Regularization Loss: 2.085e-06 | Val Loss: 4.672e-01 | Time: 6.80s
+2025-08-19 18:24:36,204:INFO:Epoch: 5150/20000 | Train Loss: 2.820e-01 | Dynamic Loss: 2.820e-01 | Regularization Loss: 1.896e-06 | Val Loss: 4.039e-01 | Time: 6.80s
+2025-08-19 18:24:36,204:INFO:New best model found at epoch 5150 with validation loss 4.039e-01. Saving...
+2025-08-19 18:24:42,798:INFO:Epoch: 5200/20000 | Train Loss: 2.978e-01 | Dynamic Loss: 2.978e-01 | Regularization Loss: 1.912e-06 | Val Loss: 4.170e-01 | Time: 6.58s
+2025-08-19 18:24:49,208:INFO:Epoch: 5250/20000 | Train Loss: 2.748e-01 | Dynamic Loss: 2.748e-01 | Regularization Loss: 1.961e-06 | Val Loss: 3.927e-01 | Time: 6.41s
+2025-08-19 18:24:49,208:INFO:New best model found at epoch 5250 with validation loss 3.927e-01. Saving...
+2025-08-19 18:24:55,564:INFO:Epoch: 5300/20000 | Train Loss: 2.668e-01 | Dynamic Loss: 2.668e-01 | Regularization Loss: 1.988e-06 | Val Loss: 3.908e-01 | Time: 6.35s
+2025-08-19 18:24:55,564:INFO:New best model found at epoch 5300 with validation loss 3.908e-01. Saving...
+2025-08-19 18:25:01,804:INFO:Epoch: 5350/20000 | Train Loss: 3.121e-01 | Dynamic Loss: 3.121e-01 | Regularization Loss: 1.765e-06 | Val Loss: 4.081e-01 | Time: 6.23s
+2025-08-19 18:25:08,324:INFO:Epoch: 5400/20000 | Train Loss: 4.102e-01 | Dynamic Loss: 4.102e-01 | Regularization Loss: 1.483e-06 | Val Loss: 4.829e-01 | Time: 6.52s
+2025-08-19 18:25:14,861:INFO:Epoch: 5450/20000 | Train Loss: 2.687e-01 | Dynamic Loss: 2.687e-01 | Regularization Loss: 1.322e-06 | Val Loss: 3.891e-01 | Time: 6.54s
+2025-08-19 18:25:14,861:INFO:New best model found at epoch 5450 with validation loss 3.891e-01. Saving...
+2025-08-19 18:25:21,376:INFO:Epoch: 5500/20000 | Train Loss: 5.266e-01 | Dynamic Loss: 5.266e-01 | Regularization Loss: 1.201e-06 | Val Loss: 5.790e-01 | Time: 6.50s
+2025-08-19 18:25:27,683:INFO:Epoch: 5550/20000 | Train Loss: 2.742e-01 | Dynamic Loss: 2.742e-01 | Regularization Loss: 1.115e-06 | Val Loss: 3.918e-01 | Time: 6.31s
+2025-08-19 18:25:34,248:INFO:Epoch: 5600/20000 | Train Loss: 5.481e-01 | Dynamic Loss: 5.481e-01 | Regularization Loss: 1.003e-06 | Val Loss: 6.511e-01 | Time: 6.56s
+2025-08-19 18:25:40,649:INFO:Epoch: 5650/20000 | Train Loss: 2.723e-01 | Dynamic Loss: 2.723e-01 | Regularization Loss: 9.014e-07 | Val Loss: 3.927e-01 | Time: 6.40s
+2025-08-19 18:25:47,120:INFO:Epoch: 5700/20000 | Train Loss: 2.531e-01 | Dynamic Loss: 2.531e-01 | Regularization Loss: 8.888e-07 | Val Loss: 3.735e-01 | Time: 6.47s
+2025-08-19 18:25:47,120:INFO:New best model found at epoch 5700 with validation loss 3.735e-01. Saving...
+2025-08-19 18:25:53,409:INFO:Epoch: 5750/20000 | Train Loss: 3.871e-01 | Dynamic Loss: 3.871e-01 | Regularization Loss: 6.887e-07 | Val Loss: 5.347e-01 | Time: 6.28s
+2025-08-19 18:25:59,992:INFO:Epoch: 5800/20000 | Train Loss: 2.698e-01 | Dynamic Loss: 2.698e-01 | Regularization Loss: 6.506e-07 | Val Loss: 5.341e-01 | Time: 6.58s
+2025-08-19 18:26:06,901:INFO:Epoch: 5850/20000 | Train Loss: 2.914e-01 | Dynamic Loss: 2.914e-01 | Regularization Loss: 6.644e-07 | Val Loss: 4.032e-01 | Time: 6.91s
+2025-08-19 18:26:13,847:INFO:Epoch: 5900/20000 | Train Loss: 2.694e-01 | Dynamic Loss: 2.694e-01 | Regularization Loss: 6.247e-07 | Val Loss: 4.004e-01 | Time: 6.95s
+2025-08-19 18:26:20,443:INFO:Epoch: 5950/20000 | Train Loss: 2.777e-01 | Dynamic Loss: 2.777e-01 | Regularization Loss: 6.381e-07 | Val Loss: 3.955e-01 | Time: 6.60s
+2025-08-19 18:26:26,862:INFO:Epoch: 6000/20000 | Train Loss: 2.426e-01 | Dynamic Loss: 2.426e-01 | Regularization Loss: 6.378e-07 | Val Loss: 3.623e-01 | Time: 6.42s
+2025-08-19 18:26:26,862:INFO:New best model found at epoch 6000 with validation loss 3.623e-01. Saving...
+2025-08-19 18:26:33,455:INFO:Epoch: 6050/20000 | Train Loss: 3.173e-01 | Dynamic Loss: 3.173e-01 | Regularization Loss: 5.209e-07 | Val Loss: 4.324e-01 | Time: 6.58s
+2025-08-19 18:26:40,243:INFO:Epoch: 6100/20000 | Train Loss: 2.491e-01 | Dynamic Loss: 2.491e-01 | Regularization Loss: 4.994e-07 | Val Loss: 3.670e-01 | Time: 6.79s
+2025-08-19 18:26:46,650:INFO:Epoch: 6150/20000 | Train Loss: 2.424e-01 | Dynamic Loss: 2.424e-01 | Regularization Loss: 5.271e-07 | Val Loss: 3.608e-01 | Time: 6.41s
+2025-08-19 18:26:46,651:INFO:New best model found at epoch 6150 with validation loss 3.608e-01. Saving...
+2025-08-19 18:26:53,201:INFO:Epoch: 6200/20000 | Train Loss: 2.507e-01 | Dynamic Loss: 2.507e-01 | Regularization Loss: 4.081e-07 | Val Loss: 3.692e-01 | Time: 6.54s
+2025-08-19 18:26:59,569:INFO:Epoch: 6250/20000 | Train Loss: 2.757e-01 | Dynamic Loss: 2.757e-01 | Regularization Loss: 5.008e-07 | Val Loss: 4.004e-01 | Time: 6.37s
+2025-08-19 18:27:05,854:INFO:Epoch: 6300/20000 | Train Loss: 2.371e-01 | Dynamic Loss: 2.371e-01 | Regularization Loss: 4.936e-07 | Val Loss: 5.126e-01 | Time: 6.28s
+2025-08-19 18:27:12,295:INFO:Epoch: 6350/20000 | Train Loss: 3.567e-01 | Dynamic Loss: 3.567e-01 | Regularization Loss: 5.026e-07 | Val Loss: 4.524e-01 | Time: 6.44s
+2025-08-19 18:27:18,941:INFO:Epoch: 6400/20000 | Train Loss: 3.301e-01 | Dynamic Loss: 3.301e-01 | Regularization Loss: 4.733e-07 | Val Loss: 4.329e-01 | Time: 6.65s
+2025-08-19 18:27:25,314:INFO:Epoch: 6450/20000 | Train Loss: 3.030e-01 | Dynamic Loss: 3.030e-01 | Regularization Loss: 4.402e-07 | Val Loss: 3.889e-01 | Time: 6.37s
+2025-08-19 18:27:31,871:INFO:Epoch: 6500/20000 | Train Loss: 2.675e-01 | Dynamic Loss: 2.675e-01 | Regularization Loss: 4.424e-07 | Val Loss: 3.778e-01 | Time: 6.56s
+2025-08-19 18:27:41,644:INFO:Epoch: 6550/20000 | Train Loss: 5.215e-01 | Dynamic Loss: 5.215e-01 | Regularization Loss: 8.214e-07 | Val Loss: 6.161e-01 | Time: 9.77s
+2025-08-19 18:27:48,315:INFO:Epoch: 6600/20000 | Train Loss: 2.433e-01 | Dynamic Loss: 2.433e-01 | Regularization Loss: 7.416e-07 | Val Loss: 3.621e-01 | Time: 6.67s
+2025-08-19 18:27:54,944:INFO:Epoch: 6650/20000 | Train Loss: 2.392e-01 | Dynamic Loss: 2.392e-01 | Regularization Loss: 7.618e-07 | Val Loss: 3.556e-01 | Time: 6.63s
+2025-08-19 18:27:54,945:INFO:New best model found at epoch 6650 with validation loss 3.556e-01. Saving...
+2025-08-19 18:28:01,547:INFO:Epoch: 6700/20000 | Train Loss: 2.819e-01 | Dynamic Loss: 2.818e-01 | Regularization Loss: 7.538e-07 | Val Loss: 3.964e-01 | Time: 6.59s
+2025-08-19 18:28:07,947:INFO:Epoch: 6750/20000 | Train Loss: 2.340e-01 | Dynamic Loss: 2.340e-01 | Regularization Loss: 6.901e-07 | Val Loss: 3.516e-01 | Time: 6.40s
+2025-08-19 18:28:07,947:INFO:New best model found at epoch 6750 with validation loss 3.516e-01. Saving...
+2025-08-19 18:28:17,082:INFO:Epoch: 6800/20000 | Train Loss: 3.528e+00 | Dynamic Loss: 3.528e+00 | Regularization Loss: 5.833e-07 | Val Loss: 3.616e+00 | Time: 9.12s
+2025-08-19 18:28:23,745:INFO:Epoch: 6850/20000 | Train Loss: 6.028e-01 | Dynamic Loss: 6.028e-01 | Regularization Loss: 6.414e-07 | Val Loss: 7.848e-01 | Time: 6.66s
+2025-08-19 18:28:36,950:INFO:Epoch: 6900/20000 | Train Loss: 3.403e-01 | Dynamic Loss: 3.403e-01 | Regularization Loss: 6.042e-07 | Val Loss: 4.663e-01 | Time: 13.20s
+2025-08-19 18:28:43,502:INFO:Epoch: 6950/20000 | Train Loss: 3.229e-01 | Dynamic Loss: 3.229e-01 | Regularization Loss: 6.076e-07 | Val Loss: 4.513e-01 | Time: 6.55s
+2025-08-19 18:28:49,960:INFO:Epoch: 7000/20000 | Train Loss: 2.876e-01 | Dynamic Loss: 2.876e-01 | Regularization Loss: 6.782e-07 | Val Loss: 4.232e-01 | Time: 6.46s
+2025-08-19 18:28:56,518:INFO:Epoch: 7050/20000 | Train Loss: 2.593e-01 | Dynamic Loss: 2.593e-01 | Regularization Loss: 6.928e-07 | Val Loss: 3.835e-01 | Time: 6.56s
+2025-08-19 18:29:03,186:INFO:Epoch: 7100/20000 | Train Loss: 2.670e-01 | Dynamic Loss: 2.670e-01 | Regularization Loss: 7.365e-07 | Val Loss: 3.853e-01 | Time: 6.67s
+2025-08-19 18:29:10,010:INFO:Epoch: 7150/20000 | Train Loss: 3.245e-01 | Dynamic Loss: 3.245e-01 | Regularization Loss: 7.742e-07 | Val Loss: 4.146e-01 | Time: 6.82s
+2025-08-19 18:29:16,538:INFO:Epoch: 7200/20000 | Train Loss: 2.579e-01 | Dynamic Loss: 2.579e-01 | Regularization Loss: 7.774e-07 | Val Loss: 3.747e-01 | Time: 6.53s
+2025-08-19 18:29:23,176:INFO:Epoch: 7250/20000 | Train Loss: 2.467e-01 | Dynamic Loss: 2.467e-01 | Regularization Loss: 8.081e-07 | Val Loss: 3.624e-01 | Time: 6.64s
+2025-08-19 18:29:30,000:INFO:Epoch: 7300/20000 | Train Loss: 2.661e-01 | Dynamic Loss: 2.661e-01 | Regularization Loss: 8.446e-07 | Val Loss: 3.787e-01 | Time: 6.82s
+2025-08-19 18:29:36,288:INFO:Epoch: 7350/20000 | Train Loss: 2.471e-01 | Dynamic Loss: 2.471e-01 | Regularization Loss: 8.477e-07 | Val Loss: 3.846e-01 | Time: 6.29s
+2025-08-19 18:29:42,893:INFO:Epoch: 7400/20000 | Train Loss: 2.951e-01 | Dynamic Loss: 2.951e-01 | Regularization Loss: 6.681e-07 | Val Loss: 4.140e-01 | Time: 6.61s
+2025-08-19 18:29:49,478:INFO:Epoch: 7450/20000 | Train Loss: 2.397e-01 | Dynamic Loss: 2.397e-01 | Regularization Loss: 7.592e-07 | Val Loss: 3.567e-01 | Time: 6.58s
+2025-08-19 18:29:56,045:INFO:Epoch: 7500/20000 | Train Loss: 4.272e-01 | Dynamic Loss: 4.272e-01 | Regularization Loss: 7.121e-07 | Val Loss: 4.956e-01 | Time: 6.57s
+2025-08-19 18:30:02,669:INFO:Epoch: 7550/20000 | Train Loss: 2.606e-01 | Dynamic Loss: 2.606e-01 | Regularization Loss: 6.772e-07 | Val Loss: 3.706e-01 | Time: 6.62s
+2025-08-19 18:30:09,445:INFO:Epoch: 7600/20000 | Train Loss: 2.692e-01 | Dynamic Loss: 2.692e-01 | Regularization Loss: 6.437e-07 | Val Loss: 3.846e-01 | Time: 6.78s
+2025-08-19 18:30:15,841:INFO:Epoch: 7650/20000 | Train Loss: 2.972e-01 | Dynamic Loss: 2.972e-01 | Regularization Loss: 6.229e-07 | Val Loss: 3.911e-01 | Time: 6.40s
+2025-08-19 18:30:22,742:INFO:Epoch: 7700/20000 | Train Loss: 2.451e-01 | Dynamic Loss: 2.451e-01 | Regularization Loss: 5.731e-07 | Val Loss: 3.537e-01 | Time: 6.90s
+2025-08-19 18:30:29,133:INFO:Epoch: 7750/20000 | Train Loss: 3.015e-01 | Dynamic Loss: 3.015e-01 | Regularization Loss: 5.594e-07 | Val Loss: 3.967e-01 | Time: 6.39s
+2025-08-19 18:30:35,786:INFO:Epoch: 7800/20000 | Train Loss: 3.171e-01 | Dynamic Loss: 3.171e-01 | Regularization Loss: 5.113e-07 | Val Loss: 4.292e-01 | Time: 6.65s
+2025-08-19 18:30:49,365:INFO:Epoch: 7850/20000 | Train Loss: 2.534e-01 | Dynamic Loss: 2.534e-01 | Regularization Loss: 4.501e-07 | Val Loss: 3.537e-01 | Time: 13.58s
+2025-08-19 18:30:55,973:INFO:Epoch: 7900/20000 | Train Loss: 2.394e-01 | Dynamic Loss: 2.394e-01 | Regularization Loss: 4.784e-07 | Val Loss: 3.441e-01 | Time: 6.61s
+2025-08-19 18:30:55,973:INFO:New best model found at epoch 7900 with validation loss 3.441e-01. Saving...
+2025-08-19 18:31:07,403:INFO:Epoch: 7950/20000 | Train Loss: 2.557e-01 | Dynamic Loss: 2.557e-01 | Regularization Loss: 4.491e-07 | Val Loss: 3.928e-01 | Time: 11.42s
+2025-08-19 18:31:13,953:INFO:Epoch: 8000/20000 | Train Loss: 2.202e-01 | Dynamic Loss: 2.202e-01 | Regularization Loss: 4.225e-07 | Val Loss: 3.631e-01 | Time: 6.55s
+2025-08-19 18:31:20,719:INFO:Epoch: 8050/20000 | Train Loss: 2.381e-01 | Dynamic Loss: 2.381e-01 | Regularization Loss: 3.956e-07 | Val Loss: 3.331e-01 | Time: 6.77s
+2025-08-19 18:31:20,719:INFO:New best model found at epoch 8050 with validation loss 3.331e-01. Saving...
+2025-08-19 18:31:27,267:INFO:Epoch: 8100/20000 | Train Loss: 2.726e-01 | Dynamic Loss: 2.726e-01 | Regularization Loss: 3.940e-07 | Val Loss: 3.523e-01 | Time: 6.54s
+2025-08-19 18:31:33,967:INFO:Epoch: 8150/20000 | Train Loss: 2.331e-01 | Dynamic Loss: 2.331e-01 | Regularization Loss: 3.947e-07 | Val Loss: 3.402e-01 | Time: 6.70s
+2025-08-19 18:31:40,447:INFO:Epoch: 8200/20000 | Train Loss: 2.256e-01 | Dynamic Loss: 2.256e-01 | Regularization Loss: 3.957e-07 | Val Loss: 3.404e-01 | Time: 6.48s
+2025-08-19 18:31:47,045:INFO:Epoch: 8250/20000 | Train Loss: 2.540e-01 | Dynamic Loss: 2.540e-01 | Regularization Loss: 4.005e-07 | Val Loss: 3.458e-01 | Time: 6.60s
+2025-08-19 18:31:53,712:INFO:Epoch: 8300/20000 | Train Loss: 2.243e-01 | Dynamic Loss: 2.243e-01 | Regularization Loss: 4.050e-07 | Val Loss: 3.243e-01 | Time: 6.67s
+2025-08-19 18:31:53,712:INFO:New best model found at epoch 8300 with validation loss 3.243e-01. Saving...
+2025-08-19 18:32:00,446:INFO:Epoch: 8350/20000 | Train Loss: 2.141e-01 | Dynamic Loss: 2.141e-01 | Regularization Loss: 3.915e-07 | Val Loss: 3.269e-01 | Time: 6.72s
+2025-08-19 18:32:07,027:INFO:Epoch: 8400/20000 | Train Loss: 6.106e-01 | Dynamic Loss: 6.106e-01 | Regularization Loss: 3.750e-07 | Val Loss: 5.335e-01 | Time: 6.58s
+2025-08-19 18:32:13,614:INFO:Epoch: 8450/20000 | Train Loss: 2.588e-01 | Dynamic Loss: 2.588e-01 | Regularization Loss: 3.000e-07 | Val Loss: 3.513e-01 | Time: 6.59s
+2025-08-19 18:32:20,280:INFO:Epoch: 8500/20000 | Train Loss: 2.376e-01 | Dynamic Loss: 2.376e-01 | Regularization Loss: 3.168e-07 | Val Loss: 3.494e-01 | Time: 6.67s
+2025-08-19 18:32:26,855:INFO:Epoch: 8550/20000 | Train Loss: 2.219e-01 | Dynamic Loss: 2.219e-01 | Regularization Loss: 3.221e-07 | Val Loss: 3.319e-01 | Time: 6.58s
+2025-08-19 18:32:37,326:INFO:Epoch: 8600/20000 | Train Loss: 3.501e-01 | Dynamic Loss: 3.501e-01 | Regularization Loss: 3.016e-07 | Val Loss: 4.374e-01 | Time: 10.47s
+2025-08-19 18:32:43,978:INFO:Epoch: 8650/20000 | Train Loss: 2.245e-01 | Dynamic Loss: 2.245e-01 | Regularization Loss: 2.839e-07 | Val Loss: 3.212e-01 | Time: 6.65s
+2025-08-19 18:32:43,978:INFO:New best model found at epoch 8650 with validation loss 3.212e-01. Saving...
+2025-08-19 18:32:50,477:INFO:Epoch: 8700/20000 | Train Loss: 2.236e-01 | Dynamic Loss: 2.236e-01 | Regularization Loss: 2.677e-07 | Val Loss: 3.403e-01 | Time: 6.49s
+2025-08-19 18:32:56,954:INFO:Epoch: 8750/20000 | Train Loss: 2.293e-01 | Dynamic Loss: 2.293e-01 | Regularization Loss: 2.709e-07 | Val Loss: 3.428e-01 | Time: 6.48s
+2025-08-19 18:33:03,659:INFO:Epoch: 8800/20000 | Train Loss: 1.887e-01 | Dynamic Loss: 1.887e-01 | Regularization Loss: 2.828e-07 | Val Loss: 3.024e-01 | Time: 6.70s
+2025-08-19 18:33:03,659:INFO:New best model found at epoch 8800 with validation loss 3.024e-01. Saving...
+2025-08-19 18:33:09,856:INFO:Epoch: 8850/20000 | Train Loss: 1.876e-01 | Dynamic Loss: 1.876e-01 | Regularization Loss: 2.864e-07 | Val Loss: 2.972e-01 | Time: 6.19s
+2025-08-19 18:33:09,857:INFO:New best model found at epoch 8850 with validation loss 2.972e-01. Saving...
+2025-08-19 18:33:16,334:INFO:Epoch: 8900/20000 | Train Loss: 2.440e-01 | Dynamic Loss: 2.440e-01 | Regularization Loss: 2.788e-07 | Val Loss: 3.341e-01 | Time: 6.47s
+2025-08-19 18:33:22,861:INFO:Epoch: 8950/20000 | Train Loss: 3.292e-01 | Dynamic Loss: 3.292e-01 | Regularization Loss: 2.067e-07 | Val Loss: 4.406e-01 | Time: 6.53s
+2025-08-19 18:33:29,614:INFO:Epoch: 9000/20000 | Train Loss: 2.097e-01 | Dynamic Loss: 2.097e-01 | Regularization Loss: 1.947e-07 | Val Loss: 3.206e-01 | Time: 6.75s
+2025-08-19 18:33:36,071:INFO:Epoch: 9050/20000 | Train Loss: 1.788e-01 | Dynamic Loss: 1.788e-01 | Regularization Loss: 2.183e-07 | Val Loss: 2.905e-01 | Time: 6.46s
+2025-08-19 18:33:36,072:INFO:New best model found at epoch 9050 with validation loss 2.905e-01. Saving...
+2025-08-19 18:33:42,727:INFO:Epoch: 9100/20000 | Train Loss: 2.327e-01 | Dynamic Loss: 2.327e-01 | Regularization Loss: 2.113e-07 | Val Loss: 3.244e-01 | Time: 6.65s
+2025-08-19 18:33:56,313:INFO:Epoch: 9150/20000 | Train Loss: 2.451e-01 | Dynamic Loss: 2.451e-01 | Regularization Loss: 2.084e-07 | Val Loss: 3.375e-01 | Time: 13.59s
+2025-08-19 18:34:02,844:INFO:Epoch: 9200/20000 | Train Loss: 3.435e-01 | Dynamic Loss: 3.435e-01 | Regularization Loss: 1.887e-07 | Val Loss: 4.086e-01 | Time: 6.53s
+2025-08-19 18:34:09,387:INFO:Epoch: 9250/20000 | Train Loss: 1.779e-01 | Dynamic Loss: 1.779e-01 | Regularization Loss: 1.620e-07 | Val Loss: 2.883e-01 | Time: 6.54s
+2025-08-19 18:34:09,387:INFO:New best model found at epoch 9250 with validation loss 2.883e-01. Saving...
+2025-08-19 18:34:15,737:INFO:Epoch: 9300/20000 | Train Loss: 1.816e-01 | Dynamic Loss: 1.816e-01 | Regularization Loss: 1.762e-07 | Val Loss: 2.942e-01 | Time: 6.34s
+2025-08-19 18:34:22,704:INFO:Epoch: 9350/20000 | Train Loss: 2.002e-01 | Dynamic Loss: 2.002e-01 | Regularization Loss: 1.882e-07 | Val Loss: 3.023e-01 | Time: 6.97s
+2025-08-19 18:34:29,360:INFO:Epoch: 9400/20000 | Train Loss: 2.513e-01 | Dynamic Loss: 2.513e-01 | Regularization Loss: 1.966e-07 | Val Loss: 3.531e-01 | Time: 6.66s
+2025-08-19 18:34:36,597:INFO:Epoch: 9450/20000 | Train Loss: 1.855e-01 | Dynamic Loss: 1.855e-01 | Regularization Loss: 2.082e-07 | Val Loss: 2.930e-01 | Time: 7.24s
+2025-08-19 18:34:43,293:INFO:Epoch: 9500/20000 | Train Loss: 2.263e-01 | Dynamic Loss: 2.263e-01 | Regularization Loss: 2.308e-07 | Val Loss: 3.157e-01 | Time: 6.70s
+2025-08-19 18:34:50,101:INFO:Epoch: 9550/20000 | Train Loss: 1.764e-01 | Dynamic Loss: 1.764e-01 | Regularization Loss: 2.135e-07 | Val Loss: 2.916e-01 | Time: 6.81s
+2025-08-19 18:35:04,091:INFO:Epoch: 9600/20000 | Train Loss: 2.053e-01 | Dynamic Loss: 2.053e-01 | Regularization Loss: 1.925e-07 | Val Loss: 3.221e-01 | Time: 13.99s
+2025-08-19 18:35:10,566:INFO:Epoch: 9650/20000 | Train Loss: 2.748e-01 | Dynamic Loss: 2.748e-01 | Regularization Loss: 1.951e-07 | Val Loss: 3.761e-01 | Time: 6.47s
+2025-08-19 18:35:17,009:INFO:Epoch: 9700/20000 | Train Loss: 2.554e-01 | Dynamic Loss: 2.554e-01 | Regularization Loss: 1.820e-07 | Val Loss: 5.675e-01 | Time: 6.44s
+2025-08-19 18:35:23,383:INFO:Epoch: 9750/20000 | Train Loss: 2.421e-01 | Dynamic Loss: 2.421e-01 | Regularization Loss: 1.636e-07 | Val Loss: 3.459e-01 | Time: 6.37s
+2025-08-19 18:35:30,074:INFO:Epoch: 9800/20000 | Train Loss: 2.103e-01 | Dynamic Loss: 2.103e-01 | Regularization Loss: 2.469e-07 | Val Loss: 3.141e-01 | Time: 6.69s
+2025-08-19 18:35:36,486:INFO:Epoch: 9850/20000 | Train Loss: 1.803e-01 | Dynamic Loss: 1.803e-01 | Regularization Loss: 2.076e-07 | Val Loss: 2.921e-01 | Time: 6.41s
+2025-08-19 18:35:43,134:INFO:Epoch: 9900/20000 | Train Loss: 2.442e-01 | Dynamic Loss: 2.442e-01 | Regularization Loss: 1.963e-07 | Val Loss: 3.999e-01 | Time: 6.65s
+2025-08-19 18:35:57,138:INFO:Epoch: 9950/20000 | Train Loss: 1.801e-01 | Dynamic Loss: 1.801e-01 | Regularization Loss: 1.668e-07 | Val Loss: 2.937e-01 | Time: 14.00s
+2025-08-19 18:36:04,035:INFO:Epoch: 10000/20000 | Train Loss: 1.589e-01 | Dynamic Loss: 1.589e-01 | Regularization Loss: 1.389e-07 | Val Loss: 2.698e-01 | Time: 6.90s
+2025-08-19 18:36:04,035:INFO:New best model found at epoch 10000 with validation loss 2.698e-01. Saving...
+2025-08-19 18:36:11,331:INFO:Epoch: 10050/20000 | Train Loss: 2.102e-01 | Dynamic Loss: 2.102e-01 | Regularization Loss: 1.284e-07 | Val Loss: 3.060e-01 | Time: 7.29s
+2025-08-19 18:36:17,856:INFO:Epoch: 10100/20000 | Train Loss: 2.089e-01 | Dynamic Loss: 2.089e-01 | Regularization Loss: 1.249e-07 | Val Loss: 4.470e-01 | Time: 6.52s
+2025-08-19 18:36:24,650:INFO:Epoch: 10150/20000 | Train Loss: 7.631e-01 | Dynamic Loss: 7.631e-01 | Regularization Loss: 1.571e-07 | Val Loss: 9.093e-01 | Time: 6.79s
+2025-08-19 18:36:31,317:INFO:Epoch: 10200/20000 | Train Loss: 5.201e-01 | Dynamic Loss: 5.201e-01 | Regularization Loss: 1.265e-07 | Val Loss: 5.763e-01 | Time: 6.67s
+2025-08-19 18:36:37,967:INFO:Epoch: 10250/20000 | Train Loss: 2.605e-01 | Dynamic Loss: 2.605e-01 | Regularization Loss: 1.174e-07 | Val Loss: 3.852e-01 | Time: 6.65s
+2025-08-19 18:36:44,759:INFO:Epoch: 10300/20000 | Train Loss: 3.426e-01 | Dynamic Loss: 3.426e-01 | Regularization Loss: 1.134e-07 | Val Loss: 4.392e-01 | Time: 6.79s
+2025-08-19 18:36:51,466:INFO:Epoch: 10350/20000 | Train Loss: 1.940e-01 | Dynamic Loss: 1.940e-01 | Regularization Loss: 1.022e-07 | Val Loss: 3.154e-01 | Time: 6.71s
+2025-08-19 18:36:57,916:INFO:Epoch: 10400/20000 | Train Loss: 3.438e-01 | Dynamic Loss: 3.438e-01 | Regularization Loss: 1.038e-07 | Val Loss: 4.465e-01 | Time: 6.45s
+2025-08-19 18:37:04,669:INFO:Epoch: 10450/20000 | Train Loss: 1.999e-01 | Dynamic Loss: 1.999e-01 | Regularization Loss: 9.673e-08 | Val Loss: 3.174e-01 | Time: 6.75s
+2025-08-19 18:37:11,135:INFO:Epoch: 10500/20000 | Train Loss: 1.945e-01 | Dynamic Loss: 1.945e-01 | Regularization Loss: 8.829e-08 | Val Loss: 3.634e-01 | Time: 6.47s
+2025-08-19 18:37:17,749:INFO:Epoch: 10550/20000 | Train Loss: 1.734e-01 | Dynamic Loss: 1.734e-01 | Regularization Loss: 8.179e-08 | Val Loss: 2.872e-01 | Time: 6.61s
+2025-08-19 18:37:24,050:INFO:Epoch: 10600/20000 | Train Loss: 2.489e-01 | Dynamic Loss: 2.489e-01 | Regularization Loss: 7.912e-08 | Val Loss: 3.683e-01 | Time: 6.30s
+2025-08-19 18:37:30,717:INFO:Epoch: 10650/20000 | Train Loss: 1.852e-01 | Dynamic Loss: 1.852e-01 | Regularization Loss: 7.413e-08 | Val Loss: 3.061e-01 | Time: 6.67s
+2025-08-19 18:37:37,077:INFO:Epoch: 10700/20000 | Train Loss: 1.943e-01 | Dynamic Loss: 1.943e-01 | Regularization Loss: 6.338e-08 | Val Loss: 3.119e-01 | Time: 6.36s
+2025-08-19 18:37:43,828:INFO:Epoch: 10750/20000 | Train Loss: 1.734e-01 | Dynamic Loss: 1.734e-01 | Regularization Loss: 5.906e-08 | Val Loss: 2.825e-01 | Time: 6.75s
+2025-08-19 18:37:50,303:INFO:Epoch: 10800/20000 | Train Loss: 1.789e-01 | Dynamic Loss: 1.789e-01 | Regularization Loss: 5.920e-08 | Val Loss: 2.900e-01 | Time: 6.47s
+2025-08-19 18:37:57,061:INFO:Epoch: 10850/20000 | Train Loss: 2.752e-01 | Dynamic Loss: 2.752e-01 | Regularization Loss: 5.404e-08 | Val Loss: 3.685e-01 | Time: 6.76s
+2025-08-19 18:38:11,333:INFO:Epoch: 10900/20000 | Train Loss: 1.666e-01 | Dynamic Loss: 1.666e-01 | Regularization Loss: 5.393e-08 | Val Loss: 2.730e-01 | Time: 14.27s
+2025-08-19 18:38:18,238:INFO:Epoch: 10950/20000 | Train Loss: 1.755e-01 | Dynamic Loss: 1.755e-01 | Regularization Loss: 4.661e-08 | Val Loss: 2.837e-01 | Time: 6.90s
+2025-08-19 18:38:24,787:INFO:Epoch: 11000/20000 | Train Loss: 1.948e-01 | Dynamic Loss: 1.948e-01 | Regularization Loss: 4.467e-08 | Val Loss: 2.964e-01 | Time: 6.55s
+2025-08-19 18:38:31,362:INFO:Epoch: 11050/20000 | Train Loss: 2.031e-01 | Dynamic Loss: 2.031e-01 | Regularization Loss: 4.322e-08 | Val Loss: 3.077e-01 | Time: 6.57s
+2025-08-19 18:38:37,771:INFO:Epoch: 11100/20000 | Train Loss: 5.536e-01 | Dynamic Loss: 5.536e-01 | Regularization Loss: 3.338e-08 | Val Loss: 6.055e-01 | Time: 6.41s
+2025-08-19 18:38:44,460:INFO:Epoch: 11150/20000 | Train Loss: 1.685e-01 | Dynamic Loss: 1.685e-01 | Regularization Loss: 2.864e-08 | Val Loss: 2.769e-01 | Time: 6.69s
+2025-08-19 18:38:51,481:INFO:Epoch: 11200/20000 | Train Loss: 1.447e-01 | Dynamic Loss: 1.447e-01 | Regularization Loss: 2.836e-08 | Val Loss: 2.551e-01 | Time: 7.02s
+2025-08-19 18:38:51,481:INFO:New best model found at epoch 11200 with validation loss 2.551e-01. Saving...
+2025-08-19 18:38:58,008:INFO:Epoch: 11250/20000 | Train Loss: 1.587e-01 | Dynamic Loss: 1.587e-01 | Regularization Loss: 2.553e-08 | Val Loss: 2.804e-01 | Time: 6.52s
+2025-08-19 18:39:04,589:INFO:Epoch: 11300/20000 | Train Loss: 2.038e-01 | Dynamic Loss: 2.038e-01 | Regularization Loss: 2.639e-08 | Val Loss: 3.104e-01 | Time: 6.58s
+2025-08-19 18:39:11,087:INFO:Epoch: 11350/20000 | Train Loss: 1.429e-01 | Dynamic Loss: 1.429e-01 | Regularization Loss: 2.741e-08 | Val Loss: 4.478e-01 | Time: 6.50s
+2025-08-19 18:39:17,934:INFO:Epoch: 11400/20000 | Train Loss: 2.217e-01 | Dynamic Loss: 2.217e-01 | Regularization Loss: 2.603e-08 | Val Loss: 3.183e-01 | Time: 6.85s
+2025-08-19 18:39:26,010:INFO:Epoch: 11450/20000 | Train Loss: 1.550e-01 | Dynamic Loss: 1.550e-01 | Regularization Loss: 2.422e-08 | Val Loss: 2.659e-01 | Time: 8.08s
+2025-08-19 18:39:32,476:INFO:Epoch: 11500/20000 | Train Loss: 1.347e-01 | Dynamic Loss: 1.347e-01 | Regularization Loss: 2.403e-08 | Val Loss: 2.450e-01 | Time: 6.47s
+2025-08-19 18:39:32,476:INFO:New best model found at epoch 11500 with validation loss 2.450e-01. Saving...
+2025-08-19 18:39:45,304:INFO:Epoch: 11550/20000 | Train Loss: 1.356e-01 | Dynamic Loss: 1.356e-01 | Regularization Loss: 2.598e-08 | Val Loss: 2.521e-01 | Time: 12.82s
+2025-08-19 18:39:52,145:INFO:Epoch: 11600/20000 | Train Loss: 1.406e-01 | Dynamic Loss: 1.406e-01 | Regularization Loss: 2.701e-08 | Val Loss: 2.459e-01 | Time: 6.84s
+2025-08-19 18:39:59,078:INFO:Epoch: 11650/20000 | Train Loss: 1.606e-01 | Dynamic Loss: 1.606e-01 | Regularization Loss: 2.788e-08 | Val Loss: 2.721e-01 | Time: 6.93s
+2025-08-19 18:40:05,484:INFO:Epoch: 11700/20000 | Train Loss: 1.668e-01 | Dynamic Loss: 1.668e-01 | Regularization Loss: 2.252e-08 | Val Loss: 2.774e-01 | Time: 6.41s
+2025-08-19 18:40:11,896:INFO:Epoch: 11750/20000 | Train Loss: 1.312e-01 | Dynamic Loss: 1.312e-01 | Regularization Loss: 2.502e-08 | Val Loss: 2.379e-01 | Time: 6.41s
+2025-08-19 18:40:11,896:INFO:New best model found at epoch 11750 with validation loss 2.379e-01. Saving...
+2025-08-19 18:40:18,593:INFO:Epoch: 11800/20000 | Train Loss: 2.207e-01 | Dynamic Loss: 2.207e-01 | Regularization Loss: 1.844e-08 | Val Loss: 3.360e-01 | Time: 6.69s
+2025-08-19 18:40:25,512:INFO:Epoch: 11850/20000 | Train Loss: 1.358e-01 | Dynamic Loss: 1.358e-01 | Regularization Loss: 1.654e-08 | Val Loss: 2.447e-01 | Time: 6.92s
+2025-08-19 18:40:32,177:INFO:Epoch: 11900/20000 | Train Loss: 1.600e-01 | Dynamic Loss: 1.600e-01 | Regularization Loss: 1.579e-08 | Val Loss: 2.648e-01 | Time: 6.67s
+2025-08-19 18:40:38,975:INFO:Epoch: 11950/20000 | Train Loss: 1.339e-01 | Dynamic Loss: 1.339e-01 | Regularization Loss: 1.704e-08 | Val Loss: 2.417e-01 | Time: 6.80s
+2025-08-19 18:40:45,829:INFO:Epoch: 12000/20000 | Train Loss: 3.366e-01 | Dynamic Loss: 3.366e-01 | Regularization Loss: 1.806e-08 | Val Loss: 4.223e-01 | Time: 6.85s
+2025-08-19 18:40:52,876:INFO:Epoch: 12050/20000 | Train Loss: 1.436e-01 | Dynamic Loss: 1.436e-01 | Regularization Loss: 1.729e-08 | Val Loss: 2.428e-01 | Time: 7.05s
+2025-08-19 18:40:59,735:INFO:Epoch: 12100/20000 | Train Loss: 2.655e-01 | Dynamic Loss: 2.655e-01 | Regularization Loss: 1.834e-08 | Val Loss: 4.506e-01 | Time: 6.86s
+2025-08-19 18:41:06,563:INFO:Epoch: 12150/20000 | Train Loss: 1.487e-01 | Dynamic Loss: 1.487e-01 | Regularization Loss: 1.424e-08 | Val Loss: 2.474e-01 | Time: 6.83s
+2025-08-19 18:41:13,322:INFO:Epoch: 12200/20000 | Train Loss: 1.252e-01 | Dynamic Loss: 1.252e-01 | Regularization Loss: 1.478e-08 | Val Loss: 2.329e-01 | Time: 6.76s
+2025-08-19 18:41:13,322:INFO:New best model found at epoch 12200 with validation loss 2.329e-01. Saving...
+2025-08-19 18:41:20,037:INFO:Epoch: 12250/20000 | Train Loss: 1.685e-01 | Dynamic Loss: 1.685e-01 | Regularization Loss: 1.272e-08 | Val Loss: 2.789e-01 | Time: 6.71s
+2025-08-19 18:41:27,013:INFO:Epoch: 12300/20000 | Train Loss: 1.300e-01 | Dynamic Loss: 1.300e-01 | Regularization Loss: 1.352e-08 | Val Loss: 2.337e-01 | Time: 6.98s
+2025-08-19 18:41:33,557:INFO:Epoch: 12350/20000 | Train Loss: 1.241e-01 | Dynamic Loss: 1.241e-01 | Regularization Loss: 1.071e-08 | Val Loss: 2.293e-01 | Time: 6.54s
+2025-08-19 18:41:33,557:INFO:New best model found at epoch 12350 with validation loss 2.293e-01. Saving...
+2025-08-19 18:41:40,121:INFO:Epoch: 12400/20000 | Train Loss: 1.445e-01 | Dynamic Loss: 1.445e-01 | Regularization Loss: 1.095e-08 | Val Loss: 2.428e-01 | Time: 6.55s
+2025-08-19 18:41:46,578:INFO:Epoch: 12450/20000 | Train Loss: 1.252e-01 | Dynamic Loss: 1.252e-01 | Regularization Loss: 1.026e-08 | Val Loss: 2.324e-01 | Time: 6.46s
+2025-08-19 18:41:53,399:INFO:Epoch: 12500/20000 | Train Loss: 1.217e-01 | Dynamic Loss: 1.217e-01 | Regularization Loss: 1.050e-08 | Val Loss: 2.341e-01 | Time: 6.82s
+2025-08-19 18:42:00,473:INFO:Epoch: 12550/20000 | Train Loss: 1.146e-01 | Dynamic Loss: 1.146e-01 | Regularization Loss: 1.011e-08 | Val Loss: 2.235e-01 | Time: 7.07s
+2025-08-19 18:42:00,473:INFO:New best model found at epoch 12550 with validation loss 2.235e-01. Saving...
+2025-08-19 18:42:07,154:INFO:Epoch: 12600/20000 | Train Loss: 2.680e-01 | Dynamic Loss: 2.680e-01 | Regularization Loss: 9.213e-09 | Val Loss: 4.390e-01 | Time: 6.67s
+2025-08-19 18:42:13,887:INFO:Epoch: 12650/20000 | Train Loss: 1.344e-01 | Dynamic Loss: 1.344e-01 | Regularization Loss: 8.223e-09 | Val Loss: 2.388e-01 | Time: 6.73s
+2025-08-19 18:42:26,391:INFO:Epoch: 12700/20000 | Train Loss: 1.338e-01 | Dynamic Loss: 1.338e-01 | Regularization Loss: 7.429e-09 | Val Loss: 2.367e-01 | Time: 12.50s
+2025-08-19 18:42:33,002:INFO:Epoch: 12750/20000 | Train Loss: 1.267e-01 | Dynamic Loss: 1.267e-01 | Regularization Loss: 7.187e-09 | Val Loss: 2.305e-01 | Time: 6.61s
+2025-08-19 18:42:44,704:INFO:Epoch: 12800/20000 | Train Loss: 1.668e-01 | Dynamic Loss: 1.668e-01 | Regularization Loss: 5.772e-09 | Val Loss: 2.561e-01 | Time: 11.70s
+2025-08-19 18:42:51,603:INFO:Epoch: 12850/20000 | Train Loss: 1.538e-01 | Dynamic Loss: 1.538e-01 | Regularization Loss: 5.635e-09 | Val Loss: 2.450e-01 | Time: 6.90s
+2025-08-19 18:43:01,114:INFO:Epoch: 12900/20000 | Train Loss: 1.179e-01 | Dynamic Loss: 1.179e-01 | Regularization Loss: 5.632e-09 | Val Loss: 2.234e-01 | Time: 9.51s
+2025-08-19 18:43:01,114:INFO:New best model found at epoch 12900 with validation loss 2.234e-01. Saving...
+2025-08-19 18:43:07,861:INFO:Epoch: 12950/20000 | Train Loss: 1.113e-01 | Dynamic Loss: 1.113e-01 | Regularization Loss: 5.917e-09 | Val Loss: 2.178e-01 | Time: 6.74s
+2025-08-19 18:43:07,861:INFO:New best model found at epoch 12950 with validation loss 2.178e-01. Saving...
+2025-08-19 18:43:14,968:INFO:Epoch: 13000/20000 | Train Loss: 1.135e-01 | Dynamic Loss: 1.135e-01 | Regularization Loss: 5.793e-09 | Val Loss: 2.231e-01 | Time: 7.10s
+2025-08-19 18:43:21,802:INFO:Epoch: 13050/20000 | Train Loss: 1.134e-01 | Dynamic Loss: 1.134e-01 | Regularization Loss: 4.751e-09 | Val Loss: 3.176e-01 | Time: 6.83s
+2025-08-19 18:43:28,546:INFO:Epoch: 13100/20000 | Train Loss: 1.290e-01 | Dynamic Loss: 1.290e-01 | Regularization Loss: 4.600e-09 | Val Loss: 2.443e-01 | Time: 6.74s
+2025-08-19 18:43:35,549:INFO:Epoch: 13150/20000 | Train Loss: 3.066e-01 | Dynamic Loss: 3.066e-01 | Regularization Loss: 4.379e-09 | Val Loss: 3.520e-01 | Time: 7.00s
+2025-08-19 18:43:42,486:INFO:Epoch: 13200/20000 | Train Loss: 1.161e-01 | Dynamic Loss: 1.161e-01 | Regularization Loss: 4.036e-09 | Val Loss: 2.175e-01 | Time: 6.94s
+2025-08-19 18:43:42,486:INFO:New best model found at epoch 13200 with validation loss 2.175e-01. Saving...
+2025-08-19 18:43:49,007:INFO:Epoch: 13250/20000 | Train Loss: 1.185e-01 | Dynamic Loss: 1.185e-01 | Regularization Loss: 3.095e-09 | Val Loss: 2.299e-01 | Time: 6.51s
+2025-08-19 18:43:55,882:INFO:Epoch: 13300/20000 | Train Loss: 1.233e-01 | Dynamic Loss: 1.233e-01 | Regularization Loss: 3.107e-09 | Val Loss: 2.265e-01 | Time: 6.87s
+2025-08-19 18:44:02,437:INFO:Epoch: 13350/20000 | Train Loss: 1.233e-01 | Dynamic Loss: 1.233e-01 | Regularization Loss: 3.134e-09 | Val Loss: 2.205e-01 | Time: 6.55s
+2025-08-19 18:44:09,008:INFO:Epoch: 13400/20000 | Train Loss: 2.993e-01 | Dynamic Loss: 2.993e-01 | Regularization Loss: 3.059e-09 | Val Loss: 3.657e-01 | Time: 6.57s
+2025-08-19 18:44:15,750:INFO:Epoch: 13450/20000 | Train Loss: 1.682e-01 | Dynamic Loss: 1.682e-01 | Regularization Loss: 5.273e-09 | Val Loss: 2.799e-01 | Time: 6.74s
+2025-08-19 18:44:27,502:INFO:Epoch: 13500/20000 | Train Loss: 1.250e-01 | Dynamic Loss: 1.250e-01 | Regularization Loss: 5.251e-09 | Val Loss: 2.359e-01 | Time: 11.75s
+2025-08-19 18:44:34,259:INFO:Epoch: 13550/20000 | Train Loss: 1.196e-01 | Dynamic Loss: 1.196e-01 | Regularization Loss: 4.822e-09 | Val Loss: 2.291e-01 | Time: 6.76s
+2025-08-19 18:44:41,030:INFO:Epoch: 13600/20000 | Train Loss: 1.161e-01 | Dynamic Loss: 1.161e-01 | Regularization Loss: 5.189e-09 | Val Loss: 3.195e-01 | Time: 6.77s
+2025-08-19 18:44:47,866:INFO:Epoch: 13650/20000 | Train Loss: 1.297e-01 | Dynamic Loss: 1.297e-01 | Regularization Loss: 4.533e-09 | Val Loss: 2.379e-01 | Time: 6.84s
+2025-08-19 18:44:59,207:INFO:Epoch: 13700/20000 | Train Loss: 1.464e-01 | Dynamic Loss: 1.464e-01 | Regularization Loss: 4.058e-09 | Val Loss: 2.409e-01 | Time: 11.34s
+2025-08-19 18:45:06,140:INFO:Epoch: 13750/20000 | Train Loss: 1.047e-01 | Dynamic Loss: 1.047e-01 | Regularization Loss: 4.012e-09 | Val Loss: 2.124e-01 | Time: 6.93s
+2025-08-19 18:45:06,141:INFO:New best model found at epoch 13750 with validation loss 2.124e-01. Saving...
+2025-08-19 18:45:12,714:INFO:Epoch: 13800/20000 | Train Loss: 1.497e-01 | Dynamic Loss: 1.497e-01 | Regularization Loss: 3.089e-09 | Val Loss: 2.439e-01 | Time: 6.56s
+2025-08-19 18:45:19,175:INFO:Epoch: 13850/20000 | Train Loss: 1.766e-01 | Dynamic Loss: 1.766e-01 | Regularization Loss: 2.572e-09 | Val Loss: 2.828e-01 | Time: 6.46s
+2025-08-19 18:45:26,000:INFO:Epoch: 13900/20000 | Train Loss: 1.076e-01 | Dynamic Loss: 1.076e-01 | Regularization Loss: 2.352e-09 | Val Loss: 2.090e-01 | Time: 6.82s
+2025-08-19 18:45:26,001:INFO:New best model found at epoch 13900 with validation loss 2.090e-01. Saving...
+2025-08-19 18:45:32,478:INFO:Epoch: 13950/20000 | Train Loss: 1.409e-01 | Dynamic Loss: 1.409e-01 | Regularization Loss: 2.060e-09 | Val Loss: 3.945e-01 | Time: 6.47s
+2025-08-19 18:45:38,850:INFO:Epoch: 14000/20000 | Train Loss: 1.581e-01 | Dynamic Loss: 1.581e-01 | Regularization Loss: 1.960e-09 | Val Loss: 2.507e-01 | Time: 6.37s
+2025-08-19 18:45:45,297:INFO:Epoch: 14050/20000 | Train Loss: 1.362e-01 | Dynamic Loss: 1.362e-01 | Regularization Loss: 1.721e-09 | Val Loss: 2.362e-01 | Time: 6.45s
+2025-08-19 18:45:51,653:INFO:Epoch: 14100/20000 | Train Loss: 1.499e-01 | Dynamic Loss: 1.499e-01 | Regularization Loss: 1.567e-09 | Val Loss: 2.430e-01 | Time: 6.36s
+2025-08-19 18:45:58,015:INFO:Epoch: 14150/20000 | Train Loss: 1.162e-01 | Dynamic Loss: 1.162e-01 | Regularization Loss: 1.366e-09 | Val Loss: 2.177e-01 | Time: 6.36s
+2025-08-19 18:46:05,018:INFO:Epoch: 14200/20000 | Train Loss: 1.015e-01 | Dynamic Loss: 1.015e-01 | Regularization Loss: 1.373e-09 | Val Loss: 2.067e-01 | Time: 7.00s
+2025-08-19 18:46:05,019:INFO:New best model found at epoch 14200 with validation loss 2.067e-01. Saving...
+2025-08-19 18:46:11,298:INFO:Epoch: 14250/20000 | Train Loss: 1.228e-01 | Dynamic Loss: 1.228e-01 | Regularization Loss: 1.464e-09 | Val Loss: 2.255e-01 | Time: 6.27s
+2025-08-19 18:46:17,633:INFO:Epoch: 14300/20000 | Train Loss: 3.346e-01 | Dynamic Loss: 3.346e-01 | Regularization Loss: 1.408e-09 | Val Loss: 3.820e-01 | Time: 6.33s
+2025-08-19 18:46:23,975:INFO:Epoch: 14350/20000 | Train Loss: 1.098e-01 | Dynamic Loss: 1.098e-01 | Regularization Loss: 1.207e-09 | Val Loss: 2.135e-01 | Time: 6.34s
+2025-08-19 18:46:30,477:INFO:Epoch: 14400/20000 | Train Loss: 1.303e-01 | Dynamic Loss: 1.303e-01 | Regularization Loss: 1.131e-09 | Val Loss: 2.249e-01 | Time: 6.50s
+2025-08-19 18:46:37,117:INFO:Epoch: 14450/20000 | Train Loss: 1.079e-01 | Dynamic Loss: 1.079e-01 | Regularization Loss: 1.172e-09 | Val Loss: 2.128e-01 | Time: 6.64s
+2025-08-19 18:46:45,519:INFO:Epoch: 14500/20000 | Train Loss: 9.503e-02 | Dynamic Loss: 9.503e-02 | Regularization Loss: 1.124e-09 | Val Loss: 2.012e-01 | Time: 8.40s
+2025-08-19 18:46:45,519:INFO:New best model found at epoch 14500 with validation loss 2.012e-01. Saving...
+2025-08-19 18:46:52,329:INFO:Epoch: 14550/20000 | Train Loss: 1.085e-01 | Dynamic Loss: 1.085e-01 | Regularization Loss: 1.229e-09 | Val Loss: 2.110e-01 | Time: 6.80s
+2025-08-19 18:46:58,534:INFO:Epoch: 14600/20000 | Train Loss: 1.395e-01 | Dynamic Loss: 1.395e-01 | Regularization Loss: 8.433e-10 | Val Loss: 2.965e-01 | Time: 6.21s
+2025-08-19 18:47:10,012:INFO:Epoch: 14650/20000 | Train Loss: 1.006e-01 | Dynamic Loss: 1.006e-01 | Regularization Loss: 7.783e-10 | Val Loss: 2.064e-01 | Time: 11.48s
+2025-08-19 18:47:16,444:INFO:Epoch: 14700/20000 | Train Loss: 1.266e-01 | Dynamic Loss: 1.266e-01 | Regularization Loss: 7.670e-10 | Val Loss: 2.252e-01 | Time: 6.43s
+2025-08-19 18:47:22,903:INFO:Epoch: 14750/20000 | Train Loss: 9.739e-02 | Dynamic Loss: 9.739e-02 | Regularization Loss: 7.523e-10 | Val Loss: 2.028e-01 | Time: 6.46s
+2025-08-19 18:47:35,547:INFO:Epoch: 14800/20000 | Train Loss: 9.904e-02 | Dynamic Loss: 9.904e-02 | Regularization Loss: 7.583e-10 | Val Loss: 2.268e-01 | Time: 12.64s
+2025-08-19 18:47:42,136:INFO:Epoch: 14850/20000 | Train Loss: 9.408e-02 | Dynamic Loss: 9.408e-02 | Regularization Loss: 7.473e-10 | Val Loss: 2.300e-01 | Time: 6.59s
+2025-08-19 18:47:49,042:INFO:Epoch: 14900/20000 | Train Loss: 1.026e-01 | Dynamic Loss: 1.026e-01 | Regularization Loss: 7.204e-10 | Val Loss: 2.074e-01 | Time: 6.91s
+2025-08-19 18:47:58,365:INFO:Epoch: 14950/20000 | Train Loss: 1.219e-01 | Dynamic Loss: 1.219e-01 | Regularization Loss: 6.552e-10 | Val Loss: 2.182e-01 | Time: 9.32s
+2025-08-19 18:48:04,803:INFO:Epoch: 15000/20000 | Train Loss: 9.639e-02 | Dynamic Loss: 9.639e-02 | Regularization Loss: 6.313e-10 | Val Loss: 2.058e-01 | Time: 6.44s
+2025-08-19 18:48:11,402:INFO:Epoch: 15050/20000 | Train Loss: 9.774e-02 | Dynamic Loss: 9.774e-02 | Regularization Loss: 5.402e-10 | Val Loss: 2.073e-01 | Time: 6.60s
+2025-08-19 18:48:22,208:INFO:Epoch: 15100/20000 | Train Loss: 1.123e-01 | Dynamic Loss: 1.123e-01 | Regularization Loss: 4.614e-10 | Val Loss: 2.447e-01 | Time: 10.81s
+2025-08-19 18:48:28,849:INFO:Epoch: 15150/20000 | Train Loss: 1.082e-01 | Dynamic Loss: 1.082e-01 | Regularization Loss: 4.719e-10 | Val Loss: 2.069e-01 | Time: 6.64s
+2025-08-19 18:48:35,138:INFO:Epoch: 15200/20000 | Train Loss: 2.734e-01 | Dynamic Loss: 2.734e-01 | Regularization Loss: 4.204e-10 | Val Loss: 3.690e-01 | Time: 6.29s
+2025-08-19 18:48:48,039:INFO:Epoch: 15250/20000 | Train Loss: 9.750e-02 | Dynamic Loss: 9.750e-02 | Regularization Loss: 3.729e-10 | Val Loss: 2.021e-01 | Time: 12.90s
+2025-08-19 18:48:54,727:INFO:Epoch: 15300/20000 | Train Loss: 9.504e-02 | Dynamic Loss: 9.504e-02 | Regularization Loss: 3.585e-10 | Val Loss: 2.015e-01 | Time: 6.69s
+2025-08-19 18:49:01,381:INFO:Epoch: 15350/20000 | Train Loss: 9.154e-02 | Dynamic Loss: 9.154e-02 | Regularization Loss: 3.423e-10 | Val Loss: 1.977e-01 | Time: 6.65s
+2025-08-19 18:49:01,381:INFO:New best model found at epoch 15350 with validation loss 1.977e-01. Saving...
+2025-08-19 18:49:12,187:INFO:Epoch: 15400/20000 | Train Loss: 9.157e-02 | Dynamic Loss: 9.157e-02 | Regularization Loss: 3.449e-10 | Val Loss: 1.978e-01 | Time: 10.79s
+2025-08-19 18:49:18,575:INFO:Epoch: 15450/20000 | Train Loss: 8.832e-02 | Dynamic Loss: 8.832e-02 | Regularization Loss: 3.586e-10 | Val Loss: 1.963e-01 | Time: 6.39s
+2025-08-19 18:49:18,575:INFO:New best model found at epoch 15450 with validation loss 1.963e-01. Saving...
+2025-08-19 18:49:25,258:INFO:Epoch: 15500/20000 | Train Loss: 8.557e-02 | Dynamic Loss: 8.557e-02 | Regularization Loss: 3.650e-10 | Val Loss: 1.931e-01 | Time: 6.67s
+2025-08-19 18:49:25,258:INFO:New best model found at epoch 15500 with validation loss 1.931e-01. Saving...
+2025-08-19 18:49:35,137:INFO:Epoch: 15550/20000 | Train Loss: 9.295e-02 | Dynamic Loss: 9.295e-02 | Regularization Loss: 3.523e-10 | Val Loss: 2.071e-01 | Time: 9.87s
+2025-08-19 18:49:41,586:INFO:Epoch: 15600/20000 | Train Loss: 1.548e-01 | Dynamic Loss: 1.548e-01 | Regularization Loss: 3.714e-10 | Val Loss: 2.290e-01 | Time: 6.45s
+2025-08-19 18:49:47,622:INFO:Epoch: 15650/20000 | Train Loss: 8.695e-01 | Dynamic Loss: 8.695e-01 | Regularization Loss: 3.452e-10 | Val Loss: 7.065e-01 | Time: 6.04s
+2025-08-19 18:49:54,479:INFO:Epoch: 15700/20000 | Train Loss: 5.246e-01 | Dynamic Loss: 5.246e-01 | Regularization Loss: 2.183e-10 | Val Loss: 5.356e-01 | Time: 6.86s
+2025-08-19 18:50:00,923:INFO:Epoch: 15750/20000 | Train Loss: 9.803e-02 | Dynamic Loss: 9.803e-02 | Regularization Loss: 2.123e-10 | Val Loss: 2.115e-01 | Time: 6.44s
+2025-08-19 18:50:07,344:INFO:Epoch: 15800/20000 | Train Loss: 8.468e-02 | Dynamic Loss: 8.468e-02 | Regularization Loss: 1.931e-10 | Val Loss: 1.937e-01 | Time: 6.42s
+2025-08-19 18:50:15,469:INFO:Epoch: 15850/20000 | Train Loss: 8.526e-02 | Dynamic Loss: 8.526e-02 | Regularization Loss: 2.002e-10 | Val Loss: 1.993e-01 | Time: 8.12s
+2025-08-19 18:50:21,596:INFO:Epoch: 15900/20000 | Train Loss: 8.133e-02 | Dynamic Loss: 8.133e-02 | Regularization Loss: 2.009e-10 | Val Loss: 1.901e-01 | Time: 6.13s
+2025-08-19 18:50:21,596:INFO:New best model found at epoch 15900 with validation loss 1.901e-01. Saving...
+2025-08-19 18:50:27,911:INFO:Epoch: 15950/20000 | Train Loss: 9.726e-02 | Dynamic Loss: 9.726e-02 | Regularization Loss: 1.775e-10 | Val Loss: 2.031e-01 | Time: 6.30s
+2025-08-19 18:50:36,878:INFO:Epoch: 16000/20000 | Train Loss: 9.404e-02 | Dynamic Loss: 9.404e-02 | Regularization Loss: 1.614e-10 | Val Loss: 2.020e-01 | Time: 8.97s
+2025-08-19 18:50:43,223:INFO:Epoch: 16050/20000 | Train Loss: 8.828e-02 | Dynamic Loss: 8.828e-02 | Regularization Loss: 1.732e-10 | Val Loss: 1.946e-01 | Time: 6.34s
+2025-08-19 18:50:49,913:INFO:Epoch: 16100/20000 | Train Loss: 1.214e-01 | Dynamic Loss: 1.214e-01 | Regularization Loss: 1.603e-10 | Val Loss: 2.221e-01 | Time: 6.69s
+2025-08-19 18:51:01,770:INFO:Epoch: 16150/20000 | Train Loss: 1.014e-01 | Dynamic Loss: 1.014e-01 | Regularization Loss: 1.478e-10 | Val Loss: 2.054e-01 | Time: 11.86s
+2025-08-19 18:51:08,156:INFO:Epoch: 16200/20000 | Train Loss: 9.989e-02 | Dynamic Loss: 9.989e-02 | Regularization Loss: 1.459e-10 | Val Loss: 2.059e-01 | Time: 6.39s
+2025-08-19 18:51:14,472:INFO:Epoch: 16250/20000 | Train Loss: 7.848e-02 | Dynamic Loss: 7.848e-02 | Regularization Loss: 1.204e-10 | Val Loss: 2.030e-01 | Time: 6.32s
+2025-08-19 18:51:23,108:INFO:Epoch: 16300/20000 | Train Loss: 9.057e-02 | Dynamic Loss: 9.057e-02 | Regularization Loss: 1.139e-10 | Val Loss: 2.027e-01 | Time: 8.64s
+2025-08-19 18:51:29,342:INFO:Epoch: 16350/20000 | Train Loss: 1.801e-01 | Dynamic Loss: 1.801e-01 | Regularization Loss: 8.874e-11 | Val Loss: 2.743e-01 | Time: 6.23s
+2025-08-19 18:51:35,790:INFO:Epoch: 16400/20000 | Train Loss: 8.124e-02 | Dynamic Loss: 8.124e-02 | Regularization Loss: 7.319e-11 | Val Loss: 1.915e-01 | Time: 6.45s
+2025-08-19 18:51:46,368:INFO:Epoch: 16450/20000 | Train Loss: 8.815e-02 | Dynamic Loss: 8.815e-02 | Regularization Loss: 7.371e-11 | Val Loss: 1.949e-01 | Time: 10.58s
+2025-08-19 18:51:52,793:INFO:Epoch: 16500/20000 | Train Loss: 7.665e-02 | Dynamic Loss: 7.665e-02 | Regularization Loss: 6.582e-11 | Val Loss: 1.878e-01 | Time: 6.43s
+2025-08-19 18:51:52,793:INFO:New best model found at epoch 16500 with validation loss 1.878e-01. Saving...
+2025-08-19 18:51:59,353:INFO:Epoch: 16550/20000 | Train Loss: 7.341e-02 | Dynamic Loss: 7.341e-02 | Regularization Loss: 6.454e-11 | Val Loss: 1.853e-01 | Time: 6.55s
+2025-08-19 18:51:59,353:INFO:New best model found at epoch 16550 with validation loss 1.853e-01. Saving...
+2025-08-19 18:52:08,168:INFO:Epoch: 16600/20000 | Train Loss: 7.477e-02 | Dynamic Loss: 7.477e-02 | Regularization Loss: 6.129e-11 | Val Loss: 1.855e-01 | Time: 8.81s
+2025-08-19 18:52:14,532:INFO:Epoch: 16650/20000 | Train Loss: 9.197e-02 | Dynamic Loss: 9.197e-02 | Regularization Loss: 6.393e-11 | Val Loss: 2.023e-01 | Time: 6.36s
+2025-08-19 18:52:21,149:INFO:Epoch: 16700/20000 | Train Loss: 7.505e-02 | Dynamic Loss: 7.505e-02 | Regularization Loss: 5.571e-11 | Val Loss: 1.871e-01 | Time: 6.62s
+2025-08-19 18:52:32,331:INFO:Epoch: 16750/20000 | Train Loss: 7.653e-02 | Dynamic Loss: 7.653e-02 | Regularization Loss: 5.160e-11 | Val Loss: 1.887e-01 | Time: 11.18s
+2025-08-19 18:52:38,914:INFO:Epoch: 16800/20000 | Train Loss: 2.110e-01 | Dynamic Loss: 2.110e-01 | Regularization Loss: 4.983e-11 | Val Loss: 2.857e-01 | Time: 6.58s
+2025-08-19 18:52:45,282:INFO:Epoch: 16850/20000 | Train Loss: 8.358e-02 | Dynamic Loss: 8.358e-02 | Regularization Loss: 4.663e-11 | Val Loss: 1.911e-01 | Time: 6.37s
+2025-08-19 18:52:57,466:INFO:Epoch: 16900/20000 | Train Loss: 8.345e-02 | Dynamic Loss: 8.345e-02 | Regularization Loss: 5.026e-11 | Val Loss: 1.897e-01 | Time: 12.18s
+2025-08-19 18:53:03,989:INFO:Epoch: 16950/20000 | Train Loss: 8.528e-02 | Dynamic Loss: 8.528e-02 | Regularization Loss: 5.413e-11 | Val Loss: 1.931e-01 | Time: 6.52s
+2025-08-19 18:53:10,403:INFO:Epoch: 17000/20000 | Train Loss: 8.974e-02 | Dynamic Loss: 8.974e-02 | Regularization Loss: 4.610e-11 | Val Loss: 1.943e-01 | Time: 6.41s
+2025-08-19 18:53:19,456:INFO:Epoch: 17050/20000 | Train Loss: 7.304e-02 | Dynamic Loss: 7.304e-02 | Regularization Loss: 3.625e-11 | Val Loss: 1.868e-01 | Time: 9.05s
+2025-08-19 18:53:25,642:INFO:Epoch: 17100/20000 | Train Loss: 7.020e-02 | Dynamic Loss: 7.020e-02 | Regularization Loss: 3.511e-11 | Val Loss: 1.834e-01 | Time: 6.19s
+2025-08-19 18:53:25,642:INFO:New best model found at epoch 17100 with validation loss 1.834e-01. Saving...
+2025-08-19 18:53:32,124:INFO:Epoch: 17150/20000 | Train Loss: 7.147e-02 | Dynamic Loss: 7.147e-02 | Regularization Loss: 3.168e-11 | Val Loss: 1.837e-01 | Time: 6.47s
+2025-08-19 18:53:40,382:INFO:Epoch: 17200/20000 | Train Loss: 8.045e-02 | Dynamic Loss: 8.045e-02 | Regularization Loss: 2.931e-11 | Val Loss: 1.973e-01 | Time: 8.26s
+2025-08-19 18:53:46,852:INFO:Epoch: 17250/20000 | Train Loss: 6.752e-02 | Dynamic Loss: 6.752e-02 | Regularization Loss: 2.987e-11 | Val Loss: 1.823e-01 | Time: 6.47s
+2025-08-19 18:53:46,853:INFO:New best model found at epoch 17250 with validation loss 1.823e-01. Saving...
+2025-08-19 18:53:53,258:INFO:Epoch: 17300/20000 | Train Loss: 1.671e-01 | Dynamic Loss: 1.671e-01 | Regularization Loss: 3.360e-11 | Val Loss: 2.801e-01 | Time: 6.39s
+2025-08-19 18:54:01,879:INFO:Epoch: 17350/20000 | Train Loss: 7.530e-02 | Dynamic Loss: 7.530e-02 | Regularization Loss: 2.611e-11 | Val Loss: 1.894e-01 | Time: 8.62s
+2025-08-19 18:54:08,180:INFO:Epoch: 17400/20000 | Train Loss: 7.443e-02 | Dynamic Loss: 7.443e-02 | Regularization Loss: 2.397e-11 | Val Loss: 1.977e-01 | Time: 6.30s
+2025-08-19 18:54:14,560:INFO:Epoch: 17450/20000 | Train Loss: 7.464e-02 | Dynamic Loss: 7.464e-02 | Regularization Loss: 2.180e-11 | Val Loss: 1.997e-01 | Time: 6.38s
+2025-08-19 18:54:21,504:INFO:Epoch: 17500/20000 | Train Loss: 7.666e-02 | Dynamic Loss: 7.666e-02 | Regularization Loss: 2.166e-11 | Val Loss: 1.873e-01 | Time: 6.94s
+2025-08-19 18:54:28,057:INFO:Epoch: 17550/20000 | Train Loss: 8.583e-02 | Dynamic Loss: 8.583e-02 | Regularization Loss: 2.340e-11 | Val Loss: 2.186e-01 | Time: 6.55s
+2025-08-19 18:54:34,516:INFO:Epoch: 17600/20000 | Train Loss: 9.651e-02 | Dynamic Loss: 9.651e-02 | Regularization Loss: 2.287e-11 | Val Loss: 2.119e-01 | Time: 6.46s
+2025-08-19 18:54:41,768:INFO:Epoch: 17650/20000 | Train Loss: 8.402e-02 | Dynamic Loss: 8.402e-02 | Regularization Loss: 2.300e-11 | Val Loss: 1.979e-01 | Time: 7.25s
+2025-08-19 18:54:48,147:INFO:Epoch: 17700/20000 | Train Loss: 7.022e-02 | Dynamic Loss: 7.022e-02 | Regularization Loss: 2.187e-11 | Val Loss: 2.463e-01 | Time: 6.38s
+2025-08-19 18:54:54,632:INFO:Epoch: 17750/20000 | Train Loss: 7.439e-02 | Dynamic Loss: 7.439e-02 | Regularization Loss: 2.132e-11 | Val Loss: 2.088e-01 | Time: 6.48s
+2025-08-19 18:55:06,799:INFO:Epoch: 17800/20000 | Train Loss: 8.243e-02 | Dynamic Loss: 8.243e-02 | Regularization Loss: 1.697e-11 | Val Loss: 1.942e-01 | Time: 12.17s
+2025-08-19 18:55:13,651:INFO:Epoch: 17850/20000 | Train Loss: 6.648e-02 | Dynamic Loss: 6.648e-02 | Regularization Loss: 1.392e-11 | Val Loss: 1.844e-01 | Time: 6.85s
+2025-08-19 18:55:20,045:INFO:Epoch: 17900/20000 | Train Loss: 6.739e-02 | Dynamic Loss: 6.739e-02 | Regularization Loss: 1.394e-11 | Val Loss: 1.955e-01 | Time: 6.39s
+2025-08-19 18:55:33,301:INFO:Epoch: 17950/20000 | Train Loss: 6.289e-02 | Dynamic Loss: 6.289e-02 | Regularization Loss: 1.256e-11 | Val Loss: 1.784e-01 | Time: 13.26s
+2025-08-19 18:55:33,301:INFO:New best model found at epoch 17950 with validation loss 1.784e-01. Saving...
+2025-08-19 18:55:39,671:INFO:Epoch: 18000/20000 | Train Loss: 6.431e-02 | Dynamic Loss: 6.431e-02 | Regularization Loss: 1.268e-11 | Val Loss: 1.803e-01 | Time: 6.36s
+2025-08-19 18:55:46,318:INFO:Epoch: 18050/20000 | Train Loss: 6.834e-02 | Dynamic Loss: 6.834e-02 | Regularization Loss: 1.072e-11 | Val Loss: 1.830e-01 | Time: 6.65s
+2025-08-19 18:55:57,411:INFO:Epoch: 18100/20000 | Train Loss: 1.580e-01 | Dynamic Loss: 1.580e-01 | Regularization Loss: 9.287e-12 | Val Loss: 2.391e-01 | Time: 11.09s
+2025-08-19 18:56:04,132:INFO:Epoch: 18150/20000 | Train Loss: 6.593e-02 | Dynamic Loss: 6.593e-02 | Regularization Loss: 8.489e-12 | Val Loss: 1.848e-01 | Time: 6.72s
+2025-08-19 18:56:10,613:INFO:Epoch: 18200/20000 | Train Loss: 8.624e-02 | Dynamic Loss: 8.624e-02 | Regularization Loss: 9.100e-12 | Val Loss: 2.029e-01 | Time: 6.48s
+2025-08-19 18:56:17,305:INFO:Epoch: 18250/20000 | Train Loss: 6.309e-02 | Dynamic Loss: 6.309e-02 | Regularization Loss: 8.275e-12 | Val Loss: 1.797e-01 | Time: 6.69s
+2025-08-19 18:56:24,036:INFO:Epoch: 18300/20000 | Train Loss: 9.625e-02 | Dynamic Loss: 9.625e-02 | Regularization Loss: 7.976e-12 | Val Loss: 2.149e-01 | Time: 6.73s
+2025-08-19 18:56:31,007:INFO:Epoch: 18350/20000 | Train Loss: 6.064e-02 | Dynamic Loss: 6.064e-02 | Regularization Loss: 6.928e-12 | Val Loss: 1.780e-01 | Time: 6.97s
+2025-08-19 18:56:31,007:INFO:New best model found at epoch 18350 with validation loss 1.780e-01. Saving...
+2025-08-19 18:56:37,970:INFO:Epoch: 18400/20000 | Train Loss: 6.269e-02 | Dynamic Loss: 6.269e-02 | Regularization Loss: 5.867e-12 | Val Loss: 1.797e-01 | Time: 6.94s
+2025-08-19 18:56:44,780:INFO:Epoch: 18450/20000 | Train Loss: 7.526e-02 | Dynamic Loss: 7.526e-02 | Regularization Loss: 6.294e-12 | Val Loss: 1.934e-01 | Time: 6.81s
+2025-08-19 18:56:51,551:INFO:Epoch: 18500/20000 | Train Loss: 1.949e-01 | Dynamic Loss: 1.949e-01 | Regularization Loss: 6.979e-12 | Val Loss: 2.768e-01 | Time: 6.77s
+2025-08-19 18:56:58,278:INFO:Epoch: 18550/20000 | Train Loss: 6.101e-02 | Dynamic Loss: 6.101e-02 | Regularization Loss: 6.466e-12 | Val Loss: 1.794e-01 | Time: 6.73s
+2025-08-19 18:57:04,556:INFO:Epoch: 18600/20000 | Train Loss: 9.557e-02 | Dynamic Loss: 9.557e-02 | Regularization Loss: 6.752e-12 | Val Loss: 1.985e-01 | Time: 6.28s
+2025-08-19 18:57:10,826:INFO:Epoch: 18650/20000 | Train Loss: 5.913e-02 | Dynamic Loss: 5.913e-02 | Regularization Loss: 6.305e-12 | Val Loss: 1.780e-01 | Time: 6.27s
+2025-08-19 18:57:10,826:INFO:New best model found at epoch 18650 with validation loss 1.780e-01. Saving...
+2025-08-19 18:57:17,109:INFO:Epoch: 18700/20000 | Train Loss: 5.886e-02 | Dynamic Loss: 5.886e-02 | Regularization Loss: 5.749e-12 | Val Loss: 1.756e-01 | Time: 6.27s
+2025-08-19 18:57:17,109:INFO:New best model found at epoch 18700 with validation loss 1.756e-01. Saving...
+2025-08-19 18:57:23,299:INFO:Epoch: 18750/20000 | Train Loss: 6.254e-02 | Dynamic Loss: 6.254e-02 | Regularization Loss: 5.681e-12 | Val Loss: 1.802e-01 | Time: 6.18s
+2025-08-19 18:57:29,762:INFO:Epoch: 18800/20000 | Train Loss: 6.271e-02 | Dynamic Loss: 6.271e-02 | Regularization Loss: 5.208e-12 | Val Loss: 1.790e-01 | Time: 6.46s
+2025-08-19 18:57:36,351:INFO:Epoch: 18850/20000 | Train Loss: 5.824e-02 | Dynamic Loss: 5.824e-02 | Regularization Loss: 4.419e-12 | Val Loss: 1.760e-01 | Time: 6.59s
+2025-08-19 18:57:42,648:INFO:Epoch: 18900/20000 | Train Loss: 5.780e-02 | Dynamic Loss: 5.780e-02 | Regularization Loss: 4.392e-12 | Val Loss: 1.757e-01 | Time: 6.30s
+2025-08-19 18:57:48,974:INFO:Epoch: 18950/20000 | Train Loss: 7.054e-02 | Dynamic Loss: 7.054e-02 | Regularization Loss: 4.121e-12 | Val Loss: 1.865e-01 | Time: 6.33s
+2025-08-19 18:57:55,924:INFO:Epoch: 19000/20000 | Train Loss: 7.852e-02 | Dynamic Loss: 7.852e-02 | Regularization Loss: 3.624e-12 | Val Loss: 1.965e-01 | Time: 6.95s
+2025-08-19 18:58:02,219:INFO:Epoch: 19050/20000 | Train Loss: 1.788e-01 | Dynamic Loss: 1.788e-01 | Regularization Loss: 3.376e-12 | Val Loss: 2.543e-01 | Time: 6.30s
+2025-08-19 18:58:08,488:INFO:Epoch: 19100/20000 | Train Loss: 5.686e-02 | Dynamic Loss: 5.686e-02 | Regularization Loss: 3.304e-12 | Val Loss: 1.757e-01 | Time: 6.27s
+2025-08-19 18:58:15,012:INFO:Epoch: 19150/20000 | Train Loss: 5.938e-02 | Dynamic Loss: 5.938e-02 | Regularization Loss: 2.910e-12 | Val Loss: 1.757e-01 | Time: 6.52s
+2025-08-19 18:58:21,283:INFO:Epoch: 19200/20000 | Train Loss: 6.594e-02 | Dynamic Loss: 6.594e-02 | Regularization Loss: 3.011e-12 | Val Loss: 1.851e-01 | Time: 6.27s
+2025-08-19 18:58:27,832:INFO:Epoch: 19250/20000 | Train Loss: 5.334e-02 | Dynamic Loss: 5.334e-02 | Regularization Loss: 3.112e-12 | Val Loss: 1.726e-01 | Time: 6.55s
+2025-08-19 18:58:27,832:INFO:New best model found at epoch 19250 with validation loss 1.726e-01. Saving...
+2025-08-19 18:58:34,582:INFO:Epoch: 19300/20000 | Train Loss: 5.541e-02 | Dynamic Loss: 5.541e-02 | Regularization Loss: 2.825e-12 | Val Loss: 1.743e-01 | Time: 6.74s
+2025-08-19 18:58:41,014:INFO:Epoch: 19350/20000 | Train Loss: 5.272e-02 | Dynamic Loss: 5.272e-02 | Regularization Loss: 2.825e-12 | Val Loss: 1.731e-01 | Time: 6.43s
+2025-08-19 18:58:47,550:INFO:Epoch: 19400/20000 | Train Loss: 5.479e-02 | Dynamic Loss: 5.479e-02 | Regularization Loss: 2.733e-12 | Val Loss: 1.757e-01 | Time: 6.54s
+2025-08-19 18:58:54,457:INFO:Epoch: 19450/20000 | Train Loss: 5.522e-02 | Dynamic Loss: 5.522e-02 | Regularization Loss: 2.519e-12 | Val Loss: 1.742e-01 | Time: 6.91s
+2025-08-19 18:59:00,705:INFO:Epoch: 19500/20000 | Train Loss: 5.609e-02 | Dynamic Loss: 5.609e-02 | Regularization Loss: 2.615e-12 | Val Loss: 1.785e-01 | Time: 6.25s
+2025-08-19 18:59:07,040:INFO:Epoch: 19550/20000 | Train Loss: 1.305e-01 | Dynamic Loss: 1.305e-01 | Regularization Loss: 2.259e-12 | Val Loss: 2.381e-01 | Time: 6.33s
+2025-08-19 18:59:13,757:INFO:Epoch: 19600/20000 | Train Loss: 5.383e-02 | Dynamic Loss: 5.383e-02 | Regularization Loss: 2.054e-12 | Val Loss: 1.747e-01 | Time: 6.72s
+2025-08-19 18:59:20,014:INFO:Epoch: 19650/20000 | Train Loss: 5.134e-02 | Dynamic Loss: 5.134e-02 | Regularization Loss: 1.786e-12 | Val Loss: 1.717e-01 | Time: 6.26s
+2025-08-19 18:59:20,014:INFO:New best model found at epoch 19650 with validation loss 1.717e-01. Saving...
+2025-08-19 18:59:26,936:INFO:Epoch: 19700/20000 | Train Loss: 6.521e-02 | Dynamic Loss: 6.521e-02 | Regularization Loss: 1.895e-12 | Val Loss: 1.792e-01 | Time: 6.91s
+2025-08-19 18:59:33,737:INFO:Epoch: 19750/20000 | Train Loss: 5.174e-02 | Dynamic Loss: 5.174e-02 | Regularization Loss: 1.749e-12 | Val Loss: 1.718e-01 | Time: 6.80s
+2025-08-19 18:59:40,522:INFO:Epoch: 19800/20000 | Train Loss: 5.214e-02 | Dynamic Loss: 5.214e-02 | Regularization Loss: 1.400e-12 | Val Loss: 1.730e-01 | Time: 6.78s
+2025-08-19 18:59:47,183:INFO:Epoch: 19850/20000 | Train Loss: 5.767e-02 | Dynamic Loss: 5.767e-02 | Regularization Loss: 1.168e-12 | Val Loss: 1.745e-01 | Time: 6.66s
+2025-08-19 18:59:54,902:INFO:Epoch: 19900/20000 | Train Loss: 5.249e-02 | Dynamic Loss: 5.249e-02 | Regularization Loss: 8.208e-13 | Val Loss: 1.719e-01 | Time: 7.72s
+2025-08-19 19:00:01,478:INFO:Epoch: 19950/20000 | Train Loss: 9.624e-01 | Dynamic Loss: 9.624e-01 | Regularization Loss: 9.907e-13 | Val Loss: 9.634e-01 | Time: 6.58s
+2025-08-19 19:00:07,987:INFO:Epoch: 20000/20000 | Train Loss: 5.591e-02 | Dynamic Loss: 5.591e-02 | Regularization Loss: 7.257e-13 | Val Loss: 1.814e-01 | Time: 6.51s

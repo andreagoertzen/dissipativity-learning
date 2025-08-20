@@ -1,8 +1,0 @@
-2025-08-19 18:03:55,207:INFO:Created DataLoaders with 5994 training samples and 1998 validation samples.
-2025-08-19 18:03:55,700:INFO:model params: 526849
-2025-08-19 18:05:23,885:INFO:Created DataLoaders with 5994 training samples and 1998 validation samples.
-2025-08-19 18:05:24,378:INFO:model params: 526849
-2025-08-19 18:05:24,908:INFO:Epoch: 0/10000 | Train Loss: 2.911e+00 | Dynamic Loss: 2.816e+00 | Regularization Loss: 9.509e-02 | Val Loss: 2.350e+00 | Time: 0.53s
-2025-08-19 18:05:24,908:INFO:New best model found at epoch 0 with validation loss 2.350e+00. Saving...
-2025-08-19 18:05:30,023:INFO:Epoch: 50/10000 | Train Loss: 1.777e+00 | Dynamic Loss: 1.773e+00 | Regularization Loss: 4.073e-03 | Val Loss: 1.739e+00 | Time: 5.11s
-2025-08-19 18:05:30,023:INFO:New best model found at epoch 50 with validation loss 1.739e+00. Saving...

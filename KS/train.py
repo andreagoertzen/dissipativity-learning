@@ -13,6 +13,8 @@ from tqdm import tqdm
 import argparse
 import logging
 from utils import run_model_visualization
+from utils import visualize_ellipsoid
+from utils import rollout_on_test
 from datetime import datetime
 
 def ellip_vol(model):
@@ -46,6 +48,7 @@ def train(params):
     model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
     lr = params['lr']
+    warm_start = params['warm_start']
 
     model_folder = model_dir
     figs_folder = os.path.join(model_dir, 'eval_results')
@@ -89,6 +92,11 @@ def train(params):
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
+    # if warm_start:
+    #     logging.info('removing projection layer after initialization')
+    #     project = False
+    #     model.project = False
+
     loss_func = torch.nn.MSELoss()
     tic = time.time()
 
@@ -104,6 +112,14 @@ def train(params):
         epoch_train_loss = 0
         epoch_dynamic_loss = 0
         epoch_reg_loss = 0
+
+
+        # if warm_start:
+        #     if epoch == 10000:
+        #         logging.info('Adding projection layer')
+        #         project = True
+        #         model.project = True
+        
         # Iterate over batches from the DataLoader
         for x_batch, y_batch in train_loader:
             # The dataloader gives us a tuple for x_batch
@@ -217,12 +233,23 @@ def train(params):
 
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
-    
+
     model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
     model.eval()
     x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
     y_val = val_dataset.targets.to(device)     
     run_model_visualization(model, x_val, y_val, s, device, figs_dir=figs_folder)
+
+    if project:
+        Q = model.V._construct_Q().detach().cpu().numpy()
+        c = model.c.detach().cpu().numpy() ** 2
+    else:
+        Q = None
+        c = 30.0
+    
+    test_traj = data['u_batch']
+    pred_traj = rollout_on_test(model, data['x'], trunk_scale, test_traj, device, figs_folder,project,c)
+    visualize_ellipsoid(test_traj[0,...], pred_traj, figs_folder, Q, c)
 
     return model
 
@@ -241,6 +268,7 @@ if __name__ == "__main__":
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
+    # parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -268,6 +296,10 @@ if __name__ == "__main__":
         reg_name += f'_C0{args.c_init}'
     if params['diag_Q']:
         reg_name += '_diagQ'
+    if params['discrete_proj']:
+        reg_name += 'discreteProj'
+    # if params['warm_start']:
+    #     reg_name += 'warmStart'
 
     print(args.branch_conv_channels)
         
@@ -275,14 +307,14 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_{args.discrete_proj}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    # logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    # # logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
     logging.basicConfig(filename=save_dir + '/' + f"loss_info.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
     
     model = train(params)
