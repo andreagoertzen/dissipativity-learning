@@ -384,7 +384,7 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
     plt.close()
 
     plt.figure()
-    plt.imshow(pred_traj[0,...].cpu().numpy(),aspect="auto")
+    plt.imshow(pred_traj[0,...].T.cpu().numpy(),aspect="auto")
     plt.savefig(f'{figs_dir}/traj_forPCA.png')
 
     return pred_traj
