@@ -377,7 +377,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_m1_{args.momentum_1}_m2_{args.momentum_2}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_lr{args.lr}_m1_{args.momentum_1}_m2_{args.momentum_2}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
