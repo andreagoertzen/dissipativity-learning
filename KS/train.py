@@ -89,8 +89,17 @@ def train(params):
     }
 
     model = DeepONet(model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=lr,
+        betas=(params['momentum_1'], params['momentum_2']),
+        eps=1e-8,
+        weight_decay=0.0,   # or small 1e-4 if you want
+        amsgrad=True
+    )
     print(f'Training with Learning rate: {lr}')
+    print(f'Training with Momentum: {params["momentum_1"]}, {params["momentum_2"]}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
@@ -108,6 +117,7 @@ def train(params):
     dynamic_losses = []
     reg_losses = []
     projection_percentages = []
+    q_grad_norms = []
 
     # --- Main Training Loop ---
     for epoch in tqdm(range(epochs + 1)):
@@ -116,6 +126,7 @@ def train(params):
         epoch_dynamic_loss = 0
         epoch_reg_loss = 0
         epoch_active_projection_percentage = 0.0
+        epoch_q_grad_norm = 0.0
 
         if warm_start:
             if epoch == 10000:
@@ -150,11 +161,18 @@ def train(params):
             if project:
                 vol = ellip_vol(model)
                 reg_loss = lam_reg_vol * vol.squeeze()
+                
             else:
                 reg_loss = torch.tensor(0.0, device=device)
             
             loss = dynamic_loss + reg_loss
             loss.backward()
+            
+            if project:
+                # This function computes the total norm and returns it.
+                # We set max_norm=inf to prevent clipping; we only want the return value.
+                total_logL_norm = model.V.log_diag_L.grad.data.norm(2)
+                epoch_q_grad_norm += total_logL_norm.item()
 
             # if epoch % n_save_epochs == 0:
             #     for name, param in model.named_parameters():
@@ -187,6 +205,10 @@ def train(params):
             avg_dynamic_loss = epoch_dynamic_loss / len(train_loader)
             avg_reg_loss = epoch_reg_loss / len(train_loader)
             avg_projection_percentage = epoch_active_projection_percentage / len(train_loader)
+            if project:
+                avg_q_grad_norm = epoch_q_grad_norm / len(train_loader)
+
+            q_grad_norms.append(avg_q_grad_norm)
 
             train_losses.append(avg_train_loss)
             val_losses.append(avg_val_loss)
@@ -229,20 +251,43 @@ def train(params):
 
             total_time = time.time() - tic
     
-            plt.figure(figsize=(6, 4))
-            plt.plot(plot_x, projection_percentages, label='Active Projection %', color='green')
-            plt.xlabel('Iteration')
-            plt.ylabel('Percentage (%)')
-            plt.title('Percentage of Batch with Active Projection')
-            plt.grid(True)
-            plt.legend()
-            plt.tight_layout()
-            plt.savefig(f"{figs_folder}/projection_percentage_iter.png")
+            fig, ax1 = plt.subplots(figsize=(8, 5))
+
+            # Plot Active Projection Percentage on the left y-axis (ax1)
+            color = 'tab:green'
+            ax1.set_xlabel('Epoch')
+            ax1.set_ylabel('Active Projection (%)', color=color)
+            ax1.plot(plot_x, projection_percentages, color=color, label='Active Projection %')
+            ax1.tick_params(axis='y', labelcolor=color)
+            ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+            # Create a second y-axis that shares the same x-axis
+            ax2 = ax1.twinx()
+            
+            # Plot Q Gradient Norm on the right y-axis (ax2)
+            color = 'tab:purple'
+            ax2.set_ylabel('Avg Q Grad Norm (log scale)', color=color)
+            ax2.plot(plot_x, q_grad_norms, color=color, linestyle='--', label='Avg Q Grad Norm')
+            ax2.tick_params(axis='y', labelcolor=color)
+            # A log scale is often best for gradient norms
+            ax2.set_yscale('log')
+
+            # --- Create a unified legend for both axes ---
+            # This is the same technique used in your original loss plot
+            lines1, labels1 = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+
+            plt.title('Active Projection % vs. Q Gradient Norm')
+            # Adjust layout to prevent labels from overlapping
+            fig.tight_layout()
+            plt.savefig(f"{figs_folder}/proj_vs_grad_norm_iter.png")
             plt.close('all')
             
             log_string = (f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e}")
             if project and model_params['discrete_proj']:
                 log_string += f" | Active Proj %: {avg_projection_percentage:.2f}"
+                log_string += f" | Q Grad Norm: {avg_q_grad_norm:.3e}"
                 
             log_string += f" | Time: {total_time:.2f}s"
             logging.info(log_string)
@@ -301,7 +346,9 @@ if __name__ == "__main__":
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
-    parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
+    parser.add_argument('--momentum_1', type=float, help='momentum factor', default=0.9)
+    parser.add_argument('--momentum_2', type=float, help='momentum factor', default=0.999)
+    # parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -340,7 +387,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_lr{args.lr}_m1_{args.momentum_1}_m2_{args.momentum_2}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
