@@ -87,8 +87,17 @@ def train(params):
     }
 
     model = DeepONet(model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=lr,
+        betas=(params['momentum_1'], params['momentum_2']),
+        eps=1e-8,
+        weight_decay=0.0,   # or small 1e-4 if you want
+        amsgrad=True
+    )
     print(f'Training with Learning rate: {lr}')
+    print(f'Training with Momentum: {params["momentum_1"]}, {params["momentum_2"]}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
@@ -327,6 +336,8 @@ if __name__ == "__main__":
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
+    parser.add_argument('--momentum_1', type=float, help='momentum factor', default=0.9)
+    parser.add_argument('--momentum_2', type=float, help='momentum factor', default=0.999)
     # parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
 
     # Model parameters
@@ -366,7 +377,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_m1_{args.momentum_1}_m2_{args.momentum_2}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
