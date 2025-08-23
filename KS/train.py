@@ -48,7 +48,7 @@ def train(params):
     model_dir = params['save_dir']
     trunk_scale = params['trunk_scale']
     lr = params['lr']
-    # warm_start = params['warm_start']
+    warm_start = params['warm_start']
 
     model_folder = model_dir
     figs_folder = os.path.join(model_dir, 'eval_results')
@@ -58,7 +58,9 @@ def train(params):
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
-    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
+    # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
+    logging.info('Using data with dt')
+    file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T500.0_dt0.01_amp5.0/data.npz'
     data = np.load(file_dir, allow_pickle=True)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
@@ -101,10 +103,10 @@ def train(params):
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
 
-    # if warm_start:
-    #     logging.info('removing projection layer after initialization')
-    #     project = False
-    #     model.project = False
+    if warm_start:
+        logging.info('removing projection layer after initialization')
+        project = False
+        model.project = False
 
     loss_func = torch.nn.MSELoss()
     tic = time.time()
@@ -126,11 +128,11 @@ def train(params):
         epoch_active_projection_percentage = 0.0
         epoch_q_grad_norm = 0.0
 
-        # if warm_start:
-        #     if epoch == 10000:
-        #         logging.info('Adding projection layer')
-        #         project = True
-        #         model.project = True
+        if warm_start:
+            if epoch == 10000:
+                logging.info('Adding projection layer')
+                project = True
+                model.project = True
         
         # Iterate over batches from the DataLoader
         for x_batch, y_batch in train_loader:
@@ -314,6 +316,14 @@ def train(params):
     else:
         Q = None
         c = 30.0
+
+    data_path = 'Data/KS_data_test_l100.53_grid512_M1_T2000.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
+
+    # --- 2. Load Data ---
+    print(f"Loading data from {data_path}...")
+    data = np.load(data_path, allow_pickle=True)
+    data = dict(data)
+    data['u_batch'] = data['u_batch'][:,::5,:]
     
     test_traj = data['u_batch']
     pred_traj = rollout_on_test(model, data['x'], trunk_scale, test_traj, device, figs_folder,project,c)
@@ -368,8 +378,8 @@ if __name__ == "__main__":
         reg_name += '_diagQ'
     if params['discrete_proj']:
         reg_name += 'discreteProj'
-    # if params['warm_start']:
-    #     reg_name += 'warmStart'
+    if params['warm_start']:
+        reg_name += 'warmStart'
 
     print(args.branch_conv_channels)
         
@@ -377,7 +387,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_m1_{args.momentum_1}_m2_{args.momentum_2}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_lr{args.lr}_m1_{args.momentum_1}_m2_{args.momentum_2}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 

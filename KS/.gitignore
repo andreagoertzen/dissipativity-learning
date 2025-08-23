@@ -1,5 +1,0 @@
-**/__pycache__/
-KS/whiteboards
-**/*.pyc
-train_local.sh
-*.out
