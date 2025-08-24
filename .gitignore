@@ -5,3 +5,4 @@ train_local.sh
 *.out
 *.log
 **/logs/
+KS/Trained_Models
