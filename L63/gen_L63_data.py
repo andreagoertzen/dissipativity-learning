@@ -43,12 +43,13 @@ def plot_traj3d(X_ds: np.ndarray, save_path: str, traj_idx: int = 0, stride: int
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Lorenz-63 dataset")
-    parser.add_argument("--traj_num", type=int, default=20, help="Number of trajectories")
-    parser.add_argument("--traj_length", type=int, default=1000, help="Trajectory length")
-    parser.add_argument("--dt", type=float, default=0.01, help="Time step")
+    parser.add_argument("--traj_num", type=int, default=10, help="Number of trajectories")
+    parser.add_argument("--traj_length", type=int, default=20000, help="Trajectory length")
+    parser.add_argument("--dt", type=float, default=0.001, help="Time step")
     parser.add_argument("--dt_target", type=float, default=0.05, help="Target time step for downsampling")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--out", type=str, default="L63", help="Output file (.npy or .npz)")
+    parser.add_argument("--xlim", type=float, default=20.0, help="Initial condition limit (+/-)")
     args = parser.parse_args()
 
     # Call your utils generator
@@ -58,7 +59,7 @@ def main():
         dt=args.dt,
         dt_target=args.dt_target,
         seed=args.seed,
-        x_lim=20.0
+        x_lim=args.xlim
     )
 
      # Ensure array is numpy
@@ -70,7 +71,7 @@ def main():
    
     # Save
     save_path = "Data"
-    save_path = os.path.join(save_path, args.out + f"_M{args.traj_num}_N{args.traj_length}_dt_s{args.dt_target}_dt{args.dt}")
+    save_path = os.path.join(save_path, args.out + f"_M{args.traj_num}_N{args.traj_length}_dt_s{args.dt_target}_dt{args.dt}_ic{args.xlim}")
 
     os.makedirs(save_path, exist_ok=True)
     save_name = "data.npz"

@@ -38,10 +38,26 @@ class OneStepFromSubtraj(Dataset):
 
 
 def split_by_trajectory(X_ds: np.ndarray, val_frac: float = 0.1):
-    N = X_ds.shape[0]
-    n_val = max(1, int(N * val_frac))
-    return X_ds[n_val:], X_ds[:n_val]
+    """
+    Splits the dataset into training and validation sets.
 
+    If there is more than one trajectory, the split is done by trajectory.
+    If there is only one trajectory, the split is done by time steps.
+    """
+    if X_ds.shape[0] > 1:
+        # Split by trajectory
+        N = X_ds.shape[0]
+        n_val = max(1, int(N * val_frac))
+        return X_ds[n_val:], X_ds[:n_val]
+    else:
+        # Split a single trajectory by time
+        N = X_ds.shape[1] # Get the length of the trajectory
+        n_val = max(1, int(N * val_frac))
+        
+        # Split the trajectory itself
+        train_traj = X_ds[:, :-n_val, :]
+        val_traj = X_ds[:, -n_val:, :]
+        return train_traj, val_traj
 
 def plot_losses(plot_x, train_losses, val_losses, dyn_losses, reg_losses, out_path):
     fig, ax1 = plt.subplots(figsize=(6, 4))
@@ -80,7 +96,7 @@ def train(params):
     data_path = params['data_path']
     X_ds = np.load(data_path, allow_pickle=True)['X_ds'] if data_path.endswith('.npz') else np.load(data_path, allow_pickle=True)
     _, _, D = X_ds.shape
-
+    
     # === Split ===
     X_train, X_val = split_by_trajectory(X_ds, val_frac=params['val_frac'])
     train_set = OneStepFromSubtraj(X_train, stride=1)
@@ -97,13 +113,19 @@ def train(params):
         'c0': params['c_init'],
         'trainable_c': params['trainable_c'],
         'diag_Q': params['diag_Q'],
+        'data_path': data_path,
     }
-    model = ProjectedMLP(model_params).to(device)
-    opt = torch.optim.AdamW(model.parameters(), lr=params['lr'], eps=1e-8, weight_decay=0.0, amsgrad=True)
-    loss_fn = nn.MSELoss()
-
+    
+    
     save_dir, figs_dir = params['save_dir'], os.path.join(params['save_dir'], 'eval_results')
     os.makedirs(figs_dir, exist_ok=True)
+    
+    np.savez(os.path.join(save_dir,"model_params.npz"), **model_params)
+    
+    model = ProjectedMLP(model_params).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+    loss_fn = nn.MSELoss()
 
     best_val, tic = float('inf'), time.time()
     train_losses, val_losses, dyn_losses, reg_losses, proj_percs, q_grad_norms = [], [], [], [], [], []
@@ -113,7 +135,7 @@ def train(params):
         ep_train = ep_dyn = ep_reg = ep_proj = ep_qgrad = 0.0
         for xb, yb in train_loader:
             xb, yb = xb.to(device), yb.to(device)
-            opt.zero_grad()
+            optimizer.zero_grad()
             yhat = model(xb)
             if params['discrete_proj']: 
                 ep_proj += model.active_projection_percentage
@@ -121,11 +143,18 @@ def train(params):
             reg_loss = params['lam_reg_vol'] * ellip_vol(model).squeeze() if params['discrete_proj'] else torch.tensor(0.0, device=device)
             loss = dyn_loss + reg_loss
             loss.backward()
+            
             if model_params['discrete_proj']: 
                 ep_qgrad += model.V.log_diag_L.grad.data.norm(2).item() if model.V.log_diag_L.grad is not None else 0.0
-            opt.step()
-            ep_train += loss.item(); ep_dyn += dyn_loss.item(); ep_reg += reg_loss.item()
-
+                
+            optimizer.step()
+            
+            ep_train += loss.item()
+            ep_dyn += dyn_loss.item()
+            ep_reg += reg_loss.item()
+        
+        scheduler.step()
+        
         if epoch % params['n_save_epochs'] == 0:
             model.eval(); ep_val = 0.0
             with torch.no_grad():
@@ -150,20 +179,19 @@ def train(params):
                 torch.save(model.state_dict(), os.path.join(save_dir,"model_epoch_best.pt"))
             tic = time.time()
 
-    np.savez(os.path.join(save_dir,"model_params.npz"), **model_params)
     return model
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-path', type=str, default="Data/L63_M20_N1000_dt_s0.01_dt0.01/data.npz")
-    parser.add_argument('--val-frac', type=float, default=0.1)
+    parser.add_argument('--data-path', type=str, default="Data/L63_M10_N20000_dt_s0.05_dt0.001_ic20.0/data.npz")
+    parser.add_argument('--val-frac', type=float, default=0.2)
     parser.add_argument('--epochs', type=int, default=10000)
     parser.add_argument('--n-save-epochs', type=int, default=50)
     parser.add_argument('--bsize', type=int, default=2048)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[128, 128, 128])
+    parser.add_argument('--hidden-dims', type=int, nargs='+', default=[150, 150, 150, 150, 150, 150])
     parser.add_argument('--activation', type=str, choices=['relu','gelu'], default='gelu')
     parser.add_argument('--discrete-proj', action='store_true')
     parser.add_argument('--diag_Q', action='store_true', default=False)
@@ -175,7 +203,7 @@ if __name__ == "__main__":
     args = parser.parse_args(); params = vars(args)
     now = datetime.now().strftime("%m%d_%H")
     save_dir = os.path.join('Trained_Models', now,
-                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}")
+                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}_layer{len(params['hidden_dims'])}")
     os.makedirs(save_dir, exist_ok=True); params['save_dir'] = save_dir
     logging.basicConfig(filename=os.path.join(save_dir,"loss_info.log"),
                         level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
