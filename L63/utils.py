@@ -51,6 +51,29 @@ def gen_real_multi_traj(M, N, dt, dt_target=1.0, seed=0, odefun=tensor_lorenz63,
 
     return X_ds
 
+def lorenz63_np(t, u, sigma=10, rho=28, beta=8/3):
+    """Lorenz-63 ODEs for use with SciPy's solve_ivp."""
+    dudt = np.zeros_like(u)
+    dudt[0] = sigma * (u[1] - u[0])
+    dudt[1] = u[0] * (rho - u[2]) - u[1]
+    dudt[2] = u[0] * u[1] - beta * u[2]
+    return dudt
+
+def gen_multi_traj_scipy(M, N, dt_target, seed=0, x_lim=50.0, x_dim=3, **kwargs):
+    """Generates multiple trajectories using scipy's RK45 solver."""
+    np.random.seed(seed)
+    X0 = (np.random.rand(M, x_dim) * 2 * x_lim) - x_lim
+    
+    t_span = [0, N * dt_target]
+    t_eval = np.arange(0, t_span[1], dt_target)
+    
+    trajectories = []
+    for i in tqdm(range(M)):
+        sol = solve_ivp(lorenz63_np, t_span, X0[i], t_eval=t_eval, **kwargs)
+        trajectories.append(sol.y.T)
+        
+    return np.stack(trajectories, axis=0)
+
 class TrajectoryTensorDataset(Dataset):
     # Currently, this class is only meant for real-valued trajectories. For complex trajectories such as the order-4 truncated Kuramoto-Sivashinsky equation, we need to preprocess the complex-valued trajectories into its real and imaginary tensor parts.
     def __init__(self, trajectories, subtraj_length, stride):

@@ -139,8 +139,11 @@ def train(params):
             yhat = model(xb)
             if params['discrete_proj']: 
                 ep_proj += model.active_projection_percentage
+
             dyn_loss = loss_fn(yhat, yb)
+
             reg_loss = params['lam_reg_vol'] * ellip_vol(model).squeeze() if params['discrete_proj'] else torch.tensor(0.0, device=device)
+
             loss = dyn_loss + reg_loss
             loss.backward()
             
@@ -184,26 +187,28 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-path', type=str, default="Data/L63_M10_N20000_dt_s0.05_dt0.001_ic20.0/data.npz")
+    parser.add_argument('--data-path', type=str, default="Data/L63_M10_N20000_dt_s0.05_dt0.001_ic50.0_intscipy/data.npz")
     parser.add_argument('--val-frac', type=float, default=0.2)
     parser.add_argument('--epochs', type=int, default=10000)
     parser.add_argument('--n-save-epochs', type=int, default=50)
     parser.add_argument('--bsize', type=int, default=2048)
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--hidden-dims', type=int, nargs='+', default=[150, 150, 150, 150, 150, 150])
-    parser.add_argument('--activation', type=str, choices=['relu','gelu'], default='gelu')
+    parser.add_argument('--activation', type=str, choices=['relu','gelu'], default='relu')
     parser.add_argument('--discrete-proj', action='store_true')
     parser.add_argument('--diag_Q', action='store_true', default=False)
     parser.add_argument('--trainable_c', action='store_true', default=False)
-    parser.add_argument('--c-init', dest='c_init', type=float, default=20.0)
-    parser.add_argument('--lam-reg-vol', type=float, default=1.0)
+    parser.add_argument('--c-init', dest='c_init', type=float, default=100.0)
+    parser.add_argument('--lam-reg-vol', type=float, default=0.01)
     parser.add_argument('--tag', type=str, default='')
 
-    args = parser.parse_args(); params = vars(args)
+    args = parser.parse_args()
+    params = vars(args)
+
     now = datetime.now().strftime("%m%d_%H")
     save_dir = os.path.join('Trained_Models', now,
-                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}_layer{len(params['hidden_dims'])}")
+                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}_layer{len(params['hidden_dims'])}_act{params['activation']}_c0{params['c_init']}")
     os.makedirs(save_dir, exist_ok=True); params['save_dir'] = save_dir
     logging.basicConfig(filename=os.path.join(save_dir,"loss_info.log"),
                         level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')

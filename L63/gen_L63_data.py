@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from utils import gen_real_multi_traj   # <--- adjust if your utils uses a different name
+from utils import gen_real_multi_traj, gen_multi_traj_scipy   # <--- adjust if your utils uses a different name
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import os
@@ -49,18 +49,32 @@ def main():
     parser.add_argument("--dt_target", type=float, default=0.05, help="Target time step for downsampling")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--out", type=str, default="L63", help="Output file (.npy or .npz)")
-    parser.add_argument("--xlim", type=float, default=20.0, help="Initial condition limit (+/-)")
+    parser.add_argument("--xlim", type=float, default=50.0, help="Initial condition limit (+/-)")
+    parser.add_argument("--integrator", type=str, default="rk4", help="Integrator to use")
     args = parser.parse_args()
+    
 
     # Call your utils generator
-    X_ds = gen_real_multi_traj(
-        M=args.traj_num,
-        N=args.traj_length,
-        dt=args.dt,
-        dt_target=args.dt_target,
-        seed=args.seed,
-        x_lim=args.xlim
-    )
+    if args.integrator == "rk4":
+        print("Using custom RK4 integrator")
+        X_ds = gen_real_multi_traj(
+            M=args.traj_num,
+            N=args.traj_length,
+            dt=args.dt,
+            dt_target=args.dt_target,
+            seed=args.seed,
+            x_lim=args.xlim
+        )
+    else:
+        print("Using scipy RK45 integrator")
+        # Use the new scipy-based generator
+        X_ds = gen_multi_traj_scipy(
+            M=args.traj_num,
+            N=args.traj_length,
+            dt_target=args.dt_target,
+            seed=args.seed,
+            x_lim=args.xlim
+        )
 
      # Ensure array is numpy
     X_ds = np.asarray(X_ds, dtype=np.float32)
@@ -71,7 +85,7 @@ def main():
    
     # Save
     save_path = "Data"
-    save_path = os.path.join(save_path, args.out + f"_M{args.traj_num}_N{args.traj_length}_dt_s{args.dt_target}_dt{args.dt}_ic{args.xlim}")
+    save_path = os.path.join(save_path, args.out + f"_M{args.traj_num}_N{args.traj_length}_dt_s{args.dt_target}_dt{args.dt}_ic{args.xlim}_int{args.integrator}")
 
     os.makedirs(save_path, exist_ok=True)
     save_name = "data.npz"

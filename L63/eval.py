@@ -42,6 +42,43 @@ def split_by_trajectory(X_ds, val_frac=0.1, seed=0):
         val_traj = X_ds[:, -n_val:, :]
         return train_traj, val_traj
 
+def plot_ellipsoid(ax, model):
+    if not model.discrete_proj:
+        return
+        
+    # Extract ellipsoid parameters from the model
+    c = model.c.item()
+    Q = model.V._construct_Q().detach().cpu().numpy()
+    x0 = model.V.x_0.detach().cpu().numpy().squeeze()
+
+    # c = 40.0
+    # Q = np.eye(3)
+    # x0 = model.V.x_0.detach().cpu().numpy().squeeze()
+
+    # Find the rotation matrix and semi-axes lengths
+    U, s, rotation = np.linalg.svd(Q)
+    radii = c / np.sqrt(s)
+
+    # Generate points on a unit sphere
+    u = np.linspace(0.0, 2.0 * np.pi, 100)
+    v = np.linspace(0.0, np.pi, 100)
+    x = radii[0] * np.outer(np.cos(u), np.sin(v))
+    y = radii[1] * np.outer(np.sin(u), np.sin(v))
+    z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
+
+    # Rotate and translate the ellipsoid
+    for i in range(len(x)):
+        for j in range(len(x)):
+            [x[i, j], y[i, j], z[i, j]] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + x0
+
+    ax.plot_surface(x, y, z, rstride=4, cstride=4, color='b', alpha=0.1)
+
+@torch.no_grad()
+def plot_energy(ax, model, traj, label, device):
+    """Plots the energy of a trajectory using the learned V function."""
+    traj_torch = torch.from_numpy(traj.astype(np.float32)).to(device)
+    energies = model.V(traj_torch).cpu().numpy()
+    ax.plot(energies, label=label)
 
 @torch.no_grad()
 def eval_one_step(val_loader, model, device):
@@ -66,7 +103,7 @@ def closed_loop_rollout(model, x0_np, steps, device):
     return np.stack(preds,0)
 
 
-def plot_traj3d(xyz_gt, xyz_pred, save_path, title, stride=1):
+def plot_traj3d(xyz_gt, xyz_pred, save_path, title, model, stride=1):
     """
     Plot a single 3D Lorenz-63 trajectory from X_ds with shape (N, T, 3).
     """
@@ -78,6 +115,9 @@ def plot_traj3d(xyz_gt, xyz_pred, save_path, title, stride=1):
     ax = fig.add_subplot(111, projection="3d")
     ax.plot(xyz_gt[:,0], xyz_gt[:,1], xyz_gt[:,2], label='Ground Truth')
     ax.plot(xyz_pred[:,0], xyz_pred[:,1], xyz_pred[:,2], label='Prediction', marker='x')
+
+    plot_ellipsoid(ax, model)
+
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
@@ -92,7 +132,7 @@ def plot_traj3d(xyz_gt, xyz_pred, save_path, title, stride=1):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--model-dir',required=True)
-    p.add_argument('--val-frac',type=float,default=0.1)
+    p.add_argument('--val-frac',type=float,default=0.2)
     p.add_argument('--seed',type=int,default=0)
     p.add_argument('--ckpt',default='model_epoch_best.pt')
     p.add_argument('--eval-steps',type=int,default=1000)
@@ -105,13 +145,17 @@ def main():
     params_npz=np.load(os.path.join(args.model_dir,'model_params.npz'),allow_pickle=True)
 
     data_path = str(params_npz['data_path'])
-    print(data_path)
-    X_ds=np.load(data_path,allow_pickle=True)['X_ds'] if data_path.endswith('.npz') else np.load(data_path,allow_pickle=True)
+    # print(data_path)
+
+    X_ds=np.load(data_path,allow_pickle=True)['X_ds']
+
     _,T,D=X_ds.shape
     
     model_cfg={k:params_npz[k].item() if params_npz[k].size==1 else params_npz[k].tolist()
                for k in params_npz.files if k in ['d','hidden_dims','activation','discrete_proj','c0','trainable_c','diag_Q','dt']}
+    
     model_cfg['activation']=nn.GELU() if params_npz['activation']=='gelu' else nn.ReLU()
+
     model=ProjectedMLP(model_cfg).to(device)
     model.load_state_dict(torch.load(os.path.join(args.model_dir,args.ckpt),map_location=device))
 
@@ -123,13 +167,14 @@ def main():
 
     # --- (1) Validation trajectory one-step ---
     one_step_val_mse, one_step_preds, one_step_gts = eval_one_step(val_loader,model,device)
-    plot_traj3d(one_step_gts, one_step_preds, os.path.join(results_dir, 'eval_one_step_val.png'), 'One-Step Validation Predictions')
+    plot_traj3d(one_step_gts, one_step_preds, os.path.join(results_dir, 'eval_one_step_val.png'), 'One-Step Validation Predictions', model)
 
     # --- (2) Validation trajectory rollout ---
     steps=min(args.eval_steps,T-1)
     val_traj=X_val[0]; pred_val=closed_loop_rollout(model,val_traj[0],steps,device)
     rollout_val_mse=float(np.mean((pred_val-val_traj[:steps+1])**2))
-    plot_traj3d(val_traj[:steps+1], pred_val, os.path.join(results_dir, 'eval_rollout_val.png'), 'Rollout on Validation Set')
+    plot_traj3d(val_traj[:steps+1], pred_val, os.path.join(results_dir, 'eval_rollout_val.png'), 'Rollout on Validation Set', model)
+    # print(val_traj[:, 1] - val_traj[:, 0])
 
     plt.figure(); [plt.plot(val_traj[:steps+1,i],label=f'gt{i}') or plt.plot(pred_val[:,i],'--',label=f'pred{i}') for i in range(min(3,D))]
     plt.legend(); plt.savefig(os.path.join(results_dir,'eval_rollout_val_traj.png')); plt.close()
@@ -141,7 +186,21 @@ def main():
     # Plot the first GT trajectory and its rollout
     gt_traj_to_plot = X_gt[0]
     pred_gt = closed_loop_rollout(model, gt_traj_to_plot[0], steps, device)
-    plot_traj3d(gt_traj_to_plot, pred_gt, os.path.join(results_dir, 'eval_rollout_gt.png'), 'Rollout on Random Initial Condition')
+    plot_traj3d(gt_traj_to_plot, pred_gt, os.path.join(results_dir, 'eval_rollout_gt.png'), 'Rollout on Random Initial Condition', model)
+
+    # --- (4) Energy evaluation plot ---
+    fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
+    plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
+    plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
+    if model.discrete_proj:
+        ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
+    ax_energy.set_xlabel('Time Steps')
+    ax_energy.set_ylabel('Energy (V(x))')
+    ax_energy.set_title('Energy of Trajectories')
+    ax_energy.legend()
+    ax_energy.grid(True)
+    fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'))
+    plt.close(fig_energy)
 
     mse_list=[np.mean((closed_loop_rollout(model,tr[0],steps,device)-tr)**2) for tr in X_gt]
     rollout_gt_mse=float(np.mean(mse_list))
