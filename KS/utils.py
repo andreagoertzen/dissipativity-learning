@@ -1,5 +1,4 @@
 import numpy as np
-
 import torch
 from torch.utils.data import Dataset
 import torch.nn as nn
@@ -8,6 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from tqdm import tqdm
 from sklearn.decomposition import PCA
+import seaborn as sns
+from scipy.special import rel_entr
+from scipy.stats import gaussian_kde
+from scipy.spatial.distance import jensenshannon
 
 
 class TrajectoryDataset(Dataset):
@@ -142,10 +145,12 @@ def run_model_visualization(
     rollout_steps_test=1000,
     rollout_steps_random=10000,
     random_seed=10,
+    random_IC_mag=1.0
 ):
 
     # --- 1. One-step prediction visualization ---
-    u_test = model(x_test)
+    with torch.no_grad():
+        u_test = model(x_test)
 
     fig, axs = plt.subplots(2, 1, figsize=(8, 6))
     # print("y_test shape:", y_test.shape)
@@ -157,8 +162,8 @@ def run_model_visualization(
         y_test.T.detach().cpu().numpy().astype(np.float32),
         #extent=extent,
         aspect='auto',
-        vmin=-2.5,
-        vmax=2.5,
+        vmin=-5,
+        vmax=5,
     )
     axs[0].set_title('Ground Truth')
     axs[0].set_xlabel('Time (s)')
@@ -168,8 +173,8 @@ def run_model_visualization(
         u_test.T.detach().cpu().numpy().astype(np.float32),
         #extent=extent,
         aspect='auto',
-        vmin=-2.5,
-        vmax=2.5,
+        vmin=-5,
+        vmax=5,
     )
     axs[1].set_title('Model Prediction')
     axs[1].set_xlabel('Time (s)')
@@ -180,26 +185,27 @@ def run_model_visualization(
     plt.savefig(f'{figs_dir}/1step.png')
     plt.close(fig)
 
-    # --- 2. Long trajectory rollout (on test data) ---
-    rollout_traj = torch.zeros(rollout_steps_test, s)
-    u_out = x_test[0][0, ...]  # initial condition
-    print(u_out.shape)
-    u_out = u_out.unsqueeze(0)
+    # # --- 2. Long trajectory rollout (on test data) ---
+    # rollout_traj = torch.zeros(rollout_steps_test, s)
+    # u_out = x_test[0][0, ...]  # initial condition
+    # print(u_out.shape)
+    # u_out = u_out.unsqueeze(0)
 
-    for i in range(rollout_steps_test):
-        u_out = model((u_out, x_test[1]))
-        rollout_traj[i, :] = u_out
+    # for i in range(rollout_steps_test):
+    #     u_out = model((u_out, x_test[1]))
+    #     rollout_traj[i, :] = u_out
 
-    plt.figure()
-    plt.imshow(
-        rollout_traj.T.detach().numpy().astype(np.float32),
-        extent=[0, rollout_steps_test, 0, s],
-        aspect='auto'
-    )
-    plt.title('Rollout on Test Data')
-    plt.colorbar()
-    plt.savefig(f'{figs_dir}/rollout_test.png')
-    plt.close()
+    # plt.figure()
+    # plt.imshow(
+    #     rollout_traj.T.detach().numpy().astype(np.float32),
+    #     extent=[0, rollout_steps_test, 0, s],
+    #     aspect='auto',
+    #     vmin=-5, vmax=5
+    # )
+    # plt.title('Rollout on Test Data')
+    # plt.colorbar()
+    # plt.savefig(f'{figs_dir}/rollout_test.png')
+    # plt.close()
 
     # --- 3. Rollout from random initial condition ---
 
@@ -210,7 +216,7 @@ def run_model_visualization(
     print("Random IC shape:", u0.shape)
 
     rollout_traj = torch.zeros(rollout_steps_random, s)
-    u_out = u0
+    u_out = u0*random_IC_mag
 
     with torch.no_grad():
         for i in range(rollout_steps_random):
@@ -221,17 +227,18 @@ def run_model_visualization(
     plt.imshow(
         rollout_traj.T.detach().numpy().astype(np.float32),
         extent=[0, rollout_steps_random, 0, s],
-        aspect='auto'
+        aspect='auto',
+        vmin=-5,vmax=5
     )
     plt.title('Rollout from Random Initial Condition')
     plt.colorbar()
     plt.xlabel('Time')
     plt.ylabel('Position')
-    plt.savefig(f'{figs_dir}/rollout_randomIC.png')
+    plt.savefig(f'{figs_dir}/rollout_randomIC_mag{random_IC_mag}.png')
     plt.close()
 
 
-def visualize_ellipsoid(gt_traj, test_traj, figs_dir, Q=None, c=1.0):
+def visualize_ellipsoid(gt_traj, test_traj, figs_dir, Q=None, c=1.0,tag=''):
     # Perform a PCA on the reshaped data, data is of size (num_traj, traj_length, traj_dim), we can lump all trajectory together into (traj_length, traj_dim)
     reshaped_data = gt_traj.reshape(-1, gt_traj.shape[-1])
     if test_traj is not None:
@@ -241,7 +248,8 @@ def visualize_ellipsoid(gt_traj, test_traj, figs_dir, Q=None, c=1.0):
     pca = PCA(n_components=2)
     pca_traj_1 = pca.fit_transform(reshaped_data)
     if test_traj is not None:
-        pca_traj_pred = pca.fit_transform(pred_traj)
+        # pca_traj_pred = pca.fit_transform(pred_traj)
+        pca_traj_pred = pca.transform(pred_traj)
     U = pca.components_
 
     if Q is None:
@@ -298,8 +306,9 @@ def visualize_ellipsoid(gt_traj, test_traj, figs_dir, Q=None, c=1.0):
     ax.set_ylabel('Component 2')
     ax.legend()
     plt.axis('equal')
-    plt.savefig(f'{figs_dir}/PCA_ellipsoid.png')
+    plt.savefig(f'{figs_dir}/PCA_ellipsoid_{tag}.png')
     plt.close()
+    return pca_traj_1[:,:2], pca_traj_pred[:,:2]
 
 def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir, project,c):
     eval_model.eval()
@@ -312,7 +321,7 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
     pred_traj = torch.zeros_like(test_traj).to(device)
     pred_traj[:, 0, :] = test_traj[:, 0, :].to(device)
 
-    dt = 0.2
+    dt = 1
     # Q = eval_model.V._construct_Q().to(device)
     V_hist = torch.zeros(test_traj.shape[1]-1).to(device)
     V_hist_GT = torch.zeros(test_traj.shape[1]-1).to(device)
@@ -351,13 +360,14 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
                 V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
+                V_hist_GT[t] = test_traj[:,t,:] @ Q @ test_traj[:,t,:].T
             else:
                 Q = eval_model.V._construct_Q()
                 V_hist[t] = eval_model.V(w_in)
                 V_in = eval_model.V(w_in)
                 V_out = eval_model.V(w_out)
-
-            V_hist_GT[t] = test_traj[0,t,:] @ Q @ test_traj[0,t,:].T
+                w0 = eval_model.V.x_0
+                V_hist_GT[t] = (test_traj[:,t,:]-w0) @ Q @ (test_traj[:,t,:]-w0).T
 
             
             if V_in > c ** 2:
@@ -383,8 +393,205 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
     plt.savefig(f'{figs_dir}/V_plot.png')
     plt.close()
 
-    plt.figure()
-    plt.imshow(pred_traj[0,...].T.cpu().numpy(),aspect="auto")
-    plt.savefig(f'{figs_dir}/traj_forPCA.png')
+    # plt.figure()
+    # plt.imshow(pred_traj[0,...].T.cpu().numpy(),aspect="auto")
+    # plt.savefig(f'{figs_dir}/traj_forPCA.png')
 
     return pred_traj
+
+
+
+def compare_distributions(gt_traj, pred_traj, bins=50, plot=True, save_name='distribution.png'):
+    """
+    Compute KL divergence between two histograms (discrete distributions).
+    """
+    # Combine to get shared bin edges
+    all_data = np.concatenate([gt_traj, pred_traj])
+    bin_edges = np.linspace(np.min(all_data), np.max(all_data), bins + 1)
+
+    # Histogram counts
+    p_counts, _ = np.histogram(gt_traj, bins=bin_edges)
+    q_counts, _ = np.histogram(pred_traj, bins=bin_edges)
+
+    # Convert to probabilities
+    p = p_counts / np.sum(p_counts)
+    q = q_counts / np.sum(q_counts)
+
+    # Clip to avoid log(0)
+    p = np.clip(p, 1e-10, 1)
+    q = np.clip(q, 1e-10, 1)
+
+    # Discrete KL divergence
+    kl_div = np.sum(rel_entr(p, q))
+
+    # Plot with seaborn
+    if plot:
+        plt.figure(figsize=(8, 5))
+        sns.kdeplot(gt_traj, label='Ground Truth', fill=False, alpha=0.7, color='blue')
+        sns.kdeplot(pred_traj, label='Model Prediction', fill=False, alpha=0.7, color='red')
+        plt.title(f'Comparison (KL Divergence = {kl_div:.4f})')
+        plt.xlabel('Value')
+        plt.ylabel('Density')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(save_name)
+        plt.close()
+
+    return kl_div
+
+
+def pca_histogram_eval(gt_pca, pred_pca, bins=50, lim=[[-50.0, 50.0], [-50.0, 50.0]], save_path=None, title_gt='GT', title_pred='Projection'):
+    # ----- histogram -----
+    if lim is None:          # auto-range
+        mx = np.max(np.abs(np.vstack((gt_pca, pred_pca))), axis=0)
+        lim = [[-mx[0], mx[0]], [-mx[1], mx[1]]]
+
+    H_gt,  xe, ye = np.histogram2d(gt_pca[:,0],  gt_pca[:,1],
+                                   bins=bins, range=lim, density=True)
+    
+    H_pr,  _,  _  = np.histogram2d(pred_pca[:,0], pred_pca[:,1],
+                                   bins=bins, range=lim, density=True)
+
+    # ----- KL / JS -----
+    KL_pred = hists_to_KL(xe, ye, bins, H_gt, H_pr, option='KL')
+    JS_pred = hists_to_KL(xe, ye, bins, H_gt, H_pr, option='JS')
+
+    # ----- figure -----
+    if save_path:
+        vmax = max(H_gt.max(), H_pr.max())
+
+        fig, ax = plt.subplots(1, 2, figsize=(18,6))
+        for A, H, ttl in zip(ax, (H_gt, H_pr), (title_gt, title_pred)):
+            im = A.imshow(H.T, origin='lower', extent=[xe[0],xe[-1],ye[0],ye[-1]],
+                          vmin=0, vmax=vmax, aspect='auto')
+            A.set_title(ttl)
+
+        plt.tight_layout()
+        
+        # Make room on the right
+        fig.subplots_adjust(right=0.85)
+
+        # Create a new Axes on the right side of the figure for the colorbar
+        cbar_ax = fig.add_axes([0.88, 0.15, 0.02, 0.7])  
+        # [left, bottom, width, height] in figure coordinates
+
+        # Now draw the colorbar on that new Axes
+        cbar = fig.colorbar(im, cax=cbar_ax)
+        # cbar.set_label("Density")  # Optional label
+
+        plt.savefig(save_path, dpi=300)
+        plt.close(fig)
+    return KL_pred, JS_pred 
+
+def hists_to_KL(xedges, yedges, bins, H1, H2, eps=1e-9, option='KL'):
+    bin_width_x = (xedges[-1] - xedges[0]) / bins
+    bin_width_y = (yedges[-1] - yedges[0]) / bins
+    bin_area = bin_width_x * bin_width_y
+
+    H1 = H1 * bin_area
+    H1 = H1 / H1.sum()
+    H2 = H2 * bin_area
+    H2 = H2 / H2.sum()
+
+    h1 = H1.ravel()
+    h2 = H2.ravel()
+
+    h1 = h1 + eps
+    h2 = h2 + eps
+    h1 /= h1.sum()
+    h2 /= h2.sum()
+    
+    if option == 'KL':
+        result = np.sum(h1 * np.log(h1 / h2))
+    elif option == 'JS':
+        result = jensenshannon(h1, h2)
+
+    return result
+
+
+
+def evaluate_fourier_spectrum(gt_traj, star_traj, save_path=None):
+    """
+    Computes, plots, and evaluates the Fourier power spectra of trajectories.
+    Handles both single (T, D) and batched (B, T, D) trajectory inputs.
+    """
+    # Helper function to calculate the average power spectrum from a single trajectory
+    def get_power_spectrum(traj):
+        fft_coeffs = np.fft.fft(traj, axis=0)
+        power = np.abs(fft_coeffs)**2
+        avg_power = np.mean(power, axis=1)
+        return avg_power[:len(avg_power) // 2]
+
+    # Helper function to calculate Mean Squared Error on a log scale
+    def calculate_spectrum_error(spec_true, spec_pred, eps=1e-12):
+        log_spec_true = np.log10(spec_true + eps)
+        log_spec_pred = np.log10(spec_pred + eps)
+        return np.mean((log_spec_true - log_spec_pred)**2)
+
+    # Check if the input is batched by checking the number of dimensions
+    if gt_traj.ndim == 3:
+        batch_size = gt_traj.shape[0]
+        print(f"\n--- Performing Batched Fourier Evaluation ({batch_size} trajectories) ---")
+        
+        batch_errors_star = []
+        
+        # Store spectra from each batch item to average them later for plotting
+        all_spec_gt = []
+        all_spec_star = []
+
+        for i in range(batch_size):
+            # Get single trajectories from the batch
+            gt_single = gt_traj[i]
+            star_single = star_traj[i]
+
+            # Calculate spectrum for this item
+            spec_gt = get_power_spectrum(gt_single)
+            spec_star = get_power_spectrum(star_single)
+
+            # Store spectra for averaging
+            all_spec_gt.append(spec_gt)
+            all_spec_star.append(spec_star)
+            
+            # Calculate and store errors for this item
+            batch_errors_star.append(calculate_spectrum_error(spec_gt, spec_star))
+
+        # Average the errors and spectra across the entire batch
+        final_error_star = np.mean(batch_errors_star)
+        
+        plot_spec_gt = np.mean(all_spec_gt, axis=0)
+        plot_spec_star = np.mean(all_spec_star, axis=0)
+
+    elif gt_traj.ndim == 2:
+        print("\n--- Performing Single Trajectory Fourier Evaluation ---")
+        # For a single trajectory, the final error is just the calculated error
+        plot_spec_gt = get_power_spectrum(gt_traj)
+        plot_spec_star = get_power_spectrum(star_traj)
+        
+        final_error_star = calculate_spectrum_error(plot_spec_gt, plot_spec_star)
+    else:
+        raise ValueError(f"Input trajectory has an unsupported shape: {gt_traj.shape}. Expected 2 or 3 dimensions.")
+
+    # --- Common code for printing and plotting ---
+    
+    print(f"Spectrum Difference (GT vs. f* Projected): {final_error_star:.6f}")
+    print("---------------------------------")
+    
+    if save_path:
+        plt.figure(figsize=(12, 7))
+        modes = np.arange(len(plot_spec_gt))
+
+        plt.plot(modes, plot_spec_gt, label='Ground Truth', color='black', linewidth=2.5, alpha=0.8)
+        plt.plot(modes, plot_spec_star, label=r'$f^*$ Projected', color='#1f77b4', linestyle='--')
+
+        plt.yscale('log')
+        plt.xlabel('Frequency Mode Index')
+        plt.ylabel('Power (Log Scale)')
+        plt.title('Fourier Power Spectrum Comparison')
+        plt.legend()
+        plt.grid(True, which="both", ls="--", alpha=0.6)
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=300)
+        plt.close()
+        print(f"Saved Fourier spectrum plot to {save_path}")
+
+    return final_error_star
