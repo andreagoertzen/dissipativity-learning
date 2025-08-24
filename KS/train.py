@@ -12,9 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
 import logging
-from utils import run_model_visualization
-from utils import visualize_ellipsoid
-from utils import rollout_on_test
+from utils import visualize_ellipsoid, compare_distributions, rollout_on_test, pca_histogram_eval, evaluate_fourier_spectrum, run_model_visualization
 from datetime import datetime
 
 def ellip_vol(model):
@@ -51,7 +49,7 @@ def train(params):
     warm_start = params['warm_start']
 
     model_folder = model_dir
-    figs_folder = os.path.join(model_dir, 'eval_results')
+    figs_folder = figs_dir = os.path.join(model_dir, 'eval_results')
 
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
@@ -92,11 +90,11 @@ def train(params):
     # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=lr,
-        betas=(params['momentum_1'], params['momentum_2']),
-        eps=1e-8,
-        weight_decay=0.0,   # or small 1e-4 if you want
-        amsgrad=True
+        lr=lr#,
+        # betas=(params['momentum_1'], params['momentum_2']),
+        # eps=1e-8,
+        # weight_decay=0.0,   # or small 1e-4 if you want
+        # amsgrad=True
     )
     print(f'Training with Learning rate: {lr}')
     print(f'Training with Momentum: {params["momentum_1"]}, {params["momentum_2"]}')
@@ -207,6 +205,8 @@ def train(params):
             avg_projection_percentage = epoch_active_projection_percentage / len(train_loader)
             if project:
                 avg_q_grad_norm = epoch_q_grad_norm / len(train_loader)
+            else:
+                avg_q_grad_norm = 0
 
             q_grad_norms.append(avg_q_grad_norm)
 
@@ -304,30 +304,109 @@ def train(params):
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
-    model.load_state_dict(torch.load(f"./{model_folder}/model_epoch_best.pt")) 
+    model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
-    x_val = (val_dataset.branch_inputs.to(device), val_dataset.trunk_input.to(device))
-    y_val = val_dataset.targets.to(device)     
-    run_model_visualization(model, x_val, y_val, s, device, figs_dir=figs_folder)
 
-    if project:
+    ## GET MODEL PARAMETERS
+    if model.project:
         Q = model.V._construct_Q().detach().cpu().numpy()
         c = model.c.detach().cpu().numpy() ** 2
     else:
         Q = None
-        c = 30.0
+        c = 30.0 ** 2
 
-    data_path = 'Data/KS_data_test_l100.53_grid512_M1_T2000.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
+    ### LOAD DATA
+    print('LOADING TEST DATA')
+    trunk_scale = 0.05
+    file_dir = 'Data/KS_data_test_l100.53_grid512_M1_T2000.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
+    data = np.load(file_dir, allow_pickle=True)
+    x = torch.tensor(data['x'],dtype=torch.float32).to(device)
+    x = x.reshape(s,1)
+    gt_traj = data['u_batch'][:,::5,:]
+    print(gt_traj.shape)
 
-    # --- 2. Load Data ---
-    print(f"Loading data from {data_path}...")
-    data = np.load(data_path, allow_pickle=True)
-    data = dict(data)
-    data['u_batch'] = data['u_batch'][:,::5,:]
-    
-    test_traj = data['u_batch']
-    pred_traj = rollout_on_test(model, data['x'], trunk_scale, test_traj, device, figs_folder,project,c)
-    visualize_ellipsoid(test_traj[0,...], pred_traj, figs_folder, Q, c)
+    ## ONE STEP ON TEST DATA AND ROLLOUT ON RANDOM IC
+    print('ONE STEP AND RANDOM IC VISUALS')
+    run_model_visualization(
+        model = model,
+        x_test=(torch.tensor(gt_traj[0,:999,:],dtype=torch.float32).to(device),x*trunk_scale),
+        y_test=torch.tensor(gt_traj[0,1:1000,:],dtype=torch.float32).to(device),
+        s=s,
+        device=device,
+        figs_dir=figs_dir,
+        figs_tag = '',
+        rollout_steps_test=2000,
+        rollout_steps_random=10000,
+        random_seed=10,
+        random_IC_mag=5.0
+        )
+
+    ## ROLLOUT TRAJECTORY AND V PLOT
+    print('ROLLOUT TRAJECTORY')
+    pred_traj = rollout_on_test(model, 
+        data_x=x, 
+        trunk_scale=trunk_scale, 
+        test_traj=gt_traj, 
+        device=device, 
+        figs_dir=figs_dir, 
+        project=model.project,
+        c=c
+        )
+    print(pred_traj.shape)
+
+    ## PCA PLOT
+    print('PCA PROJECTION')
+    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj[0,...], 
+        test_traj = pred_traj[0,...], 
+        figs_dir=figs_dir, 
+        Q=Q, 
+        c=c,
+        tag='')
+
+    ## DISTRIBUTION COMPARISON FOR DATA
+    print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
+    pred_traj_np = pred_traj[0,...].detach().cpu().numpy()
+    kl_div_traj = compare_distributions(gt_traj = gt_traj[0,...].ravel(), 
+        pred_traj = pred_traj_np.ravel(), 
+        bins = 50,
+        plot=True, 
+        save_name=f'{figs_dir}/distribution_traj.png')
+
+
+    # ## DISTRIBUTION COMPARISON FOR PCA MODES
+    print('DISTRIBUTION COMPARISON FOR PCA MODES')
+    pca_histogram_eval(gt_pca=pca_traj_gt, 
+        pred_pca=pca_traj_pred, 
+        bins=50, 
+        lim=[[-50.0, 50.0], [-50.0, 50.0]], 
+        save_path=f'{figs_dir}/distribution_pca.png', 
+        title_gt='Ground Truth', 
+        title_pred='Prediction')
+
+    ## FOURIER SPECTRUM
+    print('FOURIER SPECTRUM COMPARISON')
+    print(gt_traj.shape)
+    print(pred_traj.shape)
+    final_error_star = evaluate_fourier_spectrum(gt_traj = gt_traj[0,...], 
+        star_traj=pred_traj_np, 
+        save_path=f'{figs_dir}/fourier_spectrum.png')
+
+
+    ## PLOT GT AND PREDICTED TRAJ
+    aspect = 1/2*pred_traj.shape[1]/pred_traj.shape[2]
+    plt.figure()
+    plt.imshow(
+        pred_traj[0,...].T.detach().cpu().numpy().astype(np.float32),
+        # extent=[0, rollout_steps_random, 0, s],
+        vmin = -5, vmax = 5,
+        aspect=aspect
+    )
+    plt.title('Rollout from Validation Initial Condition')
+    plt.colorbar()
+    plt.xlabel('Time (s)')
+    plt.ylabel('Position')
+    plt.savefig(f'{figs_dir}/rollout.png')
+    plt.close()
 
     return model
 
@@ -348,7 +427,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
     parser.add_argument('--momentum_1', type=float, help='momentum factor', default=0.9)
     parser.add_argument('--momentum_2', type=float, help='momentum factor', default=0.999)
-    # parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
+    parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -387,7 +466,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_{reg_name}_{args.tag}_lr{args.lr}_m1_{args.momentum_1}_m2_{args.momentum_2}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}_lr{args.lr}_m1_{args.momentum_1}_m2_{args.momentum_2}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
