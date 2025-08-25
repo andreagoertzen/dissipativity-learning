@@ -187,7 +187,7 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-path', type=str, default="Data/L63_M10_N20000_dt_s0.05_dt0.001_ic50.0_intscipy/data.npz")
+    parser.add_argument('--data-path', type=str, default="Data/L63_M1_N200000_dt_s0.05_dt0.001_ic50.0_intrk45/data.npz")
     parser.add_argument('--val-frac', type=float, default=0.2)
     parser.add_argument('--epochs', type=int, default=10000)
     parser.add_argument('--n-save-epochs', type=int, default=50)

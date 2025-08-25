@@ -65,7 +65,7 @@ def main():
             seed=args.seed,
             x_lim=args.xlim
         )
-    else:
+    elif args.integrator == "rk45":
         print("Using scipy RK45 integrator")
         # Use the new scipy-based generator
         X_ds = gen_multi_traj_scipy(
