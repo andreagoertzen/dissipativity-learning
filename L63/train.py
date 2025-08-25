@@ -104,6 +104,9 @@ def train(params):
     train_loader = DataLoader(train_set, batch_size=params['bsize'], shuffle=True, num_workers=4, pin_memory=True)
     val_loader   = DataLoader(val_set,   batch_size=params['bsize'], shuffle=False, num_workers=2)
 
+    x_mean = X_train.mean(axis=1, keepdims=True)
+    # print(x_mean[0][0])
+
     # === Model ===
     model_params = {
         'd': D,
@@ -114,8 +117,9 @@ def train(params):
         'trainable_c': params['trainable_c'],
         'diag_Q': params['diag_Q'],
         'data_path': data_path,
+        'x_0': x_mean[0][0],
     }
-    
+
     
     save_dir, figs_dir = params['save_dir'], os.path.join(params['save_dir'], 'eval_results')
     os.makedirs(figs_dir, exist_ok=True)
@@ -123,6 +127,8 @@ def train(params):
     np.savez(os.path.join(save_dir,"model_params.npz"), **model_params)
     
     model = ProjectedMLP(model_params).to(device)
+    print(f"Initial x_0 is {model.V.x_0}")
+
     optimizer = torch.optim.Adam(model.parameters(), lr=params['lr'], weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
     loss_fn = nn.MSELoss()

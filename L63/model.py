@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class V_elliptical(nn.Module):
-    def __init__(self, m, diag_flag):
+    def __init__(self, m, diag_flag, x_0):
         super(V_elliptical, self).__init__()
         self.latent_dim = m
         self.diag_Q = diag_flag
@@ -23,7 +23,7 @@ class V_elliptical(nn.Module):
         self.register_buffer('tril_indices', tril_indices)
     
         # Trainable center x_0
-        self.x_0 = nn.Parameter(torch.randn(1, m))
+        self.x_0 = nn.Parameter(torch.tensor(x_0))
 
         self.Q = None  # Cached SPD matrix
 
@@ -72,6 +72,7 @@ class ProjectedMLP(nn.Module):
         hidden_dims = model_params.get('hidden_dims', [128, 128])
         activation = model_params.get('activation', nn.GELU())
         self.discrete_proj = model_params.get('discrete_proj', True)
+        x0_init = model_params.get('x_0', None)
 
         self.c0 = model_params.get('c0', 1.0)
         self.trainable_c = model_params.get('trainable_c', False)
@@ -87,7 +88,7 @@ class ProjectedMLP(nn.Module):
             self.c = nn.Parameter(torch.tensor(self.c0, dtype=torch.float32))
             self.c.requires_grad = bool(self.trainable_c)
             self.eps_proj = 1e-3
-            self.V = V_elliptical(m=d, diag_flag=self.diag_Q)
+            self.V = V_elliptical(m=d, diag_flag=self.diag_Q, x_0=x0_init if x0_init is not None else np.zeros(d))
 
     @torch.no_grad()
     def _q_inv_sqrt_for_diag(self):
