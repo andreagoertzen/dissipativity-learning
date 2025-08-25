@@ -189,18 +189,19 @@ def main():
     plot_traj3d(gt_traj_to_plot, pred_gt, os.path.join(results_dir, 'eval_rollout_gt.png'), 'Rollout on Random Initial Condition', model)
 
     # --- (4) Energy evaluation plot ---
-    fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
-    plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
-    plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
     if model.discrete_proj:
-        ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
-    ax_energy.set_xlabel('Time Steps')
-    ax_energy.set_ylabel('Energy (V(x))')
-    ax_energy.set_title('Energy of Trajectories')
-    ax_energy.legend()
-    ax_energy.grid(True)
-    fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'))
-    plt.close(fig_energy)
+        fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
+        plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
+        plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
+        if model.discrete_proj:
+            ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
+        ax_energy.set_xlabel('Time Steps')
+        ax_energy.set_ylabel('Energy (V(x))')
+        ax_energy.set_title('Energy of Trajectories')
+        ax_energy.legend()
+        ax_energy.grid(True)
+        fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'))
+        plt.close(fig_energy)
 
     mse_list=[np.mean((closed_loop_rollout(model,tr[0],steps,device)-tr)**2) for tr in X_gt]
     rollout_gt_mse=float(np.mean(mse_list))
