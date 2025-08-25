@@ -23,7 +23,7 @@ class V_elliptical(nn.Module):
         self.register_buffer('tril_indices', tril_indices)
     
         # Trainable center x_0
-        self.x_0 = nn.Parameter(torch.tensor(x_0))
+        self.x_0 = nn.Parameter(torch.tensor(x_0, dtype=torch.float32))
 
         self.Q = None  # Cached SPD matrix
 
