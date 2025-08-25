@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     now = datetime.now().strftime("%m%d_%H")
     save_dir = os.path.join('Trained_Models', now,
-                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}_layer{len(params['hidden_dims'])}_act{params['activation']}_c0{params['c_init']}")
+                            f"E{params['epochs']}_lam_{params['lam_reg_vol']}_lr{params['lr']}_proj_{params['discrete_proj']}_layer{len(params['hidden_dims'])}_act{params['activation']}_c0{params['c_init']}_trainc_{params['trainable_c']}")
     os.makedirs(save_dir, exist_ok=True); params['save_dir'] = save_dir
     logging.basicConfig(filename=os.path.join(save_dir,"loss_info.log"),
                         level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')

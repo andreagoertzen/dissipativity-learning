@@ -190,6 +190,7 @@ def main():
 
     # --- (4) Energy evaluation plot ---
     if model.discrete_proj:
+        print(np.linalg.eigvals(model.V._construct_Q().detach().cpu().numpy()))
         fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
         plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
         plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
