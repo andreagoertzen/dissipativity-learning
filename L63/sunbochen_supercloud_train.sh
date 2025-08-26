@@ -15,6 +15,7 @@ for lr in 5e-5; do
     --lam-reg-vol $lam \
     --lr $lr \
     --trainable_c
+    --tag 'multi_traj_training'
   done
 done
 

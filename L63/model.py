@@ -27,12 +27,19 @@ class V_elliptical(nn.Module):
 
         self.Q = None  # Cached SPD matrix
 
-    def _construct_Q(self):
+    def _build_L(self):
         L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
         L.diagonal().copy_(torch.exp(self.log_diag_L))
         if not self.diag_Q:
-            L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
-        Q = torch.matmul(L, L.T)  # SPD
+          L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+        return L
+    def _construct_Q(self):
+        # L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
+        # L.diagonal().copy_(torch.exp(self.log_diag_L))
+        # if not self.diag_Q:
+        #     L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+        self.L = self._build_L()
+        Q = torch.matmul(self.L, self.L.T)  # SPD
         return Q
 
     def forward(self, x):
@@ -77,6 +84,7 @@ class ProjectedMLP(nn.Module):
         self.c0 = model_params.get('c0', 1.0)
         self.trainable_c = model_params.get('trainable_c', False)
         self.diag_Q = model_params.get('diag_Q', False)
+        print(f'DIAG_Q: {self.diag_Q}')
 
         # Backbone
         self.mlp = MLP(input_dim=d, hidden_dims=hidden_dims, activation=activation)
@@ -114,12 +122,22 @@ class ProjectedMLP(nn.Module):
         w = w_out - w_0
 
         # Normalize direction and scale to the boundary defined by Q
-        # Using Q^{-1/2} from diagonal L
-        Q_inv_sqrt = self._q_inv_sqrt_for_diag()  # (d, d)
+
         w_norms = torch.linalg.norm(w, dim=1, keepdim=True).clamp_min(1e-8)
         z = w / w_norms
         sqrt_b = torch.sqrt(b).unsqueeze(1)       # (b, 1)
-        w_proj = w_0 + sqrt_b * (z @ Q_inv_sqrt)  # (b, d)
+
+
+        # Using Q^{-1/2} from diagonal L
+        if self.V.diag_Q:
+            Q_inv_sqrt = self._q_inv_sqrt_for_diag()  # (d, d)
+            w_proj = w_0 + sqrt_b * (z @ Q_inv_sqrt)  # (b, d)
+        else:
+            L = self.V.L
+            # use solve rather than directly computing inverse for speedup
+            w_proj = w_0 + sqrt_b * (torch.linalg.solve(L.T,z.T)).T 
+            
+        # w_proj = w_0 + sqrt_b * (z @ Q_inv_sqrt)  # (b, d)
 
         # Soft/hard choice to keep or project
         V_out = self.V(w_out)
