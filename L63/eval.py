@@ -6,7 +6,7 @@ import numpy as np
 import torch, torch.nn as nn
 import matplotlib.pyplot as plt
 from model import ProjectedMLP
-from utils import TrajectoryTensorDataset, gen_real_multi_traj
+from utils import TrajectoryTensorDataset, gen_real_multi_traj, gen_multi_traj_scipy
 
 
 class OneStepFromSubtraj(torch.utils.data.Dataset):
@@ -136,8 +136,7 @@ def main():
     p.add_argument('--seed',type=int,default=0)
     p.add_argument('--ckpt',default='model_epoch_best.pt')
     p.add_argument('--eval-steps',type=int,default=1000)
-    p.add_argument('--gt-traj-num',type=int,default=4)
-    p.add_argument('--gt-dt',type=float,default=0.001)
+    p.add_argument('--gt-traj-num',type=int,default=1)
     p.add_argument('--gt-seed',type=int,default=123)
     args=p.parse_args()
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -152,7 +151,7 @@ def main():
     _,T,D=X_ds.shape
     
     model_cfg={k:params_npz[k].item() if params_npz[k].size==1 else params_npz[k].tolist()
-               for k in params_npz.files if k in ['d','hidden_dims','activation','discrete_proj','c0','trainable_c','diag_Q','dt']}
+               for k in params_npz.files if k in ['d','hidden_dims','activation','discrete_proj','c0','trainable_c','diag_Q']}
     
     model_cfg['activation']=nn.GELU() if params_npz['activation']=='gelu' else nn.ReLU()
 
@@ -171,7 +170,9 @@ def main():
 
     # --- (2) Validation trajectory rollout ---
     steps=min(args.eval_steps,T-1)
-    val_traj=X_val[0]; pred_val=closed_loop_rollout(model,val_traj[0],steps,device)
+    val_traj=X_val[0]
+    steps = val_traj.shape[0] - 1
+    pred_val=closed_loop_rollout(model,val_traj[0],steps,device)
     rollout_val_mse=float(np.mean((pred_val-val_traj[:steps+1])**2))
     plot_traj3d(val_traj[:steps+1], pred_val, os.path.join(results_dir, 'eval_rollout_val.png'), 'Rollout on Validation Set', model)
     # print(val_traj[:, 1] - val_traj[:, 0])
@@ -180,12 +181,12 @@ def main():
     plt.legend(); plt.savefig(os.path.join(results_dir,'eval_rollout_val_traj.png')); plt.close()
 
     # --- (3) Random initial condition rollout ---
-    X_gt=gen_real_multi_traj(M=args.gt_traj_num,N=steps,dt=args.gt_dt,dt_target=0.05)
+    X_gt=gen_multi_traj_scipy(M=args.gt_traj_num,N=steps,dt_target=0.05)
     if isinstance(X_gt,dict) and "X_ds" in X_gt: X_gt=X_gt['X_ds']
     
     # Plot the first GT trajectory and its rollout
     gt_traj_to_plot = X_gt[0]
-    pred_gt = closed_loop_rollout(model, gt_traj_to_plot[0], steps, device)
+    pred_gt = closed_loop_rollout(model, gt_traj_to_plot[0], gt_traj_to_plot.shape[0]-1, device)
     plot_traj3d(gt_traj_to_plot, pred_gt, os.path.join(results_dir, 'eval_rollout_gt.png'), 'Rollout on Random Initial Condition', model)
 
     # --- (4) Energy evaluation plot ---
@@ -193,11 +194,13 @@ def main():
         print(np.linalg.eigvals(model.V._construct_Q().detach().cpu().numpy()))
         print(model.c.item())
         print(model.V.x_0.detach().cpu().numpy())
+        
         fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
-        plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
-        plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
-        if model.discrete_proj:
-            ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
+        # plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
+        # plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
+        plot_energy(ax_energy, model, X_gt[0], 'Ground Truth (Validation)', device)
+        plot_energy(ax_energy, model, pred_gt, 'Prediction (Validation)', device)
+        ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
         ax_energy.set_xlabel('Time Steps')
         ax_energy.set_ylabel('Energy (V(x))')
         ax_energy.set_title('Energy of Trajectories')
@@ -206,12 +209,12 @@ def main():
         fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'))
         plt.close(fig_energy)
 
-    mse_list=[np.mean((closed_loop_rollout(model,tr[0],steps,device)-tr)**2) for tr in X_gt]
-    rollout_gt_mse=float(np.mean(mse_list))
+    # mse_list=[np.mean((closed_loop_rollout(model,tr[0],steps,device)-tr)**2) for tr in X_gt]
+    # rollout_gt_mse=float(np.mean(mse_list))
 
     print(f"One-step Val MSE: {one_step_val_mse:.6e}")
     print(f"Rollout Val MSE:  {rollout_val_mse:.6e}")
-    print(f"Rollout GT MSE:   {rollout_gt_mse:.6e}")
+    # print(f"Rollout GT MSE:   {rollout_gt_mse:.6e}")
 
 
 if __name__=="__main__":
