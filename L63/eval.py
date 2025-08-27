@@ -265,7 +265,7 @@ def main():
     plt.legend(); plt.savefig(os.path.join(results_dir,'eval_rollout_val_traj.png')); plt.close()
 
     # --- (3) Random initial condition rollout ---
-    X_gt=gen_multi_traj_scipy(M=args.gt_traj_num,N=steps,dt_target=0.05, seed=62)
+    X_gt=gen_multi_traj_scipy(M=args.gt_traj_num,N=steps,dt_target=0.05)
     if isinstance(X_gt,dict) and "X_ds" in X_gt: X_gt=X_gt['X_ds']
     
     # Plot the first GT trajectory and its rollout
