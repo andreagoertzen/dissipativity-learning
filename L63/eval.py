@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from model import ProjectedMLP
 from utils import TrajectoryTensorDataset, gen_real_multi_traj, gen_multi_traj_scipy
 
+# set matplotlib fontsize
+plt.rcParams['font.size'] = 24
+# use latex
+plt.rcParams['text.usetex'] = True
 
 class OneStepFromSubtraj(torch.utils.data.Dataset):
     def __init__(self, trajectories, stride=1):
@@ -18,7 +22,87 @@ class OneStepFromSubtraj(torch.utils.data.Dataset):
         if isinstance(subtraj, torch.Tensor): subtraj = subtraj.numpy()
         return torch.from_numpy(subtraj[0].astype(np.float32)), torch.from_numpy(subtraj[1].astype(np.float32))
 
+SIGMA = 10.0
+RHO = 28.0
+BETA = 8.0 / 3.0
+DT = 0.05 # Timestep used for generating trajectories, needed for model's flow prediction
+# --- NEW: Quiver Plot Function ---
+@torch.no_grad()
+def plot_flow_field(model, device, save_path, z_slice=27):
+    """
+    Plots the 2D flow field on the x-y plane, comparing the ground truth
+    with the model's prediction. All vectors are normalized to unit length.
+    
+    Also plots the 2D cross-section of the learned ellipsoid boundary.
+    """
+    # 1. Create a grid of (x, y) points
+    x_range = np.linspace(-35, 35, 25)
+    y_range = np.linspace(-35, 35, 25)
+    x_grid, y_grid = np.meshgrid(x_range, y_range)
 
+    # 2. Calculate Ground Truth Flow (derivatives)
+    u_gt = SIGMA * (y_grid - x_grid)
+    v_gt = x_grid * (RHO - z_slice) - y_grid
+
+    # 3. Calculate Model's Predicted Flow
+    z_grid = np.full_like(x_grid, z_slice)
+    grid_states = np.stack([x_grid, y_grid, z_grid], axis=-1).reshape(-1, 3)
+    grid_states_torch = torch.from_numpy(grid_states.astype(np.float32)).to(device)
+    
+    # The model predicts the next state x_{t+1}
+    next_states_torch = model(grid_states_torch)
+    
+    # The flow vector points from the current state to the next state
+    flow_vectors = (next_states_torch - grid_states_torch).cpu().numpy()
+    u_pred = flow_vectors[:, 0].reshape(x_grid.shape)
+    v_pred = flow_vectors[:, 1].reshape(x_grid.shape)
+
+    # 4. Normalize all flow vectors to unit length for clear direction visualization
+    mag_gt = np.sqrt(u_gt**2 + v_gt**2) + 1e-8 # Add epsilon for stability
+    u_gt_norm, v_gt_norm = u_gt / mag_gt, v_gt / mag_gt
+    
+    mag_pred = np.sqrt(u_pred**2 + v_pred**2) + 1e-8 # Add epsilon for stability
+    u_pred_norm, v_pred_norm = u_pred / mag_pred, v_pred / mag_pred
+
+    # 5. Create the plot
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    # 6. Plot the ellipsoid boundary if the model has one
+    if model.discrete_proj:
+        # Calculate the energy V(x) on the grid
+        energy = model.V(grid_states_torch).cpu().numpy().reshape(x_grid.shape)
+        c_squared = model.c.item()**2
+        
+        # Plot the contour where V(x) = c^2
+        ax.contour(
+            x_grid, y_grid, energy, levels=[c_squared],
+            colors='red', linewidths=2.5, zorder=3
+        )
+        # Create a dummy artist for the legend
+        ax.plot([], [], color='red', linewidth=2.5, label='Ellipsoid Boundary ($V(x)=c^2$)')
+
+
+    # 7. Plot the quiver fields
+    # Plot ground truth flow (light gray, underneath)
+    # ax.quiver(x_grid, y_grid, u_gt_norm, v_gt_norm, color='lightgray', alpha=0.9, 
+            #   angles='xy', label='Ground Truth Flow', zorder=1)
+    
+    # Plot model's predicted flow (blue, on top)
+    ax.quiver(x_grid, y_grid, u_pred_norm, v_pred_norm, color='dodgerblue', alpha=0.9,
+              angles='xy', label='Model Predicted Flow', zorder=2)
+    
+    ax.set_xlabel(r"$w_1$")
+    ax.set_ylabel(r"$w_2$")
+    ax.set_aspect('equal', adjustable='box')
+    # ax.legend(loc='upper right')
+    # ax.grid(True, linestyle='--', alpha=0.6)
+    ax.set_xlim(x_range.min(), x_range.max())
+    ax.set_ylim(y_range.min(), y_range.max())
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close(fig)
+    
 def split_by_trajectory(X_ds, val_frac=0.1, seed=0):
     """
     Splits the dataset into training and validation sets.
@@ -71,7 +155,7 @@ def plot_ellipsoid(ax, model):
         for j in range(len(x)):
             [x[i, j], y[i, j], z[i, j]] = np.dot([x[i, j], y[i, j], z[i, j]], rotation) + x0
 
-    ax.plot_surface(x, y, z, rstride=4, cstride=4, color='b', alpha=0.1)
+    ax.plot_surface(x, y, z, rstride=4, cstride=4, color='r', alpha=0.1)
 
 @torch.no_grad()
 def plot_energy(ax, model, traj, label, device):
@@ -111,21 +195,21 @@ def plot_traj3d(xyz_gt, xyz_pred, save_path, title, model, stride=1):
         xyz_gt = xyz_gt[::stride]
         xyz_pred = xyz_pred[::stride]
 
-    fig = plt.figure(figsize=(7, 6))
+    fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection="3d")
-    ax.plot(xyz_gt[:,0], xyz_gt[:,1], xyz_gt[:,2], label='Ground Truth')
-    ax.plot(xyz_pred[:,0], xyz_pred[:,1], xyz_pred[:,2], label='Prediction', marker='x')
-
     plot_ellipsoid(ax, model)
+    
+    ax.plot(xyz_gt[:,0], xyz_gt[:,1], xyz_gt[:,2], label='Ground Truth')
+    ax.plot(xyz_pred[:,0], xyz_pred[:,1], xyz_pred[:,2], label='Prediction')
 
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax.set_title(title)
+    ax.set_xlabel(r"$w_1$")
+    ax.set_ylabel(r"$w_2$")
+    ax.set_zlabel(r"$w_3$")
+    # ax.set_title(title)
     ax.legend()
 
     plt.tight_layout()
-    plt.savefig(save_path)
+    plt.savefig(save_path, dpi=300)
     plt.close(fig)
 
 
@@ -181,7 +265,7 @@ def main():
     plt.legend(); plt.savefig(os.path.join(results_dir,'eval_rollout_val_traj.png')); plt.close()
 
     # --- (3) Random initial condition rollout ---
-    X_gt=gen_multi_traj_scipy(M=args.gt_traj_num,N=steps,dt_target=0.05)
+    X_gt=gen_multi_traj_scipy(M=args.gt_traj_num,N=steps,dt_target=0.05, seed=62)
     if isinstance(X_gt,dict) and "X_ds" in X_gt: X_gt=X_gt['X_ds']
     
     # Plot the first GT trajectory and its rollout
@@ -195,22 +279,30 @@ def main():
         print(model.c.item())
         print(model.V.x_0.detach().cpu().numpy())
         
-        fig_energy, ax_energy = plt.subplots(figsize=(8, 5))
+        fig_energy, ax_energy = plt.subplots(figsize=(10, 10))
         # plot_energy(ax_energy, model, val_traj[:steps+1], 'Ground Truth (Validation)', device)
         # plot_energy(ax_energy, model, pred_val, 'Prediction (Validation)', device)
-        plot_energy(ax_energy, model, X_gt[0], 'Ground Truth (Validation)', device)
-        plot_energy(ax_energy, model, pred_gt, 'Prediction (Validation)', device)
-        ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c^2 (Energy Boundary)')
+        plot_energy(ax_energy, model, X_gt[0], 'Ground Truth ', device)
+        plot_energy(ax_energy, model, pred_gt, 'Prediction ', device)
+        ax_energy.axhline(y=model.c.item()**2, color='r', linestyle='--', label='c (Energy Level)')
         ax_energy.set_xlabel('Time Steps')
-        ax_energy.set_ylabel('Energy (V(x))')
-        ax_energy.set_title('Energy of Trajectories')
+        ax_energy.set_ylabel('Energy (V(w(t)))')
+        ax_energy.set_ylim([0, 2000.0])
         ax_energy.legend()
         ax_energy.grid(True)
-        fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'))
+        fig_energy.savefig(os.path.join(args.model_dir, 'eval_energy.png'), dpi=300)
         plt.close(fig_energy)
 
     # mse_list=[np.mean((closed_loop_rollout(model,tr[0],steps,device)-tr)**2) for tr in X_gt]
     # rollout_gt_mse=float(np.mean(mse_list))
+    
+    print("\nGenerating flow field comparison plot...")
+    plot_flow_field(
+        model=model,
+        device=device,
+        save_path=os.path.join(results_dir, 'eval_flow_field.png'),
+        z_slice=27.0  # A meaningful slice at the z-level of the fixed points
+    )
 
     print(f"One-step Val MSE: {one_step_val_mse:.6e}")
     print(f"Rollout Val MSE:  {rollout_val_mse:.6e}")
