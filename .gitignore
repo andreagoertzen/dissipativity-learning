@@ -6,3 +6,5 @@ train_local.sh
 *.log
 **/logs/
 KS/Trained_Models
+KF/data
+KF/Trained_Models

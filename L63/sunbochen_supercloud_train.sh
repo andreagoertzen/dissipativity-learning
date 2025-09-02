@@ -10,7 +10,7 @@ for lr in 5e-5; do
   for lam in 1e-2 1e-3 1e-4 1e-5 1e-6 1e-7 1e-8 1e-9; do
     sbatch train_single_sunbochen.sh \
     --epoch 4000 \
-    --c-init 40.0 \
+    --c-init 20.0 \
     --discrete-proj \
     --lam-reg-vol $lam \
     --lr $lr \
