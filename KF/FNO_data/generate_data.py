@@ -10,8 +10,6 @@ from periodic import NavierStokes2d
 from timeit import default_timer
 import argparse
 
-
-
 def legacy_solver(args):
     save_dir = args.outdir
     os.makedirs(save_dir, exist_ok=True)
