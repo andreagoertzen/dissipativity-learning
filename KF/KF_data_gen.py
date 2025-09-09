@@ -91,7 +91,7 @@ field = srf.structured([x,y],seed=0)
 w0 = torch.tensor(field) 
 w0 = torch.zeros(n_traj,M,N).to(device)
 for i in range(n_traj):
-    w0[i,...] = torch.tensor((srf.structured([x, y], seed=8675309))).to(device)
+    w0[i,...] = torch.tensor((srf.structured([x, y], seed=i))).to(device)
 
 
 omega_hat = torch.fft.fft2(w0)
@@ -140,6 +140,9 @@ ani.save(f"data/{folder}/data_ani.gif")
 ## also potentially PCA for entire traj??
 print('PCA...')
 w_data = w_save[:,:,:,10:].permute(0,3,1,2).reshape(-1,M*N)
+
+print(w_data.shape)
+
 U,S,V = torch.svd(w_data-torch.mean(w_data,0))
 
 fig,axs = plt.subplots(2,5) 
