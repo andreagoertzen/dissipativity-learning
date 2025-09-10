@@ -10,8 +10,6 @@ from periodic import NavierStokes2d
 from timeit import default_timer
 import argparse
 
-
-
 def legacy_solver(args):
     save_dir = args.outdir
     os.makedirs(save_dir, exist_ok=True)
@@ -103,19 +101,23 @@ if __name__ == '__main__':
 #     f = -4*torch.cos(4.0*Y)
 #     vor = np.zeros((bsize, T, t_res + 1, s // x_sub, s // x_sub))
 
-#     pbar = tqdm(range(T))
-#     w = grf.sample(bsize)
-#     w = solver.advance(w, f, T=100, Re=re, adaptive=True)
+    pbar = tqdm(range(T))
+    w = grf.sample(bsize)
+    print("Initialization starts")
+    # w = solver.advance(w, f, T=100, Re=re, adaptive=True)
+    w = solver.advance(w, f, T=100, Re=re, adaptive=False)
     
-#     init_vor = w[:, ::x_sub, ::x_sub].cpu().type(torch.float32).numpy()
-#     for j in pbar:
-#         vor[:, j, 0, :, :] = init_vor
+    init_vor = w[:, ::x_sub, ::x_sub].cpu().type(torch.float32).numpy()
+    print("data generation starts")
+    for j in pbar:
+        vor[:, j, 0, :, :] = init_vor
 
 #         for k in range(t_res):
 #             t1 = default_timer()
 
-#             w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
-#             vor[:, j, k+1, :, :] = w[:,::x_sub,::x_sub].cpu().type(torch.float32).numpy()
+            # w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
+            w = solver.advance(w, f, T=dt, Re=re, adaptive=False)
+            vor[:, j, k+1, :, :] = w[:,::x_sub,::x_sub].cpu().type(torch.float32).numpy()
 
 #             t2 = default_timer()
 
@@ -132,16 +134,16 @@ if __name__ == '__main__':
 #         np.save(save_path, vor[i])
 
 
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('--seed', type=int, default=0)
-#     parser.add_argument('--re', type=float, default=100.0)
-#     parser.add_argument('--x_res', type=int, default=64)
-#     parser.add_argument('--x_sub', type=int, default=16)
-#     parser.add_argument('--T', type=int, default=5000)
-#     parser.add_argument('--outdir', type=str, default='data')
-#     parser.add_argument('--t_res', type=int, default=1)
-#     parser.add_argument('--batchsize', type=int, default=1)
-#     parser.add_argument('--num_batchs', type=int, default=1)
-#     args = parser.parse_args()
-#     legacy_solver(args)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--re', type=float, default=100.0)
+    parser.add_argument('--x_res', type=int, default=1024)
+    parser.add_argument('--x_sub', type=int, default=16)
+    parser.add_argument('--T', type=int, default=5000)
+    parser.add_argument('--outdir', type=str, default='data')
+    parser.add_argument('--t_res', type=int, default=1)
+    parser.add_argument('--batchsize', type=int, default=1)
+    parser.add_argument('--num_batchs', type=int, default=1)
+    args = parser.parse_args()
+    gen_data(args)
