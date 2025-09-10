@@ -10,14 +10,15 @@ import os
 #################################################
 device = torch.device('cuda')
 Re = 250
-Re = 100 # Reynolds number
-Re = 70
-dt = 0.001 # Integration time step
+Re = 500 # Reynolds number
+# Re = 70
+dt = 0.0005 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
 M = N = 64 # x and y discretization
 t_save = 1 # save time step
 n_traj = 50 # number of trajectories to generate 
+n_ani = 5 # how many trajectories to visualize
 domain_size = L = 2 * np.pi
 dx = domain_size/M
 dy = domain_size/N
@@ -35,7 +36,7 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_dt{dt}'
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 
@@ -62,7 +63,7 @@ def nonlinear_terms(omega_hat,forcing=1):
     advection_hat = torch.fft.fft2(advection)
 
     omega = torch.fft.ifft2(omega_hat).real
-    advection_hat = -1j * (kx*torch.fft.fft2(u*omega) + ky*torch.fft.fft2(v*omega))
+    advection_hat = -2j *np.pi* (kx*torch.fft.fft2(u*omega) + ky*torch.fft.fft2(v*omega))
     advection_hat = advection_hat*dealias
 
     forcing_x = torch.sin(n * Y)
@@ -84,6 +85,23 @@ def euler_step(omega_hat,dt):
 def euler_step2(omega_hat,dt):
     return omega_hat + (linear_terms(omega_hat)+nonlinear_terms(omega_hat,forcing=2))*dt
 
+def update_step(omega_hat,nonlinear_terms,dt):
+    # from https://arxiv.org/pdf/1207.4682
+    ## eq 3.4
+    # G = 1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
+    G = -1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
+    # (omega_tilde-omega_hat)/dt = -G/2(omega_tilde+omega_hat) + f(omega_hat)
+    # omega_tilde(1/dt+G/2) = -G/2*omega_hat + omega_hat/dt + f(omega_hat)
+    # omega_tilde = inv(1/dt+G/2) * (-G/2*omega_hat + omega_hat/dt + f(omega_hat) ) 
+    omega_tilde = (omega_hat/dt-G/2*omega_hat+nonlinear_terms(omega_hat)) / (1/dt + G/2)
+
+    ## eq 3.5
+    # (omega_hat_new - omega_hat)/dt = -G/2*(omega_hat_new+omega_hat) + 1/2(f(omega_tilde)+f(omega_hat))
+    # omega_hat_new *(1/dt + G/2) = omega_hat/dt -G/2*omega_hat + 1/2 (f(omega_tilde)+f(omega_hat))
+    # omega_hat_new = inv(1/dt + G/2) * omega_hat/dt -G/2*omega_hat + 1/2 (f(omega_tilde)+f(omega_hat))/
+    omega_hat = (omega_hat/dt - G/2*omega_hat + 1/2*(nonlinear_terms(omega_hat)+nonlinear_terms(omega_tilde)) ) / (1/dt + G/2)
+    return omega_hat
+
 x = y = range(N)
 model = Gaussian(dim = 2, var = 1, len_scale = 10)
 srf = SRF(model,seed = 13,generator='Fourier',period = N)
@@ -101,7 +119,8 @@ omega_hat = torch.fft.fft2(w0)
 w_save = torch.zeros(n_traj,M,N,int(T/t_save))
 with torch.no_grad():
     for step in range(n_steps):
-        omega_hat = euler_step(omega_hat, dt)
+        # omega_hat = euler_step(omega_hat, dt)
+        omega_hat = update_step(omega_hat,nonlinear_terms,dt)
         # omega_hat2 = euler_step2(omega_hat2,dt)
         # save every t_save seconds
         if step % int(t_save/dt) == 0:
@@ -117,27 +136,34 @@ with torch.no_grad():
             # plt.pause(0.01)
 torch.save(w_save,f'./data/{folder}/data.pt')
 
-## pick 5 rando to animate as a sanity check
+## pick 5 random to animate as a sanity check
 print('animating...')
-n_ani = 5
 ind = np.random.randint(0,n_traj,n_ani)
 fig,axs = plt.subplots(1,n_ani)
 
+if n_ani == 1:
+    axs = [axs]
 ims = []
 with torch.no_grad():
     for t in range(w_save.shape[-1]):
-        im = []
-        plt.title(f"Time {t}")
+        frame_artists = []
         for i in range(n_ani):
-            im.append(axs[i].imshow(w_save[ind[i],:,:,t].detach().cpu().numpy(),cmap='RdBu',animated=True))
-        # plt.pause(1)
-        ims.append(im)
+            im = axs[i].imshow(w_save[ind[i], :, :, t].detach().cpu().numpy(),cmap='RdBu', animated=True)
+            frame_artists.append(im)
 
-ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
+        # Create a new text object every time
+        time = t*t_save 
+        title_obj = axs[i].text(0.5, 1.05, f"Time {time}", transform=axs[i].transAxes,
+                                    ha='center', va='bottom', fontsize=12, animated=True)
+        frame_artists.append(title_obj)
+
+        ims.append(frame_artists)
+
+ani = animation.ArtistAnimation(fig, ims, interval=1e-3)
 ani.save(f"data/{folder}/data_ani.gif")
 
 
-## also potentially PCA for entire traj??
+## PCA for entire traj
 print('PCA...')
 w_data = w_save[:,:,:,10:].permute(0,3,1,2).reshape(-1,M*N)
 
