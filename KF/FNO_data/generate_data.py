@@ -101,16 +101,20 @@ def gen_data(args):
 
     pbar = tqdm(range(T))
     w = grf.sample(bsize)
-    w = solver.advance(w, f, T=100, Re=re, adaptive=True)
+    print("Initialization starts")
+    # w = solver.advance(w, f, T=100, Re=re, adaptive=True)
+    w = solver.advance(w, f, T=100, Re=re, adaptive=False)
     
     init_vor = w[:, ::x_sub, ::x_sub].cpu().type(torch.float32).numpy()
+    print("data generation starts")
     for j in pbar:
         vor[:, j, 0, :, :] = init_vor
 
         for k in range(t_res):
             t1 = default_timer()
 
-            w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
+            # w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
+            w = solver.advance(w, f, T=dt, Re=re, adaptive=False)
             vor[:, j, k+1, :, :] = w[:,::x_sub,::x_sub].cpu().type(torch.float32).numpy()
 
             t2 = default_timer()
@@ -131,10 +135,10 @@ def gen_data(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--re', type=float, default=40.0)
-    parser.add_argument('--x_res', type=int, default=512)
-    parser.add_argument('--x_sub', type=int, default=2)
-    parser.add_argument('--T', type=int, default=300)
+    parser.add_argument('--re', type=float, default=100.0)
+    parser.add_argument('--x_res', type=int, default=1024)
+    parser.add_argument('--x_sub', type=int, default=16)
+    parser.add_argument('--T', type=int, default=5000)
     parser.add_argument('--outdir', type=str, default='data')
     parser.add_argument('--t_res', type=int, default=1)
     parser.add_argument('--batchsize', type=int, default=1)
