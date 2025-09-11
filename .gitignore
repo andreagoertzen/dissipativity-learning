@@ -11,3 +11,4 @@ KF/Trained_Models
 KF/FNO_data/data/*.npy
 KF/FNO_data/data/*.gif
 training/ns_data_visc1e-3.mat
+KF/FNO_data/downloaded_data

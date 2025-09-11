@@ -353,8 +353,8 @@ def train(params):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, help='specify number of epochs', default=20000)
-    parser.add_argument('--bsize', type=int, help='specify batch size', default=500)
+    parser.add_argument('--epochs', type=int, help='specify number of epochs', default=10000)
+    parser.add_argument('--bsize', type=int, help='specify batch size', default=2048)
     parser.add_argument('--lam_reg_vol', type=float, help='specify regularization lambda', default=1.0)
     parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
     parser.add_argument('--tag', type=str, help='tag for file names', default='')
@@ -364,7 +364,7 @@ if __name__ == "__main__":
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=1.0)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
-    parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
+    parser.add_argument('--lr', type=float, help='learning rate', default=2e-5)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
     parser.add_argument('--Re', help='Reynolds number of training data',default=40)
 
