@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 
 M = N = 64
 
-w_data_file = np.load('data/NS-Re500_T1_dt0.0002.npy')
+w_data_file = np.load('data/NS-Re40_T5000_dt0.001.npy')
 w_data = w_data_file[:, 0, :, :].reshape(-1, 4096)
 print(np.isnan(w_data).any())
 
@@ -20,7 +20,7 @@ for i in range(axs.shape[0]):
 
 fig.suptitle('first 10 PCA modes of data',y=0.8)
 fig.tight_layout()
-plt.savefig(f'data/Re500_PCA_data.png')
+plt.savefig(f'data/M64_Re40_PCA_data_5000.png')
 
 plt.figure()
 mode1 = V[:,0]
@@ -35,7 +35,7 @@ print(x.shape)
 plt.scatter(x.cpu().numpy(),y.cpu().numpy(),label='data',alpha=0.7,c=np.linspace(0,len(x),len(x)), cmap='viridis')
 plt.colorbar()
 # PLT.SHOW()
-plt.savefig(f'data/Re500_2PCA_modes.png')
+plt.savefig(f'data/M64_Re40_2PCA_modes_5000_b.png')
 
 n_ani = 1
 n_traj=1
@@ -64,4 +64,4 @@ with torch.no_grad():
         ims.append(frame_artists)
 
 ani = animation.ArtistAnimation(fig, ims, interval=1e-3)
-ani.save(f"data/Re500_data_ani.gif")
+ani.save(f"data/M64_Re40_data_ani_5000.gif")

@@ -49,6 +49,7 @@ def train(params):
     trunk_scale = params['trunk_scale']
     lr = params['lr']
     warm_start = params['warm_start']
+    Re = params['Re']
 
     model_folder = model_dir
     figs_folder = figs_dir = os.path.join(model_dir, 'eval_results')
@@ -59,7 +60,7 @@ def train(params):
         os.makedirs(figs_folder)
 
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
-    file_dir = 'data/KF_Re100_M64_tsave1/data.pt'
+    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     data = torch.load(file_dir)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
@@ -273,7 +274,7 @@ def train(params):
 
     ### LOAD DATA
     print('LOADING TEST DATA')
-    file_dir = 'data/KF_Re100_M64_tsave1_T3000/data.pt'
+    file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt'
     data = torch.load(file_dir)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
@@ -361,10 +362,11 @@ if __name__ == "__main__":
     parser.add_argument('--trainable_c', action='store_true', help='specify whether c is trainable')
     parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
-    parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=0.2)
+    parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=1.0)
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
+    parser.add_argument('--Re', help='Reynolds number of training data',default=40)
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -403,7 +405,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 

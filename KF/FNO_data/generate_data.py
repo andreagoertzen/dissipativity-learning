@@ -25,7 +25,7 @@ def legacy_solver(args):
     T = args.T
     t = args.t_res
     dt = 1.0 / t
-    delta_t = 2e-4
+    delta_t = 1e-3
 
     GRF = GaussianRF(2, s, 2 * math.pi, alpha=2.5, tau=7, device=device)
     u0 = GRF.sample(1)
@@ -50,7 +50,7 @@ def legacy_solver(args):
         )
         sol_ini = sol[i, -1, :, :]
     
-    save_path = os.path.join(save_dir, f'NS-Re{int(Re)}_T{t}_dt{delta_t}_2.npy')
+    save_path = os.path.join(save_dir, f'NS-Re{int(Re)}_T{T}_dt{delta_t}.npy')
     # np.save('NS_fine_Re500_S512_s64_T500_t128.npy', sol)
     np.save(save_path, sol)
 
@@ -70,80 +70,80 @@ if __name__ == '__main__':
 
     parser.add_argument('--outdir', type=str, default='data')
     parser.add_argument('--res_x', type=int, default=64)
-    parser.add_argument('--re', type=float, default=500.0)
+    parser.add_argument('--re', type=float, default=40.0)
     parser.add_argument('--T', type=int, default=5000)
     parser.add_argument('--t_res', type=int, default=1)
     args = parser.parse_args()
     legacy_solver(args)
     
     
-# def gen_data(args):
-#     dtype = torch.float64
-#     device = torch.device('cuda:0')
-#     save_dir = args.outdir
-#     os.makedirs(save_dir, exist_ok=True)
+# # def gen_data(args):
+# #     dtype = torch.float64
+# #     device = torch.device('cuda:0')
+# #     save_dir = args.outdir
+# #     os.makedirs(save_dir, exist_ok=True)
     
-#     T = args.T  # total time
-#     bsize = args.batchsize
-#     L = 2 * math.pi
-#     s =args.x_res
-#     x_sub = args.x_sub
+# #     T = args.T  # total time
+# #     bsize = args.batchsize
+# #     L = 2 * math.pi
+# #     s =args.x_res
+# #     x_sub = args.x_sub
 
-#     t_res = args.t_res
-#     dt = 1 / t_res
-#     re = args.re
+# #     t_res = args.t_res
+# #     dt = 1 / t_res
+# #     re = args.re
 
-#     solver = NavierStokes2d(s,s,L,L,device=device,dtype=dtype)
-#     grf = GaussianRF2d(s,s,L,L,alpha=2.5,tau=3.0,sigma=None,device=device,dtype=dtype)
+# #     solver = NavierStokes2d(s,s,L,L,device=device,dtype=dtype)
+# #     grf = GaussianRF2d(s,s,L,L,alpha=2.5,tau=3.0,sigma=None,device=device,dtype=dtype)
 
-#     t = torch.linspace(0, L, s+1, dtype=dtype, device=device)[0:-1]
-#     _, Y = torch.meshgrid(t, t, indexing='ij')
-#     f = -4*torch.cos(4.0*Y)
-#     vor = np.zeros((bsize, T, t_res + 1, s // x_sub, s // x_sub))
+# #     t = torch.linspace(0, L, s+1, dtype=dtype, device=device)[0:-1]
+# #     _, Y = torch.meshgrid(t, t, indexing='ij')
+# #     f = -4*torch.cos(4.0*Y)
+# #     vor = np.zeros((bsize, T, t_res + 1, s // x_sub, s // x_sub))
 
-    pbar = tqdm(range(T))
-    w = grf.sample(bsize)
-    print("Initialization starts")
-    # w = solver.advance(w, f, T=100, Re=re, adaptive=True)
-    w = solver.advance(w, f, T=100, Re=re, adaptive=False)
+#     pbar = tqdm(range(T))
+#     w = grf.sample(bsize)
+#     print("Initialization starts")
+#     # w = solver.advance(w, f, T=100, Re=re, adaptive=True)
+#     w = solver.advance(w, f, T=100, Re=re, adaptive=False)
     
-    init_vor = w[:, ::x_sub, ::x_sub].cpu().type(torch.float32).numpy()
-    print("data generation starts")
-    for j in pbar:
-        vor[:, j, 0, :, :] = init_vor
+#     init_vor = w[:, ::x_sub, ::x_sub].cpu().type(torch.float32).numpy()
+#     print("data generation starts")
+#     for j in pbar:
+#         vor[:, j, 0, :, :] = init_vor
 
-#         for k in range(t_res):
-#             t1 = default_timer()
+# #         for k in range(t_res):
+# #             t1 = default_timer()
 
-            # w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
-            w = solver.advance(w, f, T=dt, Re=re, adaptive=False)
-            vor[:, j, k+1, :, :] = w[:,::x_sub,::x_sub].cpu().type(torch.float32).numpy()
+#             # w = solver.advance(w, f, T=dt, Re=re, adaptive=True)
+#             w = solver.advance(w, f, T=dt, Re=re, adaptive=False)
+#             vor[:, j, k+1, :, :] = w[:,::x_sub,::x_sub].cpu().type(torch.float32).numpy()
 
-#             t2 = default_timer()
+# #             t2 = default_timer()
 
-#             pbar.set_description(
-#             (
-#                 f'{j}, time cost: {t2-t1}'
-#             )
-#         )
-#         init_vor = vor[:, j, -1, :, :]
+# #             pbar.set_description(
+# #             (
+# #                 f'{j}, time cost: {t2-t1}'
+# #             )
+# #         )
+# #         init_vor = vor[:, j, -1, :, :]
 
-#     for i in range(bsize):
-#         save_path = os.path.join(save_dir, f'NS-Re{int(re)}_T{T}_id{i}_newdata.npy')
-#         # np.save('NS_fine_Re500_S512_s64_T500_t128.npy', sol)
-#         np.save(save_path, vor[i])
+# #     for i in range(bsize):
+# #         save_path = os.path.join(save_dir, f'NS-Re{int(re)}_T{T}_id{i}_newdata.npy')
+# #         # np.save('NS_fine_Re500_S512_s64_T500_t128.npy', sol)
+# #         np.save(save_path, vor[i])
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--re', type=float, default=100.0)
-    parser.add_argument('--x_res', type=int, default=1024)
-    parser.add_argument('--x_sub', type=int, default=16)
-    parser.add_argument('--T', type=int, default=5000)
-    parser.add_argument('--outdir', type=str, default='data')
-    parser.add_argument('--t_res', type=int, default=1)
-    parser.add_argument('--batchsize', type=int, default=1)
-    parser.add_argument('--num_batchs', type=int, default=1)
-    args = parser.parse_args()
-    gen_data(args)
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('--seed', type=int, default=0)
+#     parser.add_argument('--re', type=float, default=100.0)
+#     parser.add_argument('--x_res', type=int, default=1024)
+#     parser.add_argument('--x_sub', type=int, default=16)
+#     parser.add_argument('--T', type=int, default=5000)
+#     parser.add_argument('--outdir', type=str, default='data')
+#     parser.add_argument('--t_res', type=int, default=1)
+#     parser.add_argument('--batchsize', type=int, default=1)
+#     parser.add_argument('--num_batchs', type=int, default=1)
+#     args = parser.parse_args()
+#     gen_data(args)

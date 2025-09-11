@@ -4,21 +4,22 @@ from gstools import SRF, Gaussian
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
+from tqdm import tqdm
 
 ##################################################
 ## Training data generation for Kolmogorov flow ##
 #################################################
 device = torch.device('cuda')
 Re = 250
-Re = 500 # Reynolds number
+Re = 100 # Reynolds number
 # Re = 70
-dt = 0.0005 # Integration time step
+dt = 0.001 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
 M = N = 64 # x and y discretization
 t_save = 1 # save time step
-n_traj = 50 # number of trajectories to generate 
-n_ani = 5 # how many trajectories to visualize
+n_traj = 1 # number of trajectories to generate 
+n_ani = 1 # how many trajectories to visualize
 domain_size = L = 2 * np.pi
 dx = domain_size/M
 dy = domain_size/N
@@ -36,7 +37,7 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_dt{dt}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}'
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 
@@ -55,12 +56,12 @@ def nonlinear_terms(omega_hat,forcing=1):
 
     u,v = torch.fft.ifft2(uhat).real, torch.fft.ifft2(vhat).real
 
-    grad_x_hat = 2j*np.pi*kx*omega_hat
-    grad_y_hat = 2j*np.pi*ky*omega_hat
-    grad_x, grad_y = torch.fft.ifft2(grad_x_hat).real, torch.fft.ifft2(grad_y_hat).real
+    # grad_x_hat = 2j*np.pi*kx*omega_hat
+    # grad_y_hat = 2j*np.pi*ky*omega_hat
+    # grad_x, grad_y = torch.fft.ifft2(grad_x_hat).real, torch.fft.ifft2(grad_y_hat).real
 
-    advection = -(grad_x*u + grad_y*v)
-    advection_hat = torch.fft.fft2(advection)
+    # advection = -(grad_x*u + grad_y*v)
+    # advection_hat = torch.fft.fft2(advection)
 
     omega = torch.fft.ifft2(omega_hat).real
     advection_hat = -2j *np.pi* (kx*torch.fft.fft2(u*omega) + ky*torch.fft.fft2(v*omega))
@@ -118,7 +119,7 @@ omega_hat = torch.fft.fft2(w0)
 
 w_save = torch.zeros(n_traj,M,N,int(T/t_save))
 with torch.no_grad():
-    for step in range(n_steps):
+    for step in tqdm(range(n_steps)):
         # omega_hat = euler_step(omega_hat, dt)
         omega_hat = update_step(omega_hat,nonlinear_terms,dt)
         # omega_hat2 = euler_step2(omega_hat2,dt)
