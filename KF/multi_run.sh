@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name multi_run
 
-re=40
+re=500
 epoch=10000
 
 for lr in 5e-6 1e-6
