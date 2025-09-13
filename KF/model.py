@@ -3,57 +3,40 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-# class Branch(nn.Module):
-#     def __init__(self, m, activation=F.relu):
-#         super(Branch, self).__init__()
-#         self.m = m
-#         self.activation = activation
-
-#         # self.reshape = lambda x: x.view(-1, 1, 28, 28)
-#         self.reshape = lambda x: x.view(-1, 1, m)
-#         self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=5, stride=2)
-#         self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
-#         self.conv3 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, stride=2)
-#         self.conv4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=5, stride=2)
-#         self.flatten = nn.Flatten()
-#         # self.fc1 = nn.Linear(128 * 4 * 4, 128) 
-#         # self.fc1 = nn.Linear(1280, 256) 
-#         # self.fc1 = nn.Linear(1664, 256) 
-#         # self.fc1 = nn.Linear(1856, 256) 
-#         # self.fc1 = nn.Linear(1984, 256) 
-#         self.fc1 = nn.Linear(m, 128)
-#         self.fc2 = nn.Linear(128, 128)
-
-#     def forward(self, x):
-#         x = self.reshape(x)
-#         # x = self.activation(self.conv1(x))
-#         # x = self.activation(self.conv2(x))
-#         # x = self.activation(self.conv3(x))
-#         # x = self.activation(self.conv4(x))
-#         x = self.flatten(x)
-#         x = self.activation(self.fc1(x))
-#         x = self.fc2(x)
-#         return x
-
 class Branch(nn.Module):
-    def __init__(self, m, conv_config, fc_dims, output_dim=128, activation=nn.ReLU()):
+    def __init__(self, m, conv_config, fc_dims, output_dim=128, activation=nn.ReLU(), circ_padding=False):
         super(Branch, self).__init__()
         self.activation = activation
         self.reshape = lambda x: x.view(-1, 1, m, m)
+        self.circ_padding = circ_padding
 
         # --- 1. Build the Convolutional Part Programmatically ---
         conv_layers = []
         in_channels = 1
         for cfg in conv_config:
-            conv_layers.append(
-                nn.Conv2d(
-                    in_channels=in_channels,
-                    out_channels=cfg['out_channels'],
-                    kernel_size=cfg['kernel_size'],
-                    stride=cfg['stride']
+            if self.circ_padding:
+                conv_layers.append(
+                    nn.Conv2d(
+                        in_channels=in_channels,
+                        out_channels=cfg['out_channels'],
+                        kernel_size=cfg['kernel_size'],
+                        stride=cfg['stride'],
+                        padding=cfg['kernel_size'] // 2,   # "same" spatial size
+                        padding_mode='circular',           # periodic BCs (Kolmogorov flow)
+                        bias=False                         # BN handles bias
+                    )
                 )
-            )
+                conv_layers.append(nn.BatchNorm2d(cfg['out_channels']))
+            else:
+                conv_layers.append(
+                    nn.Conv2d(
+                        in_channels=in_channels,
+                        out_channels=cfg['out_channels'],
+                        kernel_size=cfg['kernel_size'],
+                        stride=cfg['stride']
+                    )
+                )
+                
             conv_layers.append(self.activation)
             in_channels = cfg['out_channels'] # Update for the next layer
         
@@ -187,7 +170,16 @@ class DeepONet(nn.Module):
         branch_conv_channels = model_params['branch_conv_channels']
         branch_fc_dims = model_params['branch_fc_dims']
         
+        # Add a flag for circular padding options
+        circular_padding = model_params['circular_padding']
+        if circular_padding:
+            print('Using Circular Padding in Conv Layers')
+
         trunk_hidden_dims = model_params['trunk_hidden_dims']
+        
+        # Add a flag for SiLU activation option
+        activation_choice = model_params.get('activation', 'ReLU')
+        print(f'Using Activation: {activation_choice}')
         
         output_dim = model_params['output_dim']
 
@@ -208,8 +200,8 @@ class DeepONet(nn.Module):
         ]
 
         # Create the Branch Net
-        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim)
-        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim)
+        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_choice, circ_padding=circular_padding)
+        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_choice)
 
         # Check network structure (for debugging)
         print("--- Initialized Branch Net Structure ---")

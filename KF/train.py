@@ -50,6 +50,7 @@ def train(params):
     lr = params['lr']
     warm_start = params['warm_start']
     Re = params['Re']
+    scheduler = params['scheduler'] if 'scheduler' in params else False
 
     model_folder = model_dir
     figs_folder = figs_dir = os.path.join(model_dir, 'eval_results')
@@ -91,7 +92,16 @@ def train(params):
     }
 
     model = DeepONet(model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # Adding weight_decay and lr sceduler
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
+    if scheduler:
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=lr,                     # try {1e-3, 2e-3, 3e-3}
+            steps_per_epoch=len(train_loader),
+            epochs=epochs
+        )
     print(f'Training with Learning rate: {lr}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
@@ -166,6 +176,8 @@ def train(params):
 
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1000.0)
             optimizer.step()
+            if scheduler:
+                scheduler.step()
             epoch_train_loss += loss.item()
             epoch_dynamic_loss += dynamic_loss.item()
             epoch_reg_loss += reg_loss.item()
@@ -354,7 +366,7 @@ def train(params):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, help='specify number of epochs', default=10000)
-    parser.add_argument('--bsize', type=int, help='specify batch size', default=2048)
+    parser.add_argument('--bsize', type=int, help='specify batch size', default=512)
     parser.add_argument('--lam_reg_vol', type=float, help='specify regularization lambda', default=1.0)
     parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
     parser.add_argument('--tag', type=str, help='tag for file names', default='')
@@ -367,6 +379,8 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, help='learning rate', default=2e-5)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
     parser.add_argument('--Re', help='Reynolds number of training data',default=40)
+    parser.add_argument('--scheduler', action='store_true', help='True for using lr scheduler')
+    parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -398,6 +412,10 @@ if __name__ == "__main__":
         reg_name += 'discreteProj'
     if params['warm_start']:
         reg_name += 'warmStart'
+    if params['scheduler']:
+        reg_name += '_scheduler'
+    if args.activation != 'ReLU':
+        reg_name += f'_{args.activation}'
 
     print(args.branch_conv_channels)
         
