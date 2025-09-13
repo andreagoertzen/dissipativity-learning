@@ -380,7 +380,6 @@ if __name__ == "__main__":
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
     parser.add_argument('--Re', help='Reynolds number of training data',default=40)
     parser.add_argument('--scheduler', action='store_true', help='True for using lr scheduler')
-    parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -394,6 +393,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--trunk_hidden_dims', type=int, nargs='+', default=[128, 128],
                         help='List of hidden layer dimensions for trunk net.')
+    
+    parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
+    parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')
 
     args = parser.parse_args()
 
@@ -416,6 +418,8 @@ if __name__ == "__main__":
         reg_name += '_scheduler'
     if args.activation != 'ReLU':
         reg_name += f'_{args.activation}'
+    if params['circular_padding']:
+        reg_name += '_circPad'
 
     print(args.branch_conv_channels)
         
