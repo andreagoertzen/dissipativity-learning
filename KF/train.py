@@ -89,6 +89,8 @@ def train(params):
         'output_dim': params['output_dim'],
         'dt': params['dt'],
         'discrete_proj': params['discrete_proj'],
+        'circular_padding': params['circular_padding'],
+        'activation': params['activation']
     }
 
     model = DeepONet(model_params).to(device)

@@ -179,6 +179,10 @@ class DeepONet(nn.Module):
         
         # Add a flag for SiLU activation option
         activation_choice = model_params.get('activation', 'ReLU')
+        if activation_choice == 'ReLU':
+            activation_module = nn.ReLU()
+        elif activation_choice == 'SiLU':
+            activation_module = nn.SiLU()
         print(f'Using Activation: {activation_choice}')
         
         output_dim = model_params['output_dim']
@@ -200,8 +204,8 @@ class DeepONet(nn.Module):
         ]
 
         # Create the Branch Net
-        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_choice, circ_padding=circular_padding)
-        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_choice)
+        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_module, circ_padding=circular_padding)
+        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_module)
 
         # Check network structure (for debugging)
         print("--- Initialized Branch Net Structure ---")
