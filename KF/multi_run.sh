@@ -2,15 +2,39 @@
 #SBATCH --job-name multi_run
 
 re=500
-epoch=4000
+epochs=3000
+bsize=512
+maxlr=1e-3
 
-for lr in 2e-3 1e-3 5e-4 2e-4
-do
-    # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --dt 1.0 --tag "dim256" --Re $re --lr $lr --scheduler --activation SiLU --circular_padding
-    # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 256 --dt 1.0 --tag "dim256" --Re $re --lr $lr --activation SiLU --circular_padding
-    sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 512 --branch_fc_dims 512  --trunk_hidden_dims 512 512 512 --dt 1.0 --tag "dim512" --Re $re --lr $lr --scheduler --activation SiLU --circular_padding
-    sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 512 --branch_fc_dims 512  --trunk_hidden_dims 512 512 512 512 --dt 1.0 --tag "dim512" --Re $re --lr $lr --activation SiLU --circular_padding
+for norm in 0 1; do
+  for circ in 0 1; do
+    for sched in cosine multistep; do
+      tag="Abl1_norm${norm}_circ${circ}_sched${sched}"
+      sbatch run.sh --epochs $epochs --bsize $bsize \
+        --branch_conv_channels 64 128 256 512 \
+        --output_dim 256 --branch_fc_dims 256 \
+        --trunk_hidden_dims 256 256 256 \
+        --dt 1.0 --Re $re \
+        --lr $maxlr --sched $sched --warmup_epochs 100 --min_lr 1e-5 --gamma 0.5 \
+        $( [ $norm -eq 1 ] && echo --normalize ) \
+        $( [ $circ -eq 1 ] && echo --circular_padding ) \
+        --clip_grad 1.0 \
+        --tag "$tag"
+    done
+  done
 done
+
+
+# re=500
+# epoch=4000
+
+# for lr in 2e-3 1e-3 5e-4 2e-4
+# do
+#     # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --dt 1.0 --tag "dim256" --Re $re --lr $lr --scheduler --activation SiLU --circular_padding
+#     # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 256 --dt 1.0 --tag "dim256" --Re $re --lr $lr --activation SiLU --circular_padding
+#     sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 512 --branch_fc_dims 512  --trunk_hidden_dims 512 512 512 --dt 1.0 --tag "dim512" --Re $re --lr $lr --scheduler --activation SiLU --circular_padding
+#     sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 512 --branch_fc_dims 512  --trunk_hidden_dims 512 512 512 512 --dt 1.0 --tag "dim512" --Re $re --lr $lr --activation SiLU --circular_padding
+# done
 
 # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 1024 --branch_fc_dims 1024  --trunk_hidden_dims 1024 1024 1024 --dt 1.0 --tag "dim1024" --Re $re
 # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 1024 --branch_fc_dims 1024  --trunk_hidden_dims 1024 1024 1024 1024 --dt 1.0 --tag "dim1024" --Re $re
