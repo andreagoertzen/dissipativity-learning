@@ -11,15 +11,17 @@ from tqdm import tqdm
 #################################################
 device = torch.device('cuda')
 Re = 250
-Re = 100 # Reynolds number
+Re = 500 # Reynolds number
 # Re = 70
-dt = 0.001 # Integration time step
+dt = 0.0005 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
-M = N = 64 # x and y discretization
-t_save = 1 # save time step
-n_traj = 1 # number of trajectories to generate 
+M = N = 128 # x and y discretization
+t_save = 0.25 # save time step
+n_traj = 200 # number of trajectories to generate 
 n_ani = 1 # how many trajectories to visualize
+ic_factor = 1
+
 domain_size = L = 2 * np.pi
 dx = domain_size/M
 dy = domain_size/N
@@ -37,7 +39,7 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}_IC{ic_factor}'
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 
@@ -110,7 +112,8 @@ field = srf.structured([x,y],seed=0)
 w0 = torch.tensor(field) 
 w0 = torch.zeros(n_traj,M,N).to(device)
 for i in range(n_traj):
-    w0[i,...] = torch.tensor((srf.structured([x, y], seed=i))).to(device)
+    s = 1000 if n_traj==1 else i
+    w0[i,...] = torch.tensor((srf.structured([x, y], seed=s))).to(device) *ic_factor
 
 
 omega_hat = torch.fft.fft2(w0)

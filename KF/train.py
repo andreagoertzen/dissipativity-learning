@@ -89,6 +89,8 @@ def train(params):
         'dt': params['dt'],
         'discrete_proj': params['discrete_proj'],
     }
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model = DeepONet(model_params).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -258,8 +260,8 @@ def train(params):
             
             tic = time.time()
 
-    # save model_params dictionary in the model location, perhaps as an npz
-    np.savez(f"./{model_folder}/model_params.npz", **model_params)
+    # # save model_params dictionary in the model location, perhaps as an npz
+    # np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
@@ -267,10 +269,10 @@ def train(params):
     ## GET MODEL PARAMETERS
     if model.project:
         Q = model.V._construct_Q().detach().cpu().numpy()
-        c = model.c.detach().cpu().numpy() ** 2
+        c = model.c.detach().cpu().numpy()
     else:
         Q = None
-        c = 30.0 ** 2
+        c = 30.0
 
     ### LOAD DATA
     print('LOADING TEST DATA')
@@ -405,7 +407,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
