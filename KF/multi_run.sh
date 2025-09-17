@@ -1,28 +1,42 @@
 #!/bin/bash
-#SBATCH --job-name lr_sweep
+#SBATCH --job-name lr_dim_sweep
 
 re=500
 epochs=3000
 bsize=512
-maxlr=1e-3
+# maxlr=1e-3
 
-for norm in 0 1; do
-  for circ in 0 1; do
-    for sched in cosine multistep; do
-      tag="Abl1_norm${norm}_circ${circ}_sched${sched}"
-      sbatch run.sh --epochs $epochs --bsize $bsize \
-        --branch_conv_channels 64 128 256 512 \
-        --output_dim 256 --branch_fc_dims 256 \
-        --trunk_hidden_dims 256 256 256 \
-        --dt 1.0 --Re $re \
-        --lr $maxlr --sched $sched --warmup_epochs 100 --min_lr 1e-5 --gamma 0.5 \
-        $( [ $norm -eq 1 ] && echo --normalize ) \
-        $( [ $circ -eq 1 ] && echo --circular_padding ) \
-        --clip_grad 1.0 \
-        --tag "$tag"
+# New experiments 09/17: lr sweep for Re=500, 128 by 128
+for lr in 1e-3 5e-4 2e-4 1e-4; do
+  for dim in 1024 2048; do
+    tag="lr${lr}_dim${dim}"
+    sbatch run.sh --epochs $epochs --bsize $bsize \
+      --branch_conv_channels 64 128 256 512 \
+      --output_dim $dim --branch_fc_dims $dim \
+      --trunk_hidden_dims $dim $dim $dim \
+      --dt 1.0 --Re $re \
+      --lr $lr --circular_padding \
+      --tag "$tag"
     done
-  done
 done
+# Previous scripts for running 64 by 64 experiments
+# for norm in 0 1; do
+#   for circ in 0 1; do
+#     for sched in cosine multistep; do
+#       tag="Abl1_norm${norm}_circ${circ}_sched${sched}"
+#       sbatch run.sh --epochs $epochs --bsize $bsize \
+#         --branch_conv_channels 64 128 256 512 \
+#         --output_dim 256 --branch_fc_dims 256 \
+#         --trunk_hidden_dims 256 256 256 \
+#         --dt 1.0 --Re $re \
+#         --lr $maxlr --sched $sched --warmup_epochs 100 --min_lr 1e-5 --gamma 0.5 \
+#         $( [ $norm -eq 1 ] && echo --normalize ) \
+#         $( [ $circ -eq 1 ] && echo --circular_padding ) \
+#         --clip_grad 1.0 \
+#         --tag "$tag"
+#     done
+#   done
+# done
 
 
 # re=500
