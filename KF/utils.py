@@ -153,7 +153,7 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
     with torch.no_grad():
         for i in tqdm(range(n_times)):
 
-            im = axs[0].imshow(u[154,:,:,i+1],animated = 'True',cmap=plt.colormaps['turbo'])
+            # im = axs[0].imshow(u[154,:,:,i+1],animated = 'True',cmap=plt.colormaps['turbo'])
             im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
             im2 = axs[1].imshow(y_pred.reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin,vmax=vmax)
             pred_traj[i+1,...] = y_pred
@@ -696,7 +696,7 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
                 V_hist_GT[t] = gt_traj[t,:] @ Q @ gt_traj[t,:].T
             else:
                 # print('using model for projection...')
-                Q = model.V._construct_Q()
+                Q = torch.diag(model.V._construct_Q())
                 V_hist[t] = model.V(w_in)
                 # V_in = eval_model.V(w_in)
                 # V_out = eval_model.V(w_out)

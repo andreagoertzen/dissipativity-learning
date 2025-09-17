@@ -17,9 +17,9 @@ dt = 0.0005 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
 M = N = 128 # x and y discretization
-t_save = 0.25 # save time step
-n_traj = 200 # number of trajectories to generate 
-n_ani = 1 # how many trajectories to visualize
+t_save = 0.5 # save time step
+n_traj = 50 # number of trajectories to generate 
+n_ani = 5 # how many trajectories to visualize
 ic_factor = 1
 
 domain_size = L = 2 * np.pi
@@ -39,7 +39,7 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}_IC{ic_factor}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}'
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 
@@ -131,7 +131,7 @@ with torch.no_grad():
             w = torch.fft.ifft2(omega_hat).real
             # print(w.device)
             # w2 = torch.fft.ifft2(omega_hat2).real
-            w_save[...,int(step*dt)] = w
+            w_save[...,int(step*dt/t_save)] = w
             # # fig.clf()
             # axs[0].imshow(w.detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
             # # axs[1].imshow(w2[0,...].detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)

@@ -1,8 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name lr_sweep
 
-re=500
+re=40
 epoch=1000
+dt=1.0
 
 # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --dt 1.0 --tag "dim256" --Re $re
 # sbatch run.sh --epoch $epoch --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 256 --dt 1.0 --tag "dim256" --Re $re
@@ -53,16 +54,30 @@ epoch=1000
 #     done 
 # done
 
-for c in 400 440 450; do
+sbatch run.sh \
+--epoch $epoch \
+--branch_conv_channels 64 128 256 512 \
+--trunk_scale 1.0 \
+--output_dim 1024 \
+--branch_fc_dims 1024 \
+--trunk_hidden_dims 1024 1024 1024 1024 \
+--dt $dt \
+--tag "dim1024" \
+--Re $re \
+--lr 1e-4 \
+--bsize 500
+
+
+for c in 300; do
     sbatch run.sh \
-    --epoch 2000 \
+    --epoch $epoch \
     --branch_conv_channels 64 128 256 512 \
     --trunk_scale 1.0 \
-    --output_dim 2048 \
-    --branch_fc_dims 2048 \
-    --trunk_hidden_dims 2048 2048 2048 2048 \
-    --dt 1.0 \
-    --tag "dim2048" \
+    --output_dim 1024 \
+    --branch_fc_dims 1024 \
+    --trunk_hidden_dims 1024 1024 1024 1024 \
+    --dt $dt \
+    --tag "dim1024" \
     --Re $re \
     --lr 1e-4 \
     --lam_reg_vol 0.1 \
@@ -74,18 +89,7 @@ for c in 400 440 450; do
 done 
 
 
-sbatch run.sh \
---epoch 2000 \
---branch_conv_channels 64 128 256 512 \
---trunk_scale 1.0 \
---output_dim 2048 \
---branch_fc_dims 2048 \
---trunk_hidden_dims 2048 2048 2048 2048 \
---dt 1.0 \
---tag "dim2048" \
---Re $re \
---lr 1e-4 \
---bsize 500
+
 # --lam_reg_vol 0.1 \
 # --project \
 # --diag_Q \

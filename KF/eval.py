@@ -46,7 +46,7 @@ def run_functions(params,param_path_parent,Re):
 
     ## GET MODEL PARAMETERS
     if model.project:
-        Q = model.V._construct_Q().detach().cpu().numpy()
+        Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
         c = model.c.detach().cpu().numpy()
     else:
         Q = None
@@ -54,7 +54,7 @@ def run_functions(params,param_path_parent,Re):
 
     ### LOAD DATA
     print('LOADING TEST DATA')
-    file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1_IC5/data.pt'
+    file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt'
     data = torch.load(file_dir)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
