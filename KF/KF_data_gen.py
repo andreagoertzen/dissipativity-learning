@@ -11,15 +11,17 @@ from tqdm import tqdm
 #################################################
 device = torch.device('cuda')
 Re = 250
-Re = 100 # Reynolds number
+Re = 500 # Reynolds number
 # Re = 70
-dt = 0.001 # Integration time step
+dt = 0.0005 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
-M = N = 64 # x and y discretization
-t_save = 1 # save time step
-n_traj = 1 # number of trajectories to generate 
-n_ani = 1 # how many trajectories to visualize
+M = N = 128 # x and y discretization
+t_save = 0.5 # save time step
+n_traj = 50 # number of trajectories to generate 
+n_ani = 5 # how many trajectories to visualize
+ic_factor = 1
+
 domain_size = L = 2 * np.pi
 dx = domain_size/M
 dy = domain_size/N
@@ -110,7 +112,8 @@ field = srf.structured([x,y],seed=0)
 w0 = torch.tensor(field) 
 w0 = torch.zeros(n_traj,M,N).to(device)
 for i in range(n_traj):
-    w0[i,...] = torch.tensor((srf.structured([x, y], seed=i))).to(device)
+    s = 1000 if n_traj==1 else i
+    w0[i,...] = torch.tensor((srf.structured([x, y], seed=s))).to(device) *ic_factor
 
 
 omega_hat = torch.fft.fft2(w0)
@@ -128,7 +131,7 @@ with torch.no_grad():
             w = torch.fft.ifft2(omega_hat).real
             # print(w.device)
             # w2 = torch.fft.ifft2(omega_hat2).real
-            w_save[...,int(step*dt)] = w
+            w_save[...,int(step*dt/t_save)] = w
             # # fig.clf()
             # axs[0].imshow(w.detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
             # # axs[1].imshow(w2[0,...].detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)

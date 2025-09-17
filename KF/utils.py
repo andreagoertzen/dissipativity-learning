@@ -18,6 +18,7 @@ from scipy.spatial.distance import jensenshannon
 import scipy
 import scipy.io
 import matplotlib.animation as animation
+from tqdm import tqdm
 
 
 
@@ -123,7 +124,7 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
 
     ## animation to compare to a single trajectory
     with torch.no_grad():
-        for i in range(n_times):
+        for i in tqdm(range(n_times)):
 
             y_pred = model((x_val[0][i,...],x_val[1]))
             im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)#vmin=np.min(y_val[i,:]),vmax=np.max(y_val[i,:]))
@@ -132,11 +133,14 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
             ims.append([im,im2])
 
     ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
-    ani.save(f"{figs_dir}/one_step.gif")#, writer = 'ffmpeg')
+    print('saving animation')
+    update_func = lambda _i, _n: progress_bar.update(1)
+    with tqdm(total=n_times, desc='Saving video') as progress_bar:
+        ani.save(f"{figs_dir}/one_step.gif",progress_callback=update_func)
 
 def rollout_animation(model, x_val,y_val,figs_dir,s):
     ims = []
-    n_times = y_val.shape[0]
+    n_times = y_val.shape[0]*2
     fig,axs = plt.subplots(2)  
     axs[0].set_title('Data') 
     axs[1].set_title('Model')
@@ -151,7 +155,7 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
     ## animation to compare to a single trajectory
     y_pred = model((x_val[0][0,...],x_val[1]))
     with torch.no_grad():
-        for i in range(n_times):
+        for i in tqdm(range(n_times)):
 
             # im = axs[0].imshow(u[154,:,:,i+1],animated = 'True',cmap=plt.colormaps['turbo'])
             im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
@@ -162,7 +166,10 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
             ims.append([im,im2])
 
     ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
-    ani.save(f"{figs_dir}/rollout.gif")#, writer = 'ffmpeg')
+    print('saving animation')
+    update_func = lambda _i, _n: progress_bar.update(1)
+    with tqdm(total=n_times, desc='Saving video') as progress_bar:
+        ani.save(f"{figs_dir}/rollout.gif",progress_callback=update_func)#, writer = 'ffmpeg')
     return pred_traj
 
 def pca_modes(w_data,w_model,figs_dir,s,device):
@@ -230,7 +237,6 @@ def visualize_ellipsoid(gt_traj, pred_traj, figs_dir, Q=None, c=1.0,tag=''):
     if Q is None:
         # If no Q is provided, use the covariance
         Q = np.eye(U.shape[-1])
-        c = c ** 2
         
     Q_inv = np.linalg.inv(Q)
     A = np.linalg.inv(U @ Q_inv @ U.T)
@@ -250,8 +256,8 @@ def visualize_ellipsoid(gt_traj, pred_traj, figs_dir, Q=None, c=1.0,tag=''):
 
     # Compute semi-axis lengths (for y^T A y = c)
     # print(eigvals)
-    axis_length1 = np.sqrt(c / eigvals[0])
-    axis_length2 = np.sqrt(c / eigvals[1])
+    axis_length1 = np.sqrt(c**2 / eigvals[0])
+    axis_length2 = np.sqrt(c**2 / eigvals[1])
 
     # Compute the rotation angle (in degrees) of the ellipse.
     angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
@@ -486,24 +492,23 @@ def hists_to_KL(xedges, yedges, bins, H1, H2, eps=1e-9, option='KL'):
 
 
 def fourier_spectrum_2d(gt_traj,pred_traj,s,figs_dir,device):
-    u_new = gt_traj.reshape(-1,s,s)
+    u_new = gt_traj.reshape(-1,s,s).to(device)
     # u_new = u_new[:60000,...]
     print(u_new.shape)
-    u_fft = torch.fft.fft2(u_new).to(device)
+    u_fft = torch.fft.fft2(u_new)
 
     k_max = u_new.shape[-1]//2
     # print(k_max)
 
     # torch fft returns X such that X[i] = conj(X[-i]), where i*2*pi is the frequency
-    wavenumers = torch.cat((torch.arange(start=0, end=k_max, step=1), \
-                            torch.arange(start=-k_max, end=0, step=1)), 0).repeat(s, 1)
+    # wavenumers = torch.cat((torch.arange(start=0, end=k_max, step=1), \
+    #                         torch.arange(start=-k_max, end=0, step=1)), 0).repeat(s, 1)
+    wavenumbers = torch.fft.fftfreq(u_new.shape[-1],1/u_new.shape[-1]).repeat(s, 1)
 
-    k_x = wavenumers.transpose(0, 1).to(device)
-    k_y = wavenumers.to(device)
+    k_x = wavenumbers.t().to(device)
+    k_y = wavenumbers.to(device)
 
     # Get wavenumbers (k_x**2 + k_y**2)
-    # sum_k = torch.abs(k_x) + torch.abs(k_y)
-    # sum_k = sum_k.numpy()
     prod_k = torch.sqrt(k_x**2+k_y**2).int().detach().cpu().numpy()
 
 
@@ -516,16 +521,18 @@ def fourier_spectrum_2d(gt_traj,pred_traj,s,figs_dir,device):
 
     spectrum = np.zeros((u_fft.shape[0], s))
     for j in range(1, s + 1):
+        # print(j)
         ind = np.where(prod_k == j) # change index to prod_k to match bottom
         # print(ind)
         # spectrum[:, j - 1] = np.sqrt( (u_fft[:, ind[0], ind[1]].sum(axis=1)).abs() ** 2) # change this to the one below to match bottom
         spectrum[:, j - 1] =  ((u_fft[:, ind[0], ind[1]]).abs()**2).sum(axis=1).detach().cpu().numpy() 
+    # print(spectrum)
     spectrum = spectrum.mean(axis=0)
     # print(spectrum.shape)
 
-    u_new = pred_traj.reshape(-1,s,s)
+    u_new = pred_traj.reshape(-1,s,s).to(device)
     print(u_new.shape)
-    u_fft = torch.fft.fft2(u_new).to(device)
+    u_fft = torch.fft.fft2(u_new)
 
     spectrum_model = np.zeros((u_fft.shape[0], s))
     for j in range(1, s + 1):
@@ -724,3 +731,60 @@ class InferenceWrapper(torch.nn.Module):
             next_n = pred_n
         next_phys = self.norm.denorm(next_n)      # back to physical
         return next_phys
+def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    plt.figure()
+    V_hist = torch.zeros(gt_traj.shape[0])
+    V_hist_GT = torch.zeros(gt_traj.shape[0])
+    with torch.no_grad():
+        for t in range(gt_traj.shape[0]):
+            w_in = pred_traj[t,...]
+            if model is None:
+                Q = torch.eye(gt_traj.shape[-1]).to(device)
+
+                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
+                V_hist_GT[t] = gt_traj[t,:] @ Q @ gt_traj[t,:].T
+            elif not model.project:
+                # If no Q is provided, use the covariance
+                Q = torch.eye(gt_traj.shape[-1]).to(device)
+
+                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
+                V_hist_GT[t] = gt_traj[t,:] @ Q @ gt_traj[t,:].T
+            else:
+                # print('using model for projection...')
+                Q = torch.diag(model.V._construct_Q())
+                V_hist[t] = model.V(w_in)
+                # V_in = eval_model.V(w_in)
+                # V_out = eval_model.V(w_out)
+                w0 = model.V.x_0
+                V_hist_GT[t] = (gt_traj[t,:]-w0) @ Q @ (gt_traj[t,:]-w0).T
+
+
+    # plot the V_hist against time
+    plt.plot(V_hist.cpu().numpy(),label='model')
+    plt.plot(V_hist_GT.cpu().numpy(),label='GT')
+
+    # plot c as a single line
+    if model.project:
+        plt.plot(np.array([0,V_hist.shape[-1]]),np.ones(2)*model.c.detach().cpu().numpy() ** 2, label='c')
+    else:
+        plt.plot(np.array([0,V_hist_GT.shape[-1]]),np.ones(2)*c**2, label='c')
+
+    plt.xlabel("Time step")
+    plt.ylabel("V")
+    plt.yscale("log")
+    plt.title("V over time")
+    plt.legend()
+    plt.savefig(f'{figs_dir}/V_plot.png')
+    plt.close()
+
+    # plt.figure()
+    # plt.imshow(pred_traj[0,...].T.cpu().numpy(),aspect="auto")
+    # plt.savefig(f'{figs_dir}/traj_forPCA.png')
+
+    return pred_traj

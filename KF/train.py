@@ -54,6 +54,7 @@ def train(params):
     warm_start = params['warm_start']
     Re = params['Re']
     scheduler = params['scheduler'] if 'scheduler' in params else False
+    dt = params['dt']
 
     model_folder = model_dir
     figs_folder = figs_dir = os.path.join(model_dir, 'eval_results')
@@ -66,6 +67,11 @@ def train(params):
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
     file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     data = torch.load(file_dir)
+    # if dt == 0.5:
+    #     data = data[::2,...]
+    # if dt == 1.0:
+    #     data = data[...,::2]
+    # print(data.shape)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
 
@@ -111,6 +117,8 @@ def train(params):
         'circular_padding': params['circular_padding'],
         'activation': params['activation'],
     }
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model = DeepONet(model_params).to(device)
     # Adding weight_decay and lr sceduler
@@ -364,6 +372,9 @@ def train(params):
     # after you already save model_params.npz
     np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
 
+    # # save model_params dictionary in the model location, perhaps as an npz
+    # np.savez(f"./{model_folder}/model_params.npz", **model_params)
+    
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
@@ -376,11 +387,11 @@ def train(params):
 
     ## GET MODEL PARAMETERS
     if model.project:
-        Q = model.V._construct_Q().detach().cpu().numpy()
-        c = model.c.detach().cpu().numpy() ** 2
+        Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
+        c = model.c.detach().cpu().numpy()
     else:
         Q = None
-        c = 30.0 ** 2
+        c = 30.0
 
     ### LOAD DATA
     print('LOADING TEST DATA')
@@ -457,7 +468,7 @@ def train(params):
     print(gt_traj.shape)
     print(pred_traj.shape)
     fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
-
+    
     return model
 
 
@@ -545,7 +556,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_lr{args.lr}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 
