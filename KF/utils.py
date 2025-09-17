@@ -3,6 +3,10 @@ import torch
 from torch.utils.data import Dataset
 import torch.nn as nn
 import torch.nn.functional as F
+
+import os
+os.environ["MPLBACKEND"] = "Agg"
+
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from tqdm import tqdm
@@ -670,6 +674,63 @@ def spatial_corr(u_data,u_model,figs_dir,s):
     plt.tight_layout()
     plt.savefig(f'{figs_dir}/spatialcorr.png')
 
+
+# Training KF normalizing and de-normalizing util functions
+class Normalizer:
+    """Scalar (global) z-score normalizer for fields."""
+    def __init__(self, mu=None, sigma=None, eps=1e-6):
+        self.mu = None if mu is None else float(mu)
+        self.sigma = None if sigma is None else float(sigma)
+        self.eps = eps
+
+    def fit(self, t: torch.Tensor):
+        mu = t.mean()
+        sigma = t.std().clamp_min(self.eps)
+        self.mu = float(mu)
+        self.sigma = float(sigma)
+        return self
+
+    def _like(self, t: torch.Tensor):
+        return (torch.tensor(self.mu, dtype=t.dtype, device=t.device),
+                torch.tensor(self.sigma, dtype=t.dtype, device=t.device))
+
+    def norm(self, t: torch.Tensor):
+        if self.mu is None:  # identity if not fitted / disabled
+            return t
+        mu_t, sigma_t = self._like(t)
+        return (t - mu_t) / sigma_t
+
+    def denorm(self, t: torch.Tensor):
+        if self.mu is None:
+            return t
+        mu_t, sigma_t = self._like(t)
+        return t * sigma_t + mu_t
+
+
+class InferenceWrapper(torch.nn.Module):
+    """
+    Wraps the trained model so you can call it with PHYSICAL inputs and
+    get PHYSICAL outputs, even if the model was trained in normalized space.
+    Handles residual mode too.
+    """
+    def __init__(self, base_model: torch.nn.Module, normalizer: Normalizer, residual: bool):
+        super().__init__()
+        self.base = base_model
+        self.norm = normalizer
+        self.residual = residual
+
+    @torch.no_grad()
+    def forward(self, x):
+        # x = (u_t_phys, trunk)
+        u_t_phys, trunk = x
+        u_t_n = self.norm.norm(u_t_phys)          # normalize input
+        pred_n = self.base((u_t_n, trunk))        # model in normalized space
+        if self.residual:
+            next_n = u_t_n + pred_n               # delta -> next (still normalized)
+        else:
+            next_n = pred_n
+        next_phys = self.norm.denorm(next_n)      # back to physical
+        return next_phys
 def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

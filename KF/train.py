@@ -4,15 +4,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time
+import os
+os.environ["MPLBACKEND"] = "Agg"
+
 import matplotlib.pyplot as plt
 from model import DeepONet
-import os
+
 from utils import TrajectoryDataset, load_multi_traj_data
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
 import logging
-from utils import visualize_ellipsoid
+from utils import Normalizer, InferenceWrapper
 from datetime import datetime
 from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d
 
@@ -50,6 +53,7 @@ def train(params):
     lr = params['lr']
     warm_start = params['warm_start']
     Re = params['Re']
+    scheduler = params['scheduler'] if 'scheduler' in params else False
     dt = params['dt']
 
     model_folder = model_dir
@@ -70,10 +74,26 @@ def train(params):
     # print(data.shape)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
+
     print(train_dataset.branch_inputs.shape)
     print(val_dataset.branch_inputs.shape)
 
-    train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=4)
+    # Normalization of training data
+    normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
+    if params.get('normalize', False):
+        normalizer.fit(train_dataset.branch_inputs)
+        # train (use TRAIN mu/sigma)
+        train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
+        train_dataset.targets       = normalizer.norm(train_dataset.targets)
+        # val (use TRAIN mu/sigma)
+        val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
+        val_dataset.targets       = normalizer.norm(val_dataset.targets)
+    else:
+        # identity normalizer
+        normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
+
+    
+    train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=bsize, shuffle=False)
     logging.info(f"Created DataLoaders with {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
 
@@ -94,12 +114,70 @@ def train(params):
         'output_dim': params['output_dim'],
         'dt': params['dt'],
         'discrete_proj': params['discrete_proj'],
+        'circular_padding': params['circular_padding'],
+        'activation': params['activation'],
     }
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model = DeepONet(model_params).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # Adding weight_decay and lr sceduler
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
+    
+    # --- scheduler setup (after optimizer is created) ---
+    sched_type      = params.get('sched', 'cosine')
+    warmup_epochs   = int(params.get('warmup_epochs', 0))
+    min_lr          = float(params.get('min_lr', 1e-5))
+    epochs          = params['epochs']
+    lr              = params['lr']
+
+    def build_main_scheduler():
+        if sched_type == 'cosine':
+            # Smooth, monotonic decay from lr -> min_lr over (epochs - warmup_epochs)
+            return torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=max(1, epochs - warmup_epochs), eta_min=min_lr
+            )
+        elif sched_type == 'step':
+            # Drop LR by gamma every step_size epochs
+            step_size = int(params.get('step_size', 2500))
+            gamma     = float(params.get('gamma', 0.5))
+            return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+        elif sched_type == 'multistep':
+            # Two drops at 50% and 75% of training
+            gamma = float(params.get('gamma', 0.5))
+            milestones = [int(0.5*epochs), int(0.75*epochs)]
+            return torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+        elif sched_type == 'exp':
+            # Exponential LR decay per epoch: lr_t = lr * gamma^t
+            gamma = float(params.get('gamma', 0.9995))  # ~0.9995 for long runs
+            return torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
+        elif sched_type == 'plateau':
+            # Reduce LR when val loss plateaus. Will call with val loss.
+            return torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode='min', factor=0.5, patience=5, min_lr=min_lr, verbose=False
+            )
+        else:
+            return None
+        
+    main_sched = build_main_scheduler()
+
+    # Optional linear warmup for the first warmup_epochs (only for scheds that don't need val loss)
+    # if warmup_epochs > 0 and sched_type in {'cosine','step','multistep','exp'}:
+    #     warmup = torch.optim.lr_scheduler.LambdaLR(
+    #         optimizer, lr_lambda=lambda e: min(1.0, (e+1)/max(1, warmup_epochs))
+    #     )
+    #     scheduler = torch.optim.lr_scheduler.SequentialLR(
+    #         optimizer, schedulers=[warmup, main_sched], milestones=[warmup_epochs]
+    #     )
+    # else:
+    #     scheduler = main_sched
+    # Currently disabled above
+    
+    scheduler = main_sched
+
+    is_plateau = isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+    
     print(f'Training with Learning rate: {lr}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     logging.info(f'model params: {num_params}')
@@ -134,6 +212,7 @@ def train(params):
                 model.project = True
         
         # Iterate over batches from the DataLoader
+        batch_idx = 0
         for x_batch, y_batch in train_loader:
             # The dataloader gives us a tuple for x_batch
             branch_batch, trunk_batch = x_batch
@@ -165,6 +244,13 @@ def train(params):
             
             loss = dynamic_loss + reg_loss
             loss.backward()
+            # Optional gradient clipping
+            if params.get('clip_grad', 0.0) and params['clip_grad'] > 0.0:
+                total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=params['clip_grad'])
+                if epoch % n_save_epochs == 0 and batch_idx == 0:  # log once per epoch
+                    logging.info(f"Grad norm before clipping: {total_norm:.3f}")
+
+                batch_idx += 1
 
             # if epoch % n_save_epochs == 0:
             #     for name, param in model.named_parameters():
@@ -177,6 +263,13 @@ def train(params):
             epoch_train_loss += loss.item()
             epoch_dynamic_loss += dynamic_loss.item()
             epoch_reg_loss += reg_loss.item()
+
+
+        # Scheulder update after each epoch
+        # --- end of eval block ---
+        if scheduler is not None and not is_plateau:
+            scheduler.step()
+
 
         # --- Evaluation, Logging, and Checkpointing ---
         if epoch % n_save_epochs == 0:
@@ -197,6 +290,13 @@ def train(params):
             avg_dynamic_loss = epoch_dynamic_loss / len(train_loader)
             avg_reg_loss = epoch_reg_loss / len(train_loader)
             avg_projection_percentage = epoch_active_projection_percentage / len(train_loader)
+
+            if scheduler is not None and is_plateau:
+                scheduler.step(avg_val_loss)  # step with metric only when you have it
+
+            # (optional) log current LR
+            lr_now = optimizer.param_groups[0]['lr']
+            logging.info(f"Epoch {epoch}: LR = {lr_now:.3e}")
 
             train_losses.append(avg_train_loss)
             val_losses.append(avg_val_loss)
@@ -266,11 +366,24 @@ def train(params):
             
             tic = time.time()
 
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
+
+    # after you already save model_params.npz
+    np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
+
     # # save model_params dictionary in the model location, perhaps as an npz
     # np.savez(f"./{model_folder}/model_params.npz", **model_params)
     
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
+
+    eval_model = InferenceWrapper(
+        base_model=model,
+        normalizer=normalizer,                  # knows mu/sigma
+        residual=params.get('residual', False)
+    )
+
 
     ## GET MODEL PARAMETERS
     if model.project:
@@ -296,14 +409,14 @@ def train(params):
 
     ## ONE STEP COMPARISON W GROUND TRUTH
     print('ONE STEP COMPARISON')
-    one_step_animation(model=model,
+    one_step_animation(model=eval_model,
         x_val = (gt_traj[:-1,...],x_trunk_input),
         y_val = gt_traj[1:,...],
         figs_dir=figs_dir,
         s=s)
 
     ## ROLLOUT COMPARISON W GROUND TRUTH
-    pred_traj = rollout_animation(model=model,
+    pred_traj = rollout_animation(model=eval_model,
         x_val = (gt_traj[:-1,...],x_trunk_input),
         y_val = gt_traj[1:,...],
         figs_dir=figs_dir,
@@ -362,7 +475,7 @@ def train(params):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, help='specify number of epochs', default=10000)
-    parser.add_argument('--bsize', type=int, help='specify batch size', default=2048)
+    parser.add_argument('--bsize', type=int, help='specify batch size', default=512)
     parser.add_argument('--lam_reg_vol', type=float, help='specify regularization lambda', default=1.0)
     parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
     parser.add_argument('--tag', type=str, help='tag for file names', default='')
@@ -375,6 +488,26 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, help='learning rate', default=2e-5)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
     parser.add_argument('--Re', help='Reynolds number of training data',default=40)
+    parser.add_argument('--sched', choices=['none','cosine','step','multistep','exp','plateau'],
+                    default='none', help='LR scheduler type')
+    parser.add_argument('--warmup_epochs', type=int, default=0,
+                        help='Linear warmup epochs before main scheduler')
+    parser.add_argument('--step_size', type=int, default=2500,
+                        help='Step size for StepLR (in epochs)')
+    parser.add_argument('--gamma', type=float, default=0.5,
+                        help='Decay factor for Step/MultiStep/Exponential')
+    parser.add_argument('--min_lr', type=float, default=1e-5,
+                        help='Minimum LR for cosine or floor for plateau')
+    
+    parser.add_argument('--normalize', action='store_true',
+                    help='Z-score normalize branch inputs and targets using training stats')
+    parser.add_argument('--norm_eps', type=float, default=1e-4,
+                        help='Epsilon for std when normalizing')
+    
+    parser.add_argument('--clip_grad', type=float, default=0.0,
+                    help='If >0, clip grad-norm to this value')
+
+
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -388,6 +521,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--trunk_hidden_dims', type=int, nargs='+', default=[128, 128],
                         help='List of hidden layer dimensions for trunk net.')
+    
+    parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
+    parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')
 
     args = parser.parse_args()
 
@@ -406,6 +542,13 @@ if __name__ == "__main__":
         reg_name += 'discreteProj'
     if params['warm_start']:
         reg_name += 'warmStart'
+    # before building save_dir / save_name, fix reg_name
+    if params['sched'] and params['sched'] != 'none':
+        reg_name += f"sched_{params['sched']}"
+    if args.activation != 'ReLU':
+        reg_name += f'_{args.activation}'
+    if params['circular_padding']:
+        reg_name += '_circPad'
 
     print(args.branch_conv_channels)
         
