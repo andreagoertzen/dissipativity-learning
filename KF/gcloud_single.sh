@@ -11,7 +11,7 @@
 
 # ---- conda activation (no modules) ----
 source /home/tangsun_mit_edu/miniconda3/etc/profile.d/conda.sh
-conda activate pde_torch_env
+conda activate chaos_env
 
 # ---- headless matplotlib for cluster ----
 export MPLBACKEND=Agg
