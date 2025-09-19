@@ -18,7 +18,7 @@ for lr in 1e-3 5e-4 2e-4 1e-4 5e-5; do
         --dt 1.0 --Re $re \
         --lr $lr --circular_padding \
         --tag "$tag" \
-        --project --discrete_proj --diag_Q --c_init 300.0 --lam_reg_vol $lam
+        --project --discrete_proj --diag_Q --c_init 500.0 --lam_reg_vol $lam
         done
     done
 done
