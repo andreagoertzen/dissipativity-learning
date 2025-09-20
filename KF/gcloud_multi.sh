@@ -37,7 +37,6 @@ for lr in 1e-3 5e-4 2e-4 1e-4; do
   done
 done
 
-
 # # New experiments 09/18: lr sweep for Re=500, 128 by 128, with projection
 # for lr in 1e-3 5e-4 2e-4 1e-4; do
 #   for dim in 1024 2048; do
