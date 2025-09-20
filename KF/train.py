@@ -117,6 +117,7 @@ def train(params):
         'discrete_proj': params['discrete_proj'],
         'circular_padding': params['circular_padding'],
         'activation': params['activation'],
+        'trunk_last_act': params['trunk_last_act'],
     }
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
@@ -522,6 +523,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--trunk_hidden_dims', type=int, nargs='+', default=[128, 128],
                         help='List of hidden layer dimensions for trunk net.')
+    
+    parser.add_argument('--trunk_last_act', action='store_true',
+                        help='If True, use activation on last layer of trunk net.')
     
     parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
     parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')

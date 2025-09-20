@@ -68,10 +68,11 @@ class Branch(nn.Module):
         return x
 
 class Trunk(nn.Module):
-    def __init__(self, n, hidden_dims, output_dim=128, activation=nn.ReLU()):
+    def __init__(self, n, hidden_dims, output_dim=128, activation=nn.ReLU(), last_act=False):
         super(Trunk, self).__init__()
         self.activation = activation
-        
+        self.last_act = last_act
+
         # Create a list of all layer dimensions
         all_dims = [n] + hidden_dims + [output_dim]
         
@@ -81,6 +82,9 @@ class Trunk(nn.Module):
             # Add activation to all layers except the last one
             if i < len(all_dims) - 2:
                 layers.append(self.activation)
+            else:
+                if self.last_act:
+                    layers.append(self.activation)
         
         # Create the sequential model
         self.net = nn.Sequential(*layers)
@@ -216,7 +220,7 @@ class DeepONet(nn.Module):
 
         # Create the Branch Net
         self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_module, circ_padding=circular_padding)
-        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_module)
+        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_module, last_act=model_params['trunk_last_act'])
 
         # Check network structure (for debugging)
         print("--- Initialized Branch Net Structure ---")
