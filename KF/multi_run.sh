@@ -11,27 +11,25 @@ bsize=512
 # Run both variants: 0 = no flag, 1 = include --trunk_last_act
 last_acts=(0 1)
 for lr in 1e-3 5e-4 2e-4 1e-4; do
-  for dim in 1024 2048; do
-    for lam in 1e-1; do
-      for last_act in "${last_acts[@]}"; do
-        tag="lr${lr}_dim${dim}_lam${lam}_act${last_act}"
+  for dim in 2048; do
+    for last_act in "${last_acts[@]}"; do
+      tag="lr${lr}_dim${dim}_lam${lam}_act${last_act}"
 
-        cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
-          --branch_conv_channels 64 128 256 512 \
-          --output_dim $dim --branch_fc_dims $dim \
-          --trunk_hidden_dims $dim $dim $dim $dim \
-          --dt 1.0 --Re $re \
-          --lr $lr --circular_padding \
-          --tag \"$tag\" "
+      cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
+        --branch_conv_channels 64 128 256 512 \
+        --output_dim $dim --branch_fc_dims $dim \
+        --trunk_hidden_dims $dim $dim $dim $dim \
+        --dt 1.0 --Re $re \
+        --lr $lr --circular_padding \
+        --tag \"$tag\" "
 
-        # Conditionally add the flag
-        if [ "$last_act" -eq 1 ]; then
-          cmd="$cmd --trunk_last_act"
-        fi
+      # Conditionally add the flag
+      if [ "$last_act" -eq 1 ]; then
+        cmd="$cmd --trunk_last_act"
+      fi
 
-        echo "$cmd"
-        eval "$cmd"
-      done
+      echo "$cmd"
+      eval "$cmd"
     done
   done
 done
