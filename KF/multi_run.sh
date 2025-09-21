@@ -7,18 +7,40 @@ bsize=512
 # maxlr=1e-3
 
 # New experiments 09/17: lr sweep for Re=500, 128 by 128
-for lr in 1e-3 5e-4 2e-4 1e-4; do
-  for dim in 1024 2048; do
-    tag="lr${lr}_dim${dim}"
+for lr in 1e-3 1e-4 5e-5; do
+  for dim in 1024; do
+    tag="dim${dim}_trunkact"
     sbatch run.sh --epochs $epochs --bsize $bsize \
       --branch_conv_channels 64 128 256 512 \
       --output_dim $dim --branch_fc_dims $dim \
       --trunk_hidden_dims $dim $dim $dim \
-      --dt 1.0 --Re $re \
+      --dt 0.5 --Re $re \
       --lr $lr --circular_padding \
-      --tag "$tag"
+      --tag "$tag" \
+      --project --diag_Q --discrete_proj \
+      --c_init 1000
     done
 done
+
+#     --lam_reg_vol 0.1 \
+#     --project \
+#     --diag_Q \
+#     --c_init $c \
+#     --discrete_proj \
+
+# for lr in 1e-4; do
+#   for dim in 1024; do
+#     tag="dim${dim}_trunkact"
+#     sbatch run.sh --epochs $epochs --bsize $bsize \
+#       --branch_conv_channels 64 128 256 512 \
+#       --output_dim $dim --branch_fc_dims $dim \
+#       --trunk_hidden_dims $dim $dim $dim \
+#       --dt 0.5 --Re $re \
+#       --lr $lr \
+#       --tag "$tag"
+#     done
+# done
+
 # Previous scripts for running 64 by 64 experiments
 # for norm in 0 1; do
 #   for circ in 0 1; do
@@ -108,30 +130,30 @@ done
 # # done
 
 # sbatch run.sh \
-# --epoch $epoch \
+# --epoch 1000 \
 # --branch_conv_channels 64 128 256 512 \
 # --trunk_scale 1.0 \
 # --output_dim 1024 \
 # --branch_fc_dims 1024 \
 # --trunk_hidden_dims 1024 1024 1024 1024 \
-# --dt $dt \
-# --tag "dim1024" \
-# --Re $re \
+# --dt 1.0 \
+# --tag "dim1024_b" \
+# --Re 40 \
 # --lr 1e-4 \
 # --bsize 500
 
 
-# for c in 300; do
+# for c in 240 250 300; do
 #     sbatch run.sh \
-#     --epoch $epoch \
+#     --epoch 1000 \
 #     --branch_conv_channels 64 128 256 512 \
 #     --trunk_scale 1.0 \
 #     --output_dim 1024 \
 #     --branch_fc_dims 1024 \
 #     --trunk_hidden_dims 1024 1024 1024 1024 \
-#     --dt $dt \
-#     --tag "dim1024" \
-#     --Re $re \
+#     --dt 1.0 \
+#     --tag "dim1024_b" \
+#     --Re 40 \
 #     --lr 1e-4 \
 #     --lam_reg_vol 0.1 \
 #     --project \
@@ -157,4 +179,3 @@ done
 # # do
 # #     sbatch run.sh --epoch 10000 --branch_conv_channels 64 128 256 512 --trunk_scale 1.0 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --lam_reg_vol 0.1 --project --diag_Q --c_init $c --dt 1.0 --discrete_proj
 # # done
-

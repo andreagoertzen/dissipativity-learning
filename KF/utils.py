@@ -19,6 +19,8 @@ import scipy
 import scipy.io
 import matplotlib.animation as animation
 from tqdm import tqdm
+from gstools import SRF, Gaussian
+
 
 
 
@@ -132,6 +134,7 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
 
             ims.append([im,im2])
 
+
     ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
     print('saving animation')
     update_func = lambda _i, _n: progress_bar.update(1)
@@ -140,7 +143,9 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
 
 def rollout_animation(model, x_val,y_val,figs_dir,s):
     ims = []
-    n_times = y_val.shape[0]*2
+    n_times = 10000
+    n_animate = y_val.shape[0]
+    print(n_animate)
     fig,axs = plt.subplots(2)  
     axs[0].set_title('Data') 
     axs[1].set_title('Model')
@@ -150,25 +155,31 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
     vmax = torch.max(y_val)
 
     pred_traj = torch.zeros(n_times+1,s*s)
-    pred_traj[0,...] = x_val[0][0,...]
+    # pred_traj[0,...] = x_val[0][0,...]
+    x = y = range(s)
+    rf = Gaussian(dim = 2, var = 1, len_scale = 10)
+    srf = SRF(rf,seed = 13,generator='Fourier',period = s)
+    field = srf.structured([x,y],seed=900)
+    pred_traj[0,...] = torch.tensor(field).reshape(-1,s*s) 
 
     ## animation to compare to a single trajectory
     y_pred = model((x_val[0][0,...],x_val[1]))
     with torch.no_grad():
         for i in tqdm(range(n_times)):
 
-            # im = axs[0].imshow(u[154,:,:,i+1],animated = 'True',cmap=plt.colormaps['turbo'])
-            im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
-            im2 = axs[1].imshow(y_pred.reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin,vmax=vmax)
+            if i < n_animate:
+                im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
+                im2 = axs[1].imshow(y_pred.reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin,vmax=vmax)
+                ims.append([im,im2])
             pred_traj[i+1,...] = y_pred
             y_pred = model((y_pred,x_val[1]))
 
-            ims.append([im,im2])
+            # ims.append([im,im2])
 
     ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
     print('saving animation')
     update_func = lambda _i, _n: progress_bar.update(1)
-    with tqdm(total=n_times, desc='Saving video') as progress_bar:
+    with tqdm(total=n_animate, desc='Saving video') as progress_bar:
         ani.save(f"{figs_dir}/rollout.gif",progress_callback=update_func)#, writer = 'ffmpeg')
     return pred_traj
 
@@ -189,8 +200,8 @@ def pca_modes(w_data,w_model,figs_dir,s,device):
     mode1 = V[:,0].to(device)
     mode2 = V[:,1].to(device)
 
-    x = torch.einsum('bi,i ->b',w_data,mode1).cpu()
-    y = torch.einsum('bi,i ->b',w_data,mode2).cpu()
+    x = torch.einsum('bi,i ->b',w_data-torch.mean(w_data,0),mode1).cpu()
+    y = torch.einsum('bi,i ->b',w_data-torch.mean(w_data,0),mode2).cpu()
 
     plt.plot(x,y,'.',label='data')
 
@@ -201,8 +212,8 @@ def pca_modes(w_data,w_model,figs_dir,s,device):
     print(mode2.device)
     print(w_model.device)
 
-    x_model = torch.einsum('bi,i ->b',w_model,mode1).cpu()
-    y_model = torch.einsum('bi,i ->b',w_model,mode2).cpu()
+    x_model = torch.einsum('bi,i ->b',w_model-torch.mean(w_data,0),mode1).cpu()
+    y_model = torch.einsum('bi,i ->b',w_model-torch.mean(w_data,0),mode2).cpu()
     plt.plot(x_model,y_model,'r.',label ='model')
     plt.legend()
     plt.savefig(f'{figs_dir}/PCA_compare.png')
@@ -546,8 +557,8 @@ def fourier_spectrum_2d(gt_traj,pred_traj,s,figs_dir,device):
 
 
     fig, ax = plt.subplots()
-    ax.plot(spectrum[:s//2],label = 'data')
-    ax.plot(spectrum_model[:s//2],label = 'model')
+    ax.plot(spectrum[:s//2-1],label = 'data')
+    ax.plot(spectrum_model[:s//2-1],label = 'model')
     ax.set_yscale('log')
     plt.xlabel('wave number')
     plt.ylabel('energy')
@@ -743,10 +754,10 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
             if model is None:
                 Q = torch.eye(gt_traj.shape[-1]).to(device)
 
-                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                V_hist[t] = torch.sum(w_in**2 * Q) #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
-                V_hist_GT[t] = gt_traj[t,:] @ Q @ gt_traj[t,:].T
+                V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
             elif not model.project:
                 # If no Q is provided, use the covariance
                 Q = torch.eye(gt_traj.shape[-1]).to(device)
@@ -754,7 +765,7 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
                 V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
-                V_hist_GT[t] = gt_traj[t,:] @ Q @ gt_traj[t,:].T
+                V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
             else:
                 # print('using model for projection...')
                 Q = torch.diag(model.V._construct_Q())
@@ -762,7 +773,7 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
                 # V_in = eval_model.V(w_in)
                 # V_out = eval_model.V(w_out)
                 w0 = model.V.x_0
-                V_hist_GT[t] = (gt_traj[t,:]-w0) @ Q @ (gt_traj[t,:]-w0).T
+                V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
 
 
     # plot the V_hist against time
@@ -775,10 +786,10 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
     else:
         plt.plot(np.array([0,V_hist_GT.shape[-1]]),np.ones(2)*c**2, label='c')
 
-    plt.xlabel("Time step")
+    plt.xlabel("Sample")
     plt.ylabel("V")
     plt.yscale("log")
-    plt.title("V over time")
+    # plt.title("V over time")
     plt.legend()
     plt.savefig(f'{figs_dir}/V_plot.png')
     plt.close()
