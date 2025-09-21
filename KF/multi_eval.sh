@@ -19,7 +19,7 @@ find "$BASE_DIR" -type f -name "model_params.npz" | while read -r PARAM_FILE; do
     echo "Extracted Re number: $RE_NUMBER"
     
     # Run your Python script and pass the path
-    python eval.py "$PARAM_FILE" "$RE_NUMBER" 
-    # sbatch eval.sh "$PARAM_FILE" "$RE_NUMBER" 
+    # python eval.py "$PARAM_FILE" "$RE_NUMBER" 
+    sbatch eval.sh "$PARAM_FILE" "$RE_NUMBER" 
 
 done
