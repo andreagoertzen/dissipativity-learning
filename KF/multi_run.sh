@@ -19,7 +19,7 @@ for lr in 1e-3 5e-4 2e-4 1e-4; do
         --branch_conv_channels 64 128 256 512 \
         --output_dim $dim --branch_fc_dims $dim \
         --trunk_hidden_dims $dim $dim $dim $dim \
-        --dt 1.0 --Re $re \
+        --dt 0.5 --Re $re \
         --lr $lr --circular_padding \
         --tag \"$tag\" "
 
