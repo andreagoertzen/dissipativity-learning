@@ -8,7 +8,7 @@ bsize=512
 
 # Experiments 09/22: larger c, with activation
 for lr in 1e-3 2e-4; do
-  for dim in 2048; do
+  for dim in 1024; do
     for lam in 1e-1 1e-2 1e-3 1e-4 1e-5; do
       for c0 in 2000.0 4000.0; do
         tag="c0_${c0}"
