@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=deeponet128
+#SBATCH --job-name=train
 #SBATCH -o logs/%x_%j.out
 #SBATCH --partition=a100
 #SBATCH --nodes=1
