@@ -4,7 +4,7 @@ mkdir -p logs
 
 re=500
 epochs=3000
-bsize=1024
+bsize=512
 
 # Experiments 09/22: larger c, with activation
 for lr in 1e-3 2e-4; do
@@ -16,7 +16,7 @@ for lr in 1e-3 2e-4; do
         cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
           --branch_conv_channels 64 128 256 512 \
           --output_dim $dim --branch_fc_dims $dim \
-          --trunk_hidden_dims $dim $dim $dim $dim \
+          --trunk_hidden_dims $dim $dim $dim \
           --dt 0.5 --Re $re \
           --lr $lr --circular_padding \
           --tag \"$tag\" \
