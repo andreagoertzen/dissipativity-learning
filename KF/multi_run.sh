@@ -21,7 +21,7 @@ for lr in 1e-4; do
         --trunk_hidden_dims $dim $dim $dim $dim \
         --dt 1.0 --Re $re \
         --lr $lr --circular_padding \
-        --tag \"$tag\" 
+        --tag \"$tag\" \
         --lam_reg_vol 0.1 \
         --project \
         --diag_Q \
