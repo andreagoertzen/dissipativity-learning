@@ -278,7 +278,8 @@ class DeepONet(nn.Module):
         # w_proj = w_0 + sqrt_b * z * Q_inv_sqrt # element wise operation
         
         V_out = self.V(w_out)
-        w_proj = w_0 + sqrt_b/sqrt(V) * (w)
+        sqrt_V = torch.sqrt(V).unsqueeze(1)
+        w_proj = w_0 + sqrt_b/sqrt_V * (w)
         if smooth_choice:
             k_choice = 100.0
             choice = 1 - torch.sigmoid(k_choice * (V_out - b))
