@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=train
+#SBATCH --job-name=eval_kf
 #SBATCH -o logs/%x_%j.out
 #SBATCH --partition=a100
 #SBATCH --nodes=1
@@ -16,5 +16,4 @@ conda activate chaos_env
 # ---- headless matplotlib for cluster ----
 export MPLBACKEND=Agg
 
-# ---- run training; pass sbatch args through ----
-python -u train.py "$@"
+python -u eval.py "$@"
