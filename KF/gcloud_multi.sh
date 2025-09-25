@@ -10,7 +10,7 @@ last_acts=(1)
 for lr in 1e-4; do
   for dim in 1024; do
     for c in 240 250 300; do
-      tag="lr${lr}_dim${dim}_lam${lam}_act${last_act}"
+      tag="lr${lr}_dim${dim}_act${last_act}"
 
       cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
         --branch_conv_channels 64 128 256 512 \
