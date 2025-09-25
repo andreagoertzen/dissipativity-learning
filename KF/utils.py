@@ -167,20 +167,21 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
     with torch.no_grad():
         for i in tqdm(range(n_times)):
 
-            if i < n_animate:
-                im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
-                im2 = axs[1].imshow(y_pred.reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin,vmax=vmax)
-                ims.append([im,im2])
+            # if i < n_animate:
+            #     im = axs[0].imshow(y_val[i,:].reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin, vmax=vmax)
+            #     im2 = axs[1].imshow(y_pred.reshape(s,s).detach().cpu().numpy(),animated = 'True',cmap='RdBu',vmin=vmin,vmax=vmax)
+            #     ims.append([im,im2])
             pred_traj[i+1,...] = y_pred
             y_pred = model((y_pred,x_val[1]))
 
             # ims.append([im,im2])
 
-    ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
-    print('saving animation')
-    update_func = lambda _i, _n: progress_bar.update(1)
-    with tqdm(total=n_animate, desc='Saving video') as progress_bar:
-        ani.save(f"{figs_dir}/rollout.gif",progress_callback=update_func)#, writer = 'ffmpeg')
+    # ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
+    # print('saving animation')
+    # update_func = lambda _i, _n: progress_bar.update(1)
+    # with tqdm(total=n_animate, desc='Saving video') as progress_bar:
+    #     ani.save(f"{figs_dir}/rollout.gif",progress_callback=update_func)#, writer = 'ffmpeg')
+    torch.save(pred_traj,f'./{figs_dir}/rollout_traj.pt')
     return pred_traj
 
 def pca_modes(w_data,w_model,figs_dir,s,device):

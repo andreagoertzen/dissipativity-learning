@@ -261,9 +261,11 @@ class DeepONet(nn.Module):
         w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
         z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero
         sqrt_b = torch.sqrt(b).unsqueeze(1)
-        w_proj = w_0 + sqrt_b * z @ Q_inv_sqrt
+        # w_proj = w_0 + sqrt_b * z @ Q_inv_sqrt
         
         V_out = self.V(w_out)
+        w_proj = w_0 + sqrt_b/sqrt(V) * (w)
+
         if smooth_choice:
             k_choice = 100.0
             choice = 1 - torch.sigmoid(k_choice * (V_out - b))
