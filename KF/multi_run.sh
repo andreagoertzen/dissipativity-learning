@@ -9,7 +9,7 @@ bsize=512
 # Experiments 09/20: larger model, ablation on last layer activation
 # No projection, with projection is running on google cloud
 # Run both variants: 0 = no flag, 1 = include --trunk_last_act
-last_acts=(1)
+
 for lr in 1e-4; do
   for dim in 1024; do
     for c in 240 250 300; do
@@ -27,12 +27,8 @@ for lr in 1e-4; do
         --diag_Q \
         --c_init $c \
         --discrete_proj \
-        --bsize 500 "
-
-      # Conditionally add the flag
-      if [ "$last_act" -eq 1 ]; then
-        cmd="$cmd --trunk_last_act"
-      fi
+        --bsize 500 \
+        --trunk_last_act"
 
       echo "$cmd"
       eval "$cmd"
