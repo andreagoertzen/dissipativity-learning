@@ -65,13 +65,13 @@ def train(params):
         os.makedirs(figs_folder)
 
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
-    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     data = torch.load(file_dir)
-    if dt == 0.5:
-        data = data[::2,...]
-    if dt == 1.0:
-        data = data[...,::2]
+    # if dt == 0.5:
+    #     data = data[::2,...]
+    # if dt == 1.0:
+    #     data = data[...,::2]
     print(data.shape)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
