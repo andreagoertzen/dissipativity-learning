@@ -138,19 +138,21 @@ class V_elliptical(nn.Module):
         """
         Constructs the symmetric positive-definite matrix V_elliptical (Q) from L.
         """
-        # Create an empty n x n matrix for L
-        L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
-
-        # Set the diagonal elements using the log_diag_L parameters.
-        # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
-        L.diagonal().copy_(torch.exp(self.log_diag_L))
-
         if not self.diag_Q:
+            # Create an empty n x n matrix for L
+            L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
+
+            # Set the diagonal elements using the log_diag_L parameters.
+            # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
+            L.diagonal().copy_(torch.exp(self.log_diag_L))
+
             # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
             L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
 
-        # Compute Q = LLᵀ
-        Q = torch.matmul(L, L.T)
+            # Compute Q = LLᵀ
+            Q = torch.matmul(L, L.T) # shape: m**2 x m**2
+        else:
+            Q = torch.exp(2*self.log_diag_L) # shape: m**2
         return Q
 
         
@@ -164,9 +166,11 @@ class V_elliptical(nn.Module):
         # Calculate (x - x_0)
         diff = x - self.x_0
         
-        # Calculate V for each input in the batch
-        V = torch.einsum('bi,ij,bj->b', diff, Q, diff)
-        # V = V.unsqueeze(1)
+        if not self.diag_Q:
+            V = torch.einsum('bi,ij,bj->b', diff, Q, diff)
+        else:
+            # V = diff * Q * diff
+            V = torch.sum(diff ** 2 * Q, dim=1)
         return V
 
 
@@ -254,17 +258,17 @@ class DeepONet(nn.Module):
         w = w_out - w_0
         
         # Assuming Q is diagonal
-        L = torch.exp(self.V.log_diag_L)
-        Q_inv_sqrt = torch.diag(1.0 / L)
+        # L = torch.exp(self.V.log_diag_L)
+        # Q_inv_sqrt = torch.diag(1.0 / L)
 
         # Now we need to project it back to w^T Q w = b
-        w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
-        z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero
+        # w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
+        # z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero
         sqrt_b = torch.sqrt(b).unsqueeze(1)
         # w_proj = w_0 + sqrt_b * z @ Q_inv_sqrt
         
         V_out = self.V(w_out)
-        sqrt_V = torch.sqrt(V).unsqueeze(1)
+        sqrt_V = torch.sqrt(V_out).unsqueeze(1)
         w_proj = w_0 + sqrt_b/sqrt_V * (w)
 
         if smooth_choice:

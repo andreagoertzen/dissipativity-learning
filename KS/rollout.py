@@ -90,7 +90,7 @@ with torch.no_grad():
 plt.imshow(rollout_traj[0,...].T.detach().cpu().numpy().astype(np.float32))
 plt.savefig(f'{save_dir}/test.png')
 # np.savez(f'{save_dir}/rollout_data.npz',rollout_traj.detach().cpu().numpy())
-np.savez(f'{save_dir}/rollout_data2.npz',rollout_traj)
+np.savez(f'{save_dir}/rollout_data_newmodel.npz',rollout_traj)
 
 
 # aspect = 1/2*rollout_traj.shape[1]/rollout_traj.shape[2]

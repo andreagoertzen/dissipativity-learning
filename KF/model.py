@@ -267,18 +267,18 @@ class DeepONet(nn.Module):
         w = w_out - w_0
         
         # Assuming Q is diagonal
-        L = torch.exp(self.V.log_diag_L)
-        # Q_inv_sqrt = torch.diag(1.0 / L)
-        Q_inv_sqrt = 1.0 / L # shape [m**2]
+        # L = torch.exp(self.V.log_diag_L)
+        # # Q_inv_sqrt = torch.diag(1.0 / L)
+        # Q_inv_sqrt = 1.0 / L # shape [m**2]
 
         # Now we need to project it back to w^T Q w = b
-        w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
-        z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero, shape: [bsize,m**2]
+        # w_norms = torch.linalg.norm(w, dim=1, keepdim=True)
+        # z = w / torch.clamp(w_norms, min=1e-8)  # Avoid division by zero, shape: [bsize,m**2]
         sqrt_b = torch.sqrt(b).unsqueeze(1) # shape: [bsize,1]
         # w_proj = w_0 + sqrt_b * z * Q_inv_sqrt # element wise operation
         
         V_out = self.V(w_out)
-        sqrt_V = torch.sqrt(V).unsqueeze(1)
+        sqrt_V = torch.sqrt(V_out).unsqueeze(1)
         w_proj = w_0 + sqrt_b/sqrt_V * (w)
         if smooth_choice:
             k_choice = 100.0

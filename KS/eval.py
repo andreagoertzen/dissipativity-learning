@@ -29,8 +29,8 @@ model_params = {
 print('initializing model')
 model = DeepONet(model_params).to(device)
 
-model_folder = 'Trained_Models/0822_15/E40000_TS0.05_branchConv3_trunkHidden3_dt1.0__proj_LamRegVol0.1_C0100.0_diagQdiscreteProj_dim256_train2'
-figs_dir = 'Trained_Models/0822_15/E40000_TS0.05_branchConv3_trunkHidden3_dt1.0__proj_LamRegVol0.1_C0100.0_diagQdiscreteProj_dim256_train2/eval_results'
+model_folder = 'Trained_Models/0925_22/E40000_TS0.05_branchConv3_trunkHidden3_dt1.0__proj_LamRegVol0.1_C055.0_diagQdiscreteProj_dim256_train2'
+figs_dir = 'Trained_Models/0925_22/E40000_TS0.05_branchConv3_trunkHidden3_dt1.0__proj_LamRegVol0.1_C055.0_diagQdiscreteProj_dim256_train2/eval_results'
 model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
 model.eval()
 

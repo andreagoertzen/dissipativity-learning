@@ -4,13 +4,14 @@
 re=40
 epochs=3000
 bsize=512
+lr=1e-4
 # maxlr=1e-3
 
 # Experiments 09/20: larger model, ablation on last layer activation
 # No projection, with projection is running on google cloud
 # Run both variants: 0 = no flag, 1 = include --trunk_last_act
-last_acts=(1)
-for lr in 1e-4; do
+last_acts=(0 1)
+for last_act in "${last_acts[@]}"; do
   for dim in 1024; do
     for c in 240 250 300; do
       tag="lr${lr}_dim${dim}_lam${lam}_act${last_act}"
@@ -20,14 +21,14 @@ for lr in 1e-4; do
         --output_dim $dim --branch_fc_dims $dim \
         --trunk_hidden_dims $dim $dim $dim $dim \
         --dt 1.0 --Re $re \
-        --lr $lr --circular_padding \
-        --tag \"$tag\" 
+        --lr $lr \
+        --tag \"$tag\" \
         --lam_reg_vol 0.1 \
         --project \
         --diag_Q \
         --c_init $c \
         --discrete_proj \
-        --bsize 500 "
+        --bsize 500"
 
       # Conditionally add the flag
       if [ "$last_act" -eq 1 ]; then

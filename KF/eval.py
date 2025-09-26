@@ -11,7 +11,7 @@ import numpy as np
 def run_functions(params,param_path_parent,Re):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
-    m = 64*2
+    m = 64
     n = 2
     model_folder = param_path_parent
     print(model_folder)
@@ -59,15 +59,16 @@ def run_functions(params,param_path_parent,Re):
     ### LOAD DATA
     print('LOADING TEST DATA')
     # file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt'
-    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
-    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     data = torch.load(file_dir)[185:,:,:,200:]
     print(data.shape)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
 
-    data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[...,::2] # assuming dt = 1.0
+    # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[...,::2] # assuming dt = 1.0
+    data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt') # assuming dt = 1.0
     data_animate = data_animate[...,:500].permute(0,3,1,2).reshape(-1,s*s).to(device)
     grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
     grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
@@ -128,7 +129,7 @@ def run_functions(params,param_path_parent,Re):
     pca_histogram_eval(gt_pca=pca_traj_gt, 
         pred_pca=pca_traj_pred, 
         bins=50, 
-        lim=[[-500.0, 500.0], [-500.0, 500.0]], 
+        lim=[[-150.0, 150.0], [-150.0, 150.0]], 
         save_path=f'{figs_dir}/distribution_pca.png', 
         title_gt='Ground Truth', 
         title_pred='Prediction')
