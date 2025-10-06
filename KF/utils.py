@@ -129,9 +129,6 @@ class Multistep_Dataset(Dataset):
         traj_index, t = self.indices[idx]
         branch_in = self.u_stack[traj_index, :, t]
         target = self.u_stack[traj_index, :, (t+1): (t+self.n_steps)]
-        
-        if self.n_steps == 1:
-            target = target.squeeze(-1)
 
         model_input = (branch_in, self.trunk_input)
         

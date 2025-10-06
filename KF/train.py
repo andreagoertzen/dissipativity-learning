@@ -68,13 +68,16 @@ def train(params):
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     data = torch.load(file_dir)
-    # if dt == 0.5:
-    #     data = data[::2,...]
-    # if dt == 1.0:
-    #     data = data[...,::2]
+    if dt == 0.5:
+        data = data[::2,...]
+    if dt == 1.0:
+        data = data[...,::2]
     print(data.shape)
 
-    train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
+    if params['multi_step']:
+        train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale, multi_step=True, stride=params['stride'], n_steps=params['n_steps'])
+    else:
+        train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
 
     print(train_dataset.branch_inputs.shape)
     print(val_dataset.branch_inputs.shape)
@@ -229,13 +232,24 @@ def train(params):
             
             optimizer.zero_grad()
             
-            # The model expects a tuple of (branch_input, trunk_input)
-            u_pred = model((branch_batch, trunk_input))
+            if params['multi_step']:
+                pred_i = branch_batch
+                loss_n = torch.zeros(y_batch.shape[-1]).to(device)
+                for step_i in range(y_batch.shape[-1]):
+                    pred_i = model((pred_i, trunk_input))
+                    loss_n[step_i] = loss_func(pred_i, y_batch[..., step_i])
 
-            if project and model_params['discrete_proj']:
-                epoch_active_projection_percentage += model.active_projection_percentage
+                # implement dynamic loss averaged over all steps
+                dynamic_loss = loss_n.mean()
 
-            dynamic_loss = loss_func(u_pred, y_batch)
+            else:
+                # The model expects a tuple of (branch_input, trunk_input)
+                u_pred = model((branch_batch, trunk_input))
+
+                if project and model_params['discrete_proj']:
+                    epoch_active_projection_percentage += model.active_projection_percentage
+
+                dynamic_loss = loss_func(u_pred, y_batch)
 
             # Calculate regularization loss if projection is enabled
             if project:
@@ -529,6 +543,10 @@ if __name__ == "__main__":
     
     parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
     parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')
+    
+    parser.add_argument('--multi_step', action='store_true', help='True for using multi-step dataset')
+    parser.add_argument('--stride', type=int, help='stride for multi-step dataset', default=1)
+    parser.add_argument('--n_steps', type=int, help='number of steps for multi-step dataset', default=3)
 
     args = parser.parse_args()
 
