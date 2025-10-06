@@ -65,8 +65,8 @@ def train(params):
         os.makedirs(figs_folder)
 
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
-    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     data = torch.load(file_dir)
     if dt == 0.5:
         data = data[::2,...]
@@ -75,26 +75,27 @@ def train(params):
     print(data.shape)
 
     if params['multi_step']:
+        print('Using multi-step dataset: n_steps = ', params['n_steps'], ' stride = ', params['stride'])
         train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale, multi_step=True, stride=params['stride'], n_steps=params['n_steps'])
     else:
         train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
 
-    print(train_dataset.branch_inputs.shape)
-    print(val_dataset.branch_inputs.shape)
+    # print(train_dataset.branch_inputs.shape)
+    # print(val_dataset.branch_inputs.shape)
 
-    # Normalization of training data
-    normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
-    if params.get('normalize', False):
-        normalizer.fit(train_dataset.branch_inputs)
-        # train (use TRAIN mu/sigma)
-        train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
-        train_dataset.targets       = normalizer.norm(train_dataset.targets)
-        # val (use TRAIN mu/sigma)
-        val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
-        val_dataset.targets       = normalizer.norm(val_dataset.targets)
-    else:
-        # identity normalizer
-        normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
+    # # Normalization of training data
+    # normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
+    # if params.get('normalize', False):
+    #     normalizer.fit(train_dataset.branch_inputs)
+    #     # train (use TRAIN mu/sigma)
+    #     train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
+    #     train_dataset.targets       = normalizer.norm(train_dataset.targets)
+    #     # val (use TRAIN mu/sigma)
+    #     val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
+    #     val_dataset.targets       = normalizer.norm(val_dataset.targets)
+    # else:
+    #     # identity normalizer
+    #     normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
 
     
     train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=2)
@@ -297,9 +298,19 @@ def train(params):
                     branch_val, trunk_val = branch_val.to(device), trunk_val.to(device)
                     trunk_val_input = trunk_val[0]
                     y_val = y_val.to(device)
+                    
+                    if params['multi_step']:
+                        pred_i = branch_val
+                        loss_n = torch.zeros(y_val.shape[-1]).to(device)
+                        for step_i in range(y_val.shape[-1]):
+                            pred_i = model((pred_i, trunk_val_input))
+                            loss_n[step_i] = loss_func(pred_i, y_val[..., step_i])
 
-                    u_val_pred = model((branch_val, trunk_val_input))
-                    epoch_val_loss += loss_func(u_val_pred, y_val).item()
+                        # implement dynamic loss averaged over all steps
+                        epoch_val_loss += loss_n.mean().item()
+                    else:
+                        u_val_pred = model((branch_val, trunk_val_input))
+                        epoch_val_loss += loss_func(u_val_pred, y_val).item()
 
             avg_train_loss = epoch_train_loss / len(train_loader)
             avg_val_loss = epoch_val_loss / len(val_loader)
@@ -386,7 +397,7 @@ def train(params):
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     # after you already save model_params.npz
-    np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
+    # np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
 
     # # save model_params dictionary in the model location, perhaps as an npz
     # np.savez(f"./{model_folder}/model_params.npz", **model_params)
@@ -394,11 +405,11 @@ def train(params):
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
-    eval_model = InferenceWrapper(
-        base_model=model,
-        normalizer=normalizer,                  # knows mu/sigma
-        residual=params.get('residual', False)
-    )
+    # eval_model = InferenceWrapper(
+    #     base_model=model,
+    #     normalizer=normalizer,                  # knows mu/sigma
+    #     residual=params.get('residual', False)
+    # )
 
 
     ## GET MODEL PARAMETERS
@@ -411,7 +422,7 @@ def train(params):
 
     ### LOAD DATA
     print('LOADING TEST DATA')
-    file_dir = f'data/KF_Re{Re}_M128_tsave1_T5000_n1/data.pt'
+    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
     data = torch.load(file_dir)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
@@ -425,14 +436,24 @@ def train(params):
 
     ## ONE STEP COMPARISON W GROUND TRUTH
     print('ONE STEP COMPARISON')
-    one_step_animation(model=eval_model,
+    # one_step_animation(model=eval_model,
+    #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    #     y_val = gt_traj[1:,...],
+    #     figs_dir=figs_dir,
+    #     s=s)
+    one_step_animation(model,
         x_val = (gt_traj[:-1,...],x_trunk_input),
         y_val = gt_traj[1:,...],
         figs_dir=figs_dir,
         s=s)
 
     ## ROLLOUT COMPARISON W GROUND TRUTH
-    pred_traj = rollout_animation(model=eval_model,
+    # pred_traj = rollout_animation(model=eval_model,
+    #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    #     y_val = gt_traj[1:,...],
+    #     figs_dir=figs_dir,
+    #     s=s)
+    one_step_animation(model,
         x_val = (gt_traj[:-1,...],x_trunk_input),
         y_val = gt_traj[1:,...],
         figs_dir=figs_dir,
