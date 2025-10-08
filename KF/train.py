@@ -72,7 +72,7 @@ def train(params):
     elif Re == '500':
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
         data = torch.load(file_dir)
-        data = data[:,::2,::2,:]
+        # data = data[:,::2,::2,:]
         if dt == 0.5:
             data = data[::2,...]
         if dt == 1.0:

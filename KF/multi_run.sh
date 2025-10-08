@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name backbone_sweep
 
-re=40
+re=500
 epochs=500
-bsize=500
+bsize=125
 lr=1e-4
 # maxlr=1e-3
 
@@ -12,7 +12,7 @@ last_acts=(0)
 backs=("fno")
 for last_act in "${last_acts[@]}"; do
   for dim in 1024; do
-    for c in 230 240; do
+    for c in 450; do
       for back in "${backs[@]}"; do
         tag="dim${dim}_act${last_act}"
 

@@ -60,16 +60,32 @@ def run_functions(params,param_path_parent,Re):
     ### LOAD DATA
     print('LOADING TEST DATA')
     # file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt'
-    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-    data = torch.load(file_dir)[185:,:,:,200:]
+    dt = 1.0
+    if Re == '40':
+        file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+        data = torch.load(file_dir)
+        data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt')
+    elif Re == '500':
+        file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+        data = torch.load(file_dir)
+        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')
+        # data = data[:,::2,::2,:]
+        if dt == 0.5:
+            data = data[::2,...]
+        if dt == 1.0:
+            data = data[...,::2]
+            data_animate = data_animate[...,::2] # assuming dt = 1.0
+        print(data.shape)
+    data = data[185:,:,:,200:]
     print(data.shape)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
 
     # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[...,::2] # assuming dt = 1.0
-    data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt') # assuming dt = 1.0
+    # data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt') # assuming dt = 1.0
     data_animate = data_animate[...,:500].permute(0,3,1,2).reshape(-1,s*s).to(device)
     grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
     grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
