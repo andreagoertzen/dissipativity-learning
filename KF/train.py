@@ -79,24 +79,28 @@ def train(params):
             data = data[...,::2]
         print(data.shape)
 
-    train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
-
-    print(train_dataset.branch_inputs.shape)
-    print(val_dataset.branch_inputs.shape)
-
-    # Normalization of training data
-    normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
-    if params.get('normalize', False):
-        normalizer.fit(train_dataset.branch_inputs)
-        # train (use TRAIN mu/sigma)
-        train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
-        train_dataset.targets       = normalizer.norm(train_dataset.targets)
-        # val (use TRAIN mu/sigma)
-        val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
-        val_dataset.targets       = normalizer.norm(val_dataset.targets)
+    if params['multi_step']:
+        print('Using multi-step dataset: n_steps = ', params['n_steps'], ' stride = ', params['stride'])
+        train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale, multi_step=True, stride=params['stride'], n_steps=params['n_steps'])
     else:
-        # identity normalizer
-        normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
+        train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
+
+    # print(train_dataset.branch_inputs.shape)
+    # print(val_dataset.branch_inputs.shape)
+
+    # # Normalization of training data
+    # normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
+    # if params.get('normalize', False):
+    #     normalizer.fit(train_dataset.branch_inputs)
+    #     # train (use TRAIN mu/sigma)
+    #     train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
+    #     train_dataset.targets       = normalizer.norm(train_dataset.targets)
+    #     # val (use TRAIN mu/sigma)
+    #     val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
+    #     val_dataset.targets       = normalizer.norm(val_dataset.targets)
+    # else:
+    #     # identity normalizer
+    #     normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
 
     
     train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=2)
@@ -235,13 +239,24 @@ def train(params):
             
             optimizer.zero_grad()
             
-            # The model expects a tuple of (branch_input, trunk_input)
-            u_pred = model((branch_batch, trunk_input))
+            if params['multi_step']:
+                pred_i = branch_batch
+                loss_n = torch.zeros(y_batch.shape[-1]).to(device)
+                for step_i in range(y_batch.shape[-1]):
+                    pred_i = model((pred_i, trunk_input))
+                    loss_n[step_i] = loss_func(pred_i, y_batch[..., step_i])
 
-            if project and model_params['discrete_proj']:
-                epoch_active_projection_percentage += model.active_projection_percentage
+                # implement dynamic loss averaged over all steps
+                dynamic_loss = loss_n.mean()
 
-            dynamic_loss = loss_func(u_pred, y_batch)
+            else:
+                # The model expects a tuple of (branch_input, trunk_input)
+                u_pred = model((branch_batch, trunk_input))
+
+                if project and model_params['discrete_proj']:
+                    epoch_active_projection_percentage += model.active_projection_percentage
+
+                dynamic_loss = loss_func(u_pred, y_batch)
 
             # Calculate regularization loss if projection is enabled
             if project:
@@ -289,9 +304,19 @@ def train(params):
                     branch_val, trunk_val = branch_val.to(device), trunk_val.to(device)
                     trunk_val_input = trunk_val[0]
                     y_val = y_val.to(device)
+                    
+                    if params['multi_step']:
+                        pred_i = branch_val
+                        loss_n = torch.zeros(y_val.shape[-1]).to(device)
+                        for step_i in range(y_val.shape[-1]):
+                            pred_i = model((pred_i, trunk_val_input))
+                            loss_n[step_i] = loss_func(pred_i, y_val[..., step_i])
 
-                    u_val_pred = model((branch_val, trunk_val_input))
-                    epoch_val_loss += loss_func(u_val_pred, y_val).item()
+                        # implement dynamic loss averaged over all steps
+                        epoch_val_loss += loss_n.mean().item()
+                    else:
+                        u_val_pred = model((branch_val, trunk_val_input))
+                        epoch_val_loss += loss_func(u_val_pred, y_val).item()
 
             avg_train_loss = epoch_train_loss / len(train_loader)
             avg_val_loss = epoch_val_loss / len(val_loader)
@@ -375,7 +400,7 @@ def train(params):
             tic = time.time()
 
     # after you already save model_params.npz
-    np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
+    # np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
 
     # # save model_params dictionary in the model location, perhaps as an npz
     # np.savez(f"./{model_folder}/model_params.npz", **model_params)
@@ -383,11 +408,11 @@ def train(params):
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
-    eval_model = InferenceWrapper(
-        base_model=model,
-        normalizer=normalizer,                  # knows mu/sigma
-        residual=params.get('residual', False)
-    )
+    # eval_model = InferenceWrapper(
+    #     base_model=model,
+    #     normalizer=normalizer,                  # knows mu/sigma
+    #     residual=params.get('residual', False)
+    # )
 
 
     # ## GET MODEL PARAMETERS
@@ -398,35 +423,45 @@ def train(params):
     #     Q = None
     #     c = 30.0
 
-    # ### LOAD DATA
-    # print('LOADING TEST DATA')
-    # file_dir = f'data/KF_Re{Re}_M128_tsave1_T5000_n1/data.pt'
-    # data = torch.load(file_dir)
-    # s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
-    # grids = []
-    # grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
-    # grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
+    ### LOAD DATA
+    print('LOADING TEST DATA')
+    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
+    data = torch.load(file_dir)
+    s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
+    grids = []
+    grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
+    grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
 
     # x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
 
     # gt_traj = data.permute(0,3,1,2).reshape(-1,s*s).to(device)
     # print(gt_traj.shape)
 
-    # ## ONE STEP COMPARISON W GROUND TRUTH
-    # print('ONE STEP COMPARISON')
+    ## ONE STEP COMPARISON W GROUND TRUTH
+    print('ONE STEP COMPARISON')
     # one_step_animation(model=eval_model,
     #     x_val = (gt_traj[:-1,...],x_trunk_input),
     #     y_val = gt_traj[1:,...],
     #     figs_dir=figs_dir,
     #     s=s)
+    one_step_animation(model,
+        x_val = (gt_traj[:-1,...],x_trunk_input),
+        y_val = gt_traj[1:,...],
+        figs_dir=figs_dir,
+        s=s)
 
-    # ## ROLLOUT COMPARISON W GROUND TRUTH
+    ## ROLLOUT COMPARISON W GROUND TRUTH
     # pred_traj = rollout_animation(model=eval_model,
     #     x_val = (gt_traj[:-1,...],x_trunk_input),
     #     y_val = gt_traj[1:,...],
     #     figs_dir=figs_dir,
     #     s=s)
-    # pred_traj = pred_traj.to(device)
+    one_step_animation(model,
+        x_val = (gt_traj[:-1,...],x_trunk_input),
+        y_val = gt_traj[1:,...],
+        figs_dir=figs_dir,
+        s=s)
+    pred_traj = pred_traj.to(device)
 
     # ## FIRST TEN PCA MODES
     # print('PCA MODES (method A)')
@@ -532,6 +567,10 @@ if __name__ == "__main__":
     
     parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
     parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')
+    
+    parser.add_argument('--multi_step', action='store_true', help='True for using multi-step dataset')
+    parser.add_argument('--stride', type=int, help='stride for multi-step dataset', default=1)
+    parser.add_argument('--n_steps', type=int, help='number of steps for multi-step dataset', default=3)
     parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='fno',help='model backbone to use (default: fno)')
 
     args = parser.parse_args()

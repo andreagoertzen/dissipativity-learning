@@ -21,9 +21,6 @@ import matplotlib.animation as animation
 from tqdm import tqdm
 from gstools import SRF, Gaussian
 
-
-
-
 class TrajectoryDataset(Dataset):
     """
     Custom PyTorch Dataset for DeepONet trajectory data.
@@ -81,7 +78,63 @@ class TrajectoryDataset(Dataset):
         
         return model_input, target
     
-def load_multi_traj_data(data,trunk_scale):
+class Multistep_Dataset(Dataset):
+    """
+    Custom PyTorch Dataset for DeepONet trajectory data.
+    
+    This class takes trajectory data of shape (num_traj, traj_length, traj_dim)
+    and creates input-output pairs of (u_t, u_{t+1}).
+    """
+    def __init__(self, u_data, x_data, stride, n_steps):
+        """
+        Args:
+            u_data (np.array): Trajectory data with shape (num_traj, traj_length, traj_dim).
+            x_data (np.array): Constant input for the Trunk network.
+            stride (int): Time step between sampling multi-step training data from a single trajectory.
+            n_steps (int): Number of time steps to predict ahead.
+        """
+        super().__init__()
+        # The trunk input is constant for all samples, so convert it once.
+        # if x_data.ndim == 1:
+        #     x_data = x_data.reshape(-1, 1)
+
+        print('x_data shape')
+        print(x_data.shape)
+        
+        self.stride = stride
+        self.n_steps = n_steps
+
+        self.trunk_input = torch.tensor(x_data, dtype=torch.float32)
+        self.indices = []
+        self.u_data = torch.tensor(u_data, dtype=torch.float32)
+
+        num_traj, dim_1, dim_2, traj_length = u_data.shape
+        self.u_stack = torch.reshape(u_data, (num_traj, dim_1*dim_2, traj_length))
+        for traj_index in range(num_traj):
+            for t in range(0, traj_length - n_steps + 1, stride):
+                self.indices.append((traj_index, t))
+        
+    def __len__(self):
+        """Returns the total number of (u_t, u_{t+1}) pairs."""
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        """
+        Fetches the sample at the given index.
+        
+        Returns:
+            tuple: A tuple containing ((branch_input, trunk_input), target).
+                   This format is convenient for unpacking during the training loop.
+        """
+        traj_index, t = self.indices[idx]
+        branch_in = self.u_stack[traj_index, :, t]
+        target = self.u_stack[traj_index, :, (t+1): (t+self.n_steps)]
+
+        model_input = (branch_in, self.trunk_input)
+        
+        return model_input, target
+    
+def load_multi_traj_data(data, trunk_scale, multi_step=False, stride=1, n_steps=3):
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
     grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
@@ -106,8 +159,12 @@ def load_multi_traj_data(data,trunk_scale):
     u_train_traj = u_all_traj[:num_train_traj,...]
     u_val_traj = u_all_traj[num_train_traj:,...]
 
-    train_dataset = TrajectoryDataset(u_data=u_train_traj, x_data=x_trunk_input)
-    val_dataset = TrajectoryDataset(u_data=u_val_traj, x_data=x_trunk_input)
+    if multi_step:
+        train_dataset = Multistep_Dataset(u_data=u_train_traj, x_data=x_trunk_input, stride=stride, n_steps=n_steps)
+        val_dataset = Multistep_Dataset(u_data=u_val_traj, x_data=x_trunk_input, stride=stride, n_steps=n_steps)
+    else:
+        train_dataset = TrajectoryDataset(u_data=u_train_traj, x_data=x_trunk_input)
+        val_dataset = TrajectoryDataset(u_data=u_val_traj, x_data=x_trunk_input)
 
     return train_dataset, val_dataset
 
