@@ -70,7 +70,7 @@ def run_functions(params,param_path_parent,Re):
 
     # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[...,::2] # assuming dt = 1.0
     data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt') # assuming dt = 1.0
-    data_animate = data_animate[...,:500].permute(0,3,1,2).reshape(-1,s*s).to(device)
+    # data_animate = data_animate[...,:500].permute(0,3,1,2).reshape(-1,s*s).to(device)
     grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
     grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
 
