@@ -244,7 +244,7 @@ class DeepONet(nn.Module):
             self.eps_proj = 1e-3
             self.V = V_elliptical(m=m, diag_flag=diag_Q)
 
-    def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.999):
+    def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.99):
         w_0 = self.V.x_0
         V = self.V(w_in)
 

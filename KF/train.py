@@ -8,7 +8,7 @@ import os
 os.environ["MPLBACKEND"] = "Agg"
 
 import matplotlib.pyplot as plt
-from model import DeepONet
+from model import ECO
 
 from utils import TrajectoryDataset, load_multi_traj_data
 from torch.utils.data import DataLoader
@@ -43,7 +43,7 @@ np.random.seed(0)
 
 def train(params):
     epochs = params['epochs']
-    n_save_epochs = 50
+    n_save_epochs = 10
     bsize = params['bsize']
     lam_reg_vol = params['lam_reg_vol']
     project = params['project']
@@ -66,13 +66,18 @@ def train(params):
 
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-    file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
-    data = torch.load(file_dir)
-    # if dt == 0.5:
-    #     data = data[::2,...]
-    # if dt == 1.0:
-    #     data = data[...,::2]
-    print(data.shape)
+    if Re == '40':
+        file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+        data = torch.load(file_dir)
+    elif Re == '500':
+        file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+        data = torch.load(file_dir)
+        data = data[:,::2,::2,:]
+        if dt == 0.5:
+            data = data[::2,...]
+        if dt == 1.0:
+            data = data[...,::2]
+        print(data.shape)
 
     train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
 
@@ -118,11 +123,12 @@ def train(params):
         'circular_padding': params['circular_padding'],
         'activation': params['activation'],
         'trunk_last_act': params['trunk_last_act'],
+        'backbone': params['backbone']
     }
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
-    model = DeepONet(model_params).to(device)
+    model = ECO(model_params).to(device)
     # Adding weight_decay and lr sceduler
     
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
@@ -368,9 +374,6 @@ def train(params):
             
             tic = time.time()
 
-    # save model_params dictionary in the model location, perhaps as an npz
-    np.savez(f"./{model_folder}/model_params.npz", **model_params)
-
     # after you already save model_params.npz
     np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
 
@@ -387,89 +390,89 @@ def train(params):
     )
 
 
-    ## GET MODEL PARAMETERS
-    if model.project:
-        Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
-        c = model.c.detach().cpu().numpy()
-    else:
-        Q = None
-        c = 30.0
+    # ## GET MODEL PARAMETERS
+    # if model.project:
+    #     Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
+    #     c = model.c.detach().cpu().numpy()
+    # else:
+    #     Q = None
+    #     c = 30.0
 
-    ### LOAD DATA
-    print('LOADING TEST DATA')
-    file_dir = f'data/KF_Re{Re}_M128_tsave1_T5000_n1/data.pt'
-    data = torch.load(file_dir)
-    s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
-    grids = []
-    grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
-    grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
+    # ### LOAD DATA
+    # print('LOADING TEST DATA')
+    # file_dir = f'data/KF_Re{Re}_M128_tsave1_T5000_n1/data.pt'
+    # data = torch.load(file_dir)
+    # s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
+    # grids = []
+    # grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
+    # grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
 
-    x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
+    # x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
 
-    gt_traj = data.permute(0,3,1,2).reshape(-1,s*s).to(device)
-    print(gt_traj.shape)
+    # gt_traj = data.permute(0,3,1,2).reshape(-1,s*s).to(device)
+    # print(gt_traj.shape)
 
-    ## ONE STEP COMPARISON W GROUND TRUTH
-    print('ONE STEP COMPARISON')
-    one_step_animation(model=eval_model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
+    # ## ONE STEP COMPARISON W GROUND TRUTH
+    # print('ONE STEP COMPARISON')
+    # one_step_animation(model=eval_model,
+    #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    #     y_val = gt_traj[1:,...],
+    #     figs_dir=figs_dir,
+    #     s=s)
 
-    ## ROLLOUT COMPARISON W GROUND TRUTH
-    pred_traj = rollout_animation(model=eval_model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-    pred_traj = pred_traj.to(device)
+    # ## ROLLOUT COMPARISON W GROUND TRUTH
+    # pred_traj = rollout_animation(model=eval_model,
+    #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    #     y_val = gt_traj[1:,...],
+    #     figs_dir=figs_dir,
+    #     s=s)
+    # pred_traj = pred_traj.to(device)
 
-    ## FIRST TEN PCA MODES
-    print('PCA MODES (method A)')
-    pca_modes(w_data=gt_traj,w_model=pred_traj,figs_dir=figs_dir,s=s,device=device)
+    # ## FIRST TEN PCA MODES
+    # print('PCA MODES (method A)')
+    # pca_modes(w_data=gt_traj,w_model=pred_traj,figs_dir=figs_dir,s=s,device=device)
 
-    ## SPATIAL CORRELATION
-    print('SPATIAL CORRELATION')
-    spatial_corr(u_data=gt_traj.detach().cpu().numpy(),
-        u_model=pred_traj.detach().cpu().numpy(),
-        figs_dir=figs_dir,
-        s=s)
+    # ## SPATIAL CORRELATION
+    # print('SPATIAL CORRELATION')
+    # spatial_corr(u_data=gt_traj.detach().cpu().numpy(),
+    #     u_model=pred_traj.detach().cpu().numpy(),
+    #     figs_dir=figs_dir,
+    #     s=s)
 
-    ## PCA PLOT
-    print('PCA PROJECTION')
-    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
-        pred_traj = pred_traj, 
-        figs_dir=figs_dir, 
-        Q=Q, 
-        c=c,
-        tag='')
+    # ## PCA PLOT
+    # print('PCA PROJECTION')
+    # pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
+    #     pred_traj = pred_traj, 
+    #     figs_dir=figs_dir, 
+    #     Q=Q, 
+    #     c=c,
+    #     tag='')
 
-    ## DISTRIBUTION COMPARISON FOR DATA
-    print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
-    pred_traj_np = pred_traj.detach().cpu().numpy()
-    kl_div_traj = compare_distributions(gt_traj = gt_traj.detach().cpu().numpy().ravel(), 
-        pred_traj = pred_traj_np.ravel(), 
-        bins = 50,
-        plot=True, 
-        save_name=f'{figs_dir}/distribution_traj.png')
+    # ## DISTRIBUTION COMPARISON FOR DATA
+    # print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
+    # pred_traj_np = pred_traj.detach().cpu().numpy()
+    # kl_div_traj = compare_distributions(gt_traj = gt_traj.detach().cpu().numpy().ravel(), 
+    #     pred_traj = pred_traj_np.ravel(), 
+    #     bins = 50,
+    #     plot=True, 
+    #     save_name=f'{figs_dir}/distribution_traj.png')
 
 
-    # ## DISTRIBUTION COMPARISON FOR PCA MODES
-    print('DISTRIBUTION COMPARISON FOR PCA MODES')
-    pca_histogram_eval(gt_pca=pca_traj_gt, 
-        pred_pca=pca_traj_pred, 
-        bins=50, 
-        lim=[[-200.0, 200.0], [-200.0, 200.0]], 
-        save_path=f'{figs_dir}/distribution_pca.png', 
-        title_gt='Ground Truth', 
-        title_pred='Prediction')
+    # # ## DISTRIBUTION COMPARISON FOR PCA MODES
+    # print('DISTRIBUTION COMPARISON FOR PCA MODES')
+    # pca_histogram_eval(gt_pca=pca_traj_gt, 
+    #     pred_pca=pca_traj_pred, 
+    #     bins=50, 
+    #     lim=[[-200.0, 200.0], [-200.0, 200.0]], 
+    #     save_path=f'{figs_dir}/distribution_pca.png', 
+    #     title_gt='Ground Truth', 
+    #     title_pred='Prediction')
 
-    ## FOURIER SPECTRUM
-    print('FOURIER SPECTRUM COMPARISON')
-    print(gt_traj.shape)
-    print(pred_traj.shape)
-    fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
+    # ## FOURIER SPECTRUM
+    # print('FOURIER SPECTRUM COMPARISON')
+    # print(gt_traj.shape)
+    # print(pred_traj.shape)
+    # fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
     
     return model
 
@@ -529,6 +532,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--activation', type=str, choices=['ReLU', 'SiLU'], default='ReLU', help='Activation function to use in the network (default: ReLU)')
     parser.add_argument('--circular_padding', action='store_true', help='True for using circular padding in conv layers')
+    parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='fno',help='model backbone to use (default: fno)')
 
     args = parser.parse_args()
 
@@ -561,7 +565,11 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_Re{args.Re}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
+    if args.backbone=='deeponet':
+        deeponet_string = f'TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}'
+    else:
+        deeponet_string = ''
+    save_name = f'E{args.epochs}_Re{args.Re}_{args.backbone}_{deeponet_string}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 

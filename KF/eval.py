@@ -1,6 +1,6 @@
 import torch
 from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d,energy_time
-from model import DeepONet
+from model import ECO
 import sys
 from pathlib import Path
 import os
@@ -36,10 +36,11 @@ def run_functions(params,param_path_parent,Re):
         'dt': params['dt'],
         'discrete_proj': params['discrete_proj'],
         'circular_padding': params['circular_padding'],
-        'trunk_last_act': params['trunk_last_act']
+        'trunk_last_act': params['trunk_last_act'],
+        'backbone': params['backbone']
     }
 
-    model = DeepONet(model_params).to(device)
+    model = ECO(model_params).to(device)
     print(next(model.parameters()).is_cuda)
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     print(f'model params: {num_params}')

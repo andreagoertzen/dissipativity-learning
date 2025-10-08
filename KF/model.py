@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from fno_2d import *
 
 class Branch(nn.Module):
     def __init__(self, m, conv_config, fc_dims, output_dim=128, activation=nn.ReLU(), circ_padding=False):
@@ -169,9 +170,9 @@ class V_elliptical(nn.Module):
 
 
 
-class DeepONet(nn.Module):
+class ECO(nn.Module):
     def __init__(self,model_params):
-        super(DeepONet,self).__init__()
+        super(ECO,self).__init__()
 
         m = model_params['m']
         n = model_params['n']
@@ -181,6 +182,7 @@ class DeepONet(nn.Module):
         discrete_proj = model_params['discrete_proj']
         diag_Q = model_params['diag_Q']
         dt = model_params['dt']
+        self.backbone = model_params['backbone']
 
         branch_conv_channels = model_params['branch_conv_channels']
         branch_fc_dims = model_params['branch_fc_dims']
@@ -204,30 +206,44 @@ class DeepONet(nn.Module):
 
         print(f'PROJECTION STATUS: {project}')
 
-        # Define a configuration for the convolutional layers
-        # Define the desired output channels for each convolutional layer
-        conv_channels = branch_conv_channels
+        ## FOR DEEPONET
+        if self.backbone == 'deeponet':
+            # Define a configuration for the convolutional layers
+            # Define the desired output channels for each convolutional layer
+            conv_channels = branch_conv_channels
 
-        # Define the kernel and stride you want to use for all layers
-        kernel = 5
-        stride = 2
+            # Define the kernel and stride you want to use for all layers
+            kernel = 5
+            stride = 2
 
-        # Use a list comprehension to build the configuration list
-        conv_setup = [
-            {'out_channels': channels, 'kernel_size': kernel, 'stride': stride}
-            for channels in conv_channels
-        ]
+            # Use a list comprehension to build the configuration list
+            conv_setup = [
+                {'out_channels': channels, 'kernel_size': kernel, 'stride': stride}
+                for channels in conv_channels
+            ]
 
-        # Create the Branch Net
-        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_module, circ_padding=circular_padding)
-        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_module, last_act=model_params['trunk_last_act'])
+            # Create the Branch Net
+            self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim, activation=activation_module, circ_padding=circular_padding)
+            self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim, activation=activation_module, last_act=model_params['trunk_last_act'])
 
-        # Check network structure (for debugging)
-        print("--- Initialized Branch Net Structure ---")
-        print(self.Branch)
-        print("\n--- Initialized Trunk Net Structure ---")
-        print(self.Trunk)
-        print("-" * 40)
+            # Check network structure (for debugging)
+            print("--- Initialized Branch Net Structure ---")
+            print(self.Branch)
+            print("\n--- Initialized Trunk Net Structure ---")
+            print(self.Trunk)
+            print("-" * 40)
+        elif self.backbone == 'fno':
+            in_dim = 1
+            out_dim = 1
+            S = m 
+            modes = 20
+            width = 128
+            self.FNO = Net2d(in_dim, out_dim, S, modes, width)
+            print("\n--- Initialized FNO Backbone ---")
+            print(self.FNO)
+
+
+        ## FOR ALL
         
         self.project = project
         self.discrete_proj = discrete_proj
@@ -235,6 +251,7 @@ class DeepONet(nn.Module):
             print('-- Discrete Projection is ON --')
         self.c0 = c0
         self.dt = dt
+        self.m = m
 
         self.trainable_c = trainable_c
 
@@ -253,7 +270,7 @@ class DeepONet(nn.Module):
             self.eps_proj = 1e-3
             self.V = V_elliptical(m=m, diag_flag=diag_Q)
 
-    def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.999):
+    def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.99):
         w_0 = self.V.x_0
         V = self.V(w_in)
 
@@ -322,10 +339,17 @@ class DeepONet(nn.Module):
 
 
     def forward(self,x):
-        x1 = self.Branch(x[0])
-        x2 = self.Trunk(x[1])
-        x_out = torch.einsum("bi,ai->ba",x1,x2)
-        x_out += self.b
+        # for deeponet
+        if self.backbone == 'deeponet':
+            x1 = self.Branch(x[0])
+            x2 = self.Trunk(x[1])
+            x_out = torch.einsum("bi,ai->ba",x1,x2)
+            x_out += self.b
+        elif self.backbone == 'fno':
+            x_out = self.FNO(x[0].reshape(-1,self.m,self.m,1))
+            x_out = x_out.reshape(-1,self.m*self.m)
+
+        # for any
         if self.project:
             if self.discrete_proj:
                 x_out = self.discrete_project(x[0], x_out)
