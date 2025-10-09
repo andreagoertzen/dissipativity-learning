@@ -5,7 +5,7 @@ mkdir -p logs
 # Experiments 10/13: running fno
 re=500
 epochs=500
-bsize=125
+bsize=100
 lr=1e-4
 # maxlr=1e-3
 
