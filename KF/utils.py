@@ -857,3 +857,70 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
     # plt.savefig(f'{figs_dir}/traj_forPCA.png')
 
     return pred_traj
+
+
+def animate_saved_rollout(
+    pred_traj_path: str,
+    gt_seq: torch.Tensor,
+    figs_dir: str,
+    s: int,
+    out_name: str = "rollout.gif",
+    max_frames: int = None,
+    stride: int = 1,
+    fps: int = 20,
+):
+    import numpy as np
+    import torch
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+
+    device = torch.device('cpu')  # render on CPU
+    pred_all = torch.load(pred_traj_path, map_location=device)
+    if isinstance(pred_all, np.ndarray):
+        pred_all = torch.tensor(pred_all)
+
+    # Align lengths: prediction index 1.. matches gt 0..
+    T = min(gt_seq.shape[0], pred_all.shape[0] - 1)
+    gt = gt_seq[:T].detach().to(device)
+    pred = pred_all[1:1+T].detach().to(device)
+
+    # Frame thinning
+    frame_idx = np.arange(0, T, stride)
+    if max_frames is not None:
+        frame_idx = frame_idx[:max_frames]
+    if len(frame_idx) == 0:
+        raise ValueError("No frames selected; adjust stride/max_frames.")
+    T_eff = len(frame_idx)
+
+    # ---- FIX: robust vmin/vmax via NumPy (nan-safe) ----
+    gt_np = gt.cpu().numpy()
+    pred_np = pred.cpu().numpy()
+    all_np = np.concatenate([gt_np, pred_np], axis=0)  # shape (2T, s*s)
+    vmin = float(np.nanmin(all_np))
+    vmax = float(np.nanmax(all_np))
+    # ----------------------------------------------------
+
+    fig, axs = plt.subplots(2, 1, figsize=(5, 6))
+    axs[0].set_title('Data')
+    axs[1].set_title('Model')
+    fig.tight_layout()
+
+    im_data = axs[0].imshow(gt[frame_idx[0]].reshape(s, s).cpu().numpy(),
+                            animated=True, cmap='RdBu', vmin=vmin, vmax=vmax)
+    im_pred = axs[1].imshow(pred[frame_idx[0]].reshape(s, s).cpu().numpy(),
+                            animated=True, cmap='RdBu', vmin=vmin, vmax=vmax)
+    txt = fig.text(0.02, 0.02, f"t={frame_idx[0]}", fontsize=10)
+
+    def _update(k):
+        i = frame_idx[k]
+        im_data.set_array(gt[i].reshape(s, s).cpu().numpy())
+        im_pred.set_array(pred[i].reshape(s, s).cpu().numpy())
+        txt.set_text(f"t={i}")
+        return im_data, im_pred, txt
+
+    ani = animation.FuncAnimation(fig, _update, frames=T_eff, blit=False, interval=50)
+
+    save_path = f"{figs_dir}/{out_name}"
+    ani.save(save_path, writer='ffmpeg')
+    plt.close(fig)
+    print(f"Saved animation to: {save_path}")
