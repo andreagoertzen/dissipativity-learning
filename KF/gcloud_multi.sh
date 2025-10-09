@@ -6,7 +6,7 @@ mkdir -p logs
 re=500
 epochs=500
 bsize=100
-lr=1e-4
+lr=5e-4
 # maxlr=1e-3
 
 # backs : model backbone ("fno" or "deeponet")
