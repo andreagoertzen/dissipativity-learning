@@ -11,7 +11,7 @@ import numpy as np
 def run_functions(params,param_path_parent,Re):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
-    m = 64
+    m = 128
     n = 2
     model_folder = param_path_parent
     print(model_folder)
