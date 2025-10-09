@@ -921,6 +921,6 @@ def animate_saved_rollout(
     ani = animation.FuncAnimation(fig, _update, frames=T_eff, blit=False, interval=50)
 
     save_path = f"{figs_dir}/{out_name}"
-    ani.save(save_path, writer='ffmpeg')
+    ani.save(save_path, writer='ffmpeg', fps=fps)
     plt.close(fig)
     print(f"Saved animation to: {save_path}")
