@@ -135,7 +135,7 @@ def train(params):
     model = ECO(model_params).to(device)
     # Adding weight_decay and lr sceduler
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     
     # --- scheduler setup (after optimizer is created) ---
     sched_type      = params.get('sched', 'cosine')
@@ -158,7 +158,7 @@ def train(params):
         elif sched_type == 'multistep':
             # Two drops at 50% and 75% of training
             gamma = float(params.get('gamma', 0.5))
-            milestones = [int(0.5*epochs), int(0.75*epochs)]
+            milestones = [10, 20, 30, 40, 50]
             return torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
         elif sched_type == 'exp':
             # Exponential LR decay per epoch: lr_t = lr * gamma^t

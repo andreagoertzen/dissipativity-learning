@@ -2,6 +2,53 @@
 set -euo pipefail
 mkdir -p logs
 
+# Experiments 10/13: running fno
+re=500
+epochs=500
+bsize=125
+lr=1e-4
+# maxlr=1e-3
+
+# backs : model backbone ("fno" or "deeponet")
+last_acts=(0)
+backs=("fno")
+for last_act in "${last_acts[@]}"; do
+  for dim in 1024; do
+    for c in 900 2000; do
+      for back in "${backs[@]}"; do
+        for n_steps in 3 5; do
+          tag="c${c}_steps${n_steps}"
+
+          cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
+            --branch_conv_channels 64 128 256 512 \
+            --output_dim $dim --branch_fc_dims $dim \
+            --trunk_hidden_dims $dim $dim $dim $dim \
+            --dt 1.0 --Re $re \
+            --lr $lr \
+            --lam_reg_vol 0.1 \
+            --project \
+            --diag_Q \
+            --c_init $c \
+            --discrete_proj \
+            --tag \"$tag\" \
+            --bsize $bsize \
+            --backbone $back \
+            --sched "multistep" \
+            --multi_step --n_steps $n_steps"
+
+          # Conditionally add the flag
+          if [ "$last_act" -eq 1 ]; then
+            cmd="$cmd --trunk_last_act"
+          fi
+
+          echo "$cmd"
+          eval "$cmd"
+          done
+      done
+    done
+  done
+done
+
 # re=40
 # epochs=3000
 # bsize=512
@@ -34,36 +81,36 @@ mkdir -p logs
 # done
 
 # Experiments 10/06, resuming with multi-step
-re=500
-epochs=3000
-bsize=1024
+# re=500
+# epochs=3000
+# bsize=1024
 
-# Experiments 09/22: larger c, with activation
-for lr in 1e-3 2e-4; do
-  for dim in 1024; do
-    for lam in 1e-1 1e-3; do
-      for c0 in 2000.0 4000.0; do
-        for n_steps in 3 5; do
-          tag="n_steps_${n_steps}"
+# # Experiments 09/22: larger c, with activation
+# for lr in 1e-3 2e-4; do
+#   for dim in 1024; do
+#     for lam in 1e-1 1e-3; do
+#       for c0 in 2000.0 4000.0; do
+#         for n_steps in 3 5; do
+#           tag="n_steps_${n_steps}"
 
-          cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
-            --branch_conv_channels 64 128 256 512 \
-            --output_dim $dim --branch_fc_dims $dim \
-            --trunk_hidden_dims $dim $dim $dim \
-            --dt 0.5 --Re $re \
-            --lr $lr --circular_padding \
-            --tag \"$tag\" \
-            --project --discrete_proj --diag_Q --c_init $c0 --lam_reg_vol $lam \
-            --multi_step --n_steps $n_steps \
-            --trunk_last_act"
+#           cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
+#             --branch_conv_channels 64 128 256 512 \
+#             --output_dim $dim --branch_fc_dims $dim \
+#             --trunk_hidden_dims $dim $dim $dim \
+#             --dt 0.5 --Re $re \
+#             --lr $lr --circular_padding \
+#             --tag \"$tag\" \
+#             --project --discrete_proj --diag_Q --c_init $c0 --lam_reg_vol $lam \
+#             --multi_step --n_steps $n_steps \
+#             --trunk_last_act"
 
-          echo "$cmd"
-          eval "$cmd"
-        done
-      done
-    done
-  done
-done
+#           echo "$cmd"
+#           eval "$cmd"
+#         done
+#       done
+#     done
+#   done
+# done
 
 
 # Experiments 09/20: larger model, ablation on last layer activation
