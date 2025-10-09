@@ -37,8 +37,8 @@ def run_functions(params,param_path_parent,Re):
         'discrete_proj': params['discrete_proj'],
         'circular_padding': params['circular_padding'],
         'trunk_last_act': params['trunk_last_act'],
-        # 'backbone': params['backbone']
-        'backbone': 'deeponet',
+        'backbone': params['backbone']
+        # 'backbone': 'deeponet',
     }
 
     model = ECO(model_params).to(device)
