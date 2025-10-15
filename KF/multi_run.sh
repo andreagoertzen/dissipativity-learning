@@ -2,9 +2,9 @@
 #SBATCH --job-name backbone_sweep
 
 re=500
-epochs=500
-bsize=125
-lr=1e-4
+epochs=50
+bsize=50
+lr=5e-4
 # maxlr=1e-3
 
 # backs : model backbone ("fno" or "deeponet")
@@ -12,14 +12,12 @@ last_acts=(0)
 backs=("fno")
 for last_act in "${last_acts[@]}"; do
   for dim in 1024; do
-    for c in 450; do
+    for c in 450 900 1000 2000; do
       for back in "${backs[@]}"; do
-        tag="dim${dim}_act${last_act}"
+        # tag="dim${dim}_act${last_act}"
 
         cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
-          --branch_conv_channels 64 128 256 512 \
-          --output_dim $dim --branch_fc_dims $dim \
-          --trunk_hidden_dims $dim $dim $dim $dim \
+          --sched multistep \
           --dt 1.0 --Re $re \
           --lr $lr \
           --lam_reg_vol 0.1 \
@@ -27,7 +25,6 @@ for last_act in "${last_acts[@]}"; do
           --diag_Q \
           --c_init $c \
           --discrete_proj \
-          --tag \"$tag\" \
           --bsize $bsize \
           --backbone $back"
 
@@ -42,6 +39,12 @@ for last_act in "${last_acts[@]}"; do
     done
   done
 done
+
+
+          # --branch_conv_channels 64 128 256 512 \
+          # --output_dim $dim --branch_fc_dims $dim \
+          # --trunk_hidden_dims $dim $dim $dim $dim \
+
 
 # # New experiments 09/17: lr sweep for Re=500, 128 by 128
 # for lr in 1e-3 5e-4 2e-4 1e-4; do

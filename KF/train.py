@@ -43,7 +43,7 @@ np.random.seed(0)
 
 def train(params):
     epochs = params['epochs']
-    n_save_epochs = 10
+    n_save_epochs = 1
     bsize = params['bsize']
     lam_reg_vol = params['lam_reg_vol']
     project = params['project']
@@ -72,11 +72,12 @@ def train(params):
     elif Re == '500':
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
         data = torch.load(file_dir)
-        # data = data[:,::2,::2,:]
+        data = data[:,::2,::2,:]
         if dt == 0.5:
             data = data[::2,...]
         if dt == 1.0:
             data = data[...,::2]
+        print('data shape')
         print(data.shape)
 
     if params['multi_step']:

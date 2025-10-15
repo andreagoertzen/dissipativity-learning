@@ -11,7 +11,7 @@ import numpy as np
 def run_functions(params,param_path_parent,Re):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
-    m = 128
+    m = 64
     n = 2
     model_folder = param_path_parent
     print(model_folder)
@@ -72,8 +72,8 @@ def run_functions(params,param_path_parent,Re):
     elif Re == '500':
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
         data = torch.load(file_dir)
-        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')
-        # data = data[:,::2,::2,:]
+        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[:,::2,::2,:]
+        data = data[:,::2,::2,:]
         if dt == 0.5:
             data = data[::2,...]
         if dt == 1.0:
@@ -147,7 +147,7 @@ def run_functions(params,param_path_parent,Re):
     pca_histogram_eval(gt_pca=pca_traj_gt, 
         pred_pca=pca_traj_pred, 
         bins=50, 
-        lim=[[-150.0, 150.0], [-150.0, 150.0]], 
+        lim=[[-250.0, 250.0], [-250.0, 250.0]], 
         save_path=f'{figs_dir}/distribution_pca.png', 
         title_gt='Ground Truth', 
         title_pred='Prediction')
