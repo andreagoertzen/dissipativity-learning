@@ -10,17 +10,17 @@ from tqdm import tqdm
 ## Training data generation for Kolmogorov flow ##
 #################################################
 device = torch.device('cuda')
-Re = 250
+# Re = 250
 Re = 500 # Reynolds number
 # Re = 70
 dt = 0.0005 # Integration time step
 n = 4 # forcing period 
-T = 500 # end time
+T = 2000 # end time
 M = N = 128 # x and y discretization
-t_save = 0.5 # save time step
-n_traj = 50 # number of trajectories to generate 
+t_save = 1.0 # save time step
+n_traj = 10 # number of trajectories to generate 
 n_ani = 5 # how many trajectories to visualize
-ic_factor = 1
+ic_factor = 10.0
 
 domain_size = L = 2 * np.pi
 dx = domain_size/M

@@ -20,6 +20,12 @@ import scipy.io
 import matplotlib.animation as animation
 from tqdm import tqdm
 from gstools import SRF, Gaussian
+import warnings
+
+try:
+    import ot  # Python Optimal Transport
+except ImportError:  # pragma: no cover - optional dependency
+    ot = None
 
 class TrajectoryDataset(Dataset):
     """
@@ -198,7 +204,7 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
     with tqdm(total=n_times, desc='Saving video') as progress_bar:
         ani.save(f"{figs_dir}/one_step.gif",progress_callback=update_func)
 
-def rollout_animation(model, x_val,y_val,figs_dir,s):
+def rollout_animation(model, x_val, y_val, figs_dir, s):
     ims = []
     n_times = 10000
     n_animate = 499 #y_val.shape[0]
@@ -239,6 +245,380 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
         ani.save(f"{figs_dir}/rollout.gif",progress_callback=update_func)#, writer = 'ffmpeg')
     torch.save(pred_traj,f'./{figs_dir}/rollout_traj.pt')
     return pred_traj
+
+def generate_unique_ics(srf, x, y, n_traj, device, s, init_scale):
+    ics = []
+    base_seed = 900 # Starting seed
+    for k in range(n_traj):
+        # Sample a new field by changing the seed
+        field = srf.structured([x, y], seed=base_seed + k*12)
+        field = torch.tensor(field, dtype=torch.float32, device=device).reshape(1, s * s)
+        ics.append(field)
+    
+    # Concatenate all unique fields and apply scale
+    initial_condition_batch = torch.cat(ics, dim=0) * init_scale
+    return initial_condition_batch
+
+def rollout_trajectory_batched(model, batched_initial_condition, figs_dir, s, n_times=2000-1, n_traj=5, use_GT_init=True, init_scale=1.0, trunk_input=None):
+    device = next(model.parameters()).device
+
+    pred_traj = torch.zeros(n_traj, n_times + 1, s * s, device=device)
+    if use_GT_init:
+        pred_traj[:, 0, :] = batched_initial_condition
+    else:
+        x = y = range(s)
+        rf = Gaussian(dim = 2, var = 1, len_scale = 10)
+        srf = SRF(rf,seed = 13,generator='Fourier',period = s)
+        initial_condition_batch = generate_unique_ics(srf, x, y, n_traj, device, s, init_scale)
+        pred_traj[:, 0, :] = initial_condition_batch
+
+    with torch.no_grad():
+        for i in tqdm(range(n_times)):
+            if model.backbone == 'deeponet':
+                pred_traj[:, i + 1, :] = model((pred_traj[:, i, :], trunk_input))
+            elif model.backbone == 'fno':
+                pred_traj[:, i + 1, ...] = model((pred_traj[:, i, :], trunk_input))
+
+    pred_traj_cpu = pred_traj.detach().cpu()
+    torch.save(pred_traj_cpu, f"./{figs_dir}/rollout_traj.pt")
+
+    return pred_traj_cpu
+
+def animate_rollout(gt_traj, pred_traj, figs_dir, s, max_frames=500, fps=5, savename='rollout'):
+    ims = []
+    n_animate = max_frames - 1
+    print(n_animate)
+    fig,axs = plt.subplots(2)  
+    axs[0].set_title('Data') 
+    axs[1].set_title('Model')
+    fig.tight_layout()  
+
+    # Convert inputs to numpy arrays for Matplotlib/NumPy utilities
+    if isinstance(gt_traj, torch.Tensor):
+        gt_arr = gt_traj.detach().cpu().numpy()
+    else:
+        gt_arr = np.asarray(gt_traj)
+
+    if isinstance(pred_traj, torch.Tensor):
+        pred_arr = pred_traj.detach().cpu().numpy()
+    else:
+        pred_arr = np.asarray(pred_traj)
+
+    vmin = np.min(gt_arr)
+    vmax = np.max(gt_arr)
+
+    # Animation to compare to a single trajectory
+    for i in tqdm(range(n_animate)):
+        if i < n_animate:
+            im = axs[0].imshow(gt_arr[i, :].reshape(s, s), animated=True, cmap='RdBu', vmin=vmin, vmax=vmax)
+            im2 = axs[1].imshow(pred_arr[i, :].reshape(s, s), animated=True, cmap='RdBu', vmin=vmin, vmax=vmax)
+            ims.append([im, im2])
+
+    ani = animation.ArtistAnimation(fig,ims,interval = 1e-6)
+    print('saving animation')
+    update_func = lambda _i, _n: progress_bar.update(1)
+    with tqdm(total=n_animate, desc='Saving video') as progress_bar:
+        ani.save(f"{figs_dir}/{savename}.gif",progress_callback=update_func, writer = 'ffmpeg', fps=fps)
+    return None
+
+def plot_cos_sims(
+    dt,
+    trajs,
+    pred_trajs,
+    traj_length=None,
+    save_path=None,
+    thresholds=(0.9, 0.8),
+):
+    """
+    Plot average cosine similarity between ground-truth and predicted trajectories.
+
+    Args:
+        dt (float): Time step between successive states.
+        trajs (Tensor or ndarray): Ground-truth states shaped (T, D) or (B, T, D).
+        pred_trajs (Tensor or ndarray): Predicted states shaped like trajs.
+        traj_length (int, optional): Number of time steps to include. If None use min length.
+        save_path (str, optional): If provided, saves the plot and closes the figure.
+        thresholds (tuple): Horizontal reference lines to draw (default 0.9 and 0.8).
+
+    Returns:
+        np.ndarray: Cosine similarities for each time step (length = traj_length).
+        matplotlib.figure.Figure | None: The created figure if `save_path` is None.
+
+    Notes:
+        When multiple trajectories are provided, each time slice is mean-centered across the batch
+        before cosine similarities are computed, matching the JAX implementation's batch averaging.
+    """
+    true = torch.as_tensor(trajs, dtype=torch.float32).detach()
+    pred = torch.as_tensor(pred_trajs, dtype=torch.float32).detach()
+
+    if true.ndim == 2:
+        true = true.unsqueeze(0)
+    if pred.ndim == 2:
+        pred = pred.unsqueeze(0)
+
+    if true.shape[-1] != pred.shape[-1]:
+        raise ValueError(f"State dimensions do not match: {true.shape} vs {pred.shape}")
+
+    if traj_length is None:
+        traj_length = min(true.shape[1], pred.shape[1])
+    traj_length = min(traj_length, true.shape[1], pred.shape[1])
+    if traj_length <= 0:
+        raise ValueError("traj_length must be positive.")
+
+    true = true[:, :traj_length, :].to(torch.float64)
+    pred = pred[:, :traj_length, :].to(torch.float64)
+
+    if true.shape[0] > 1:
+        true = true - true.mean(dim=0, keepdim=True)
+    if pred.shape[0] > 1:
+        pred = pred - pred.mean(dim=0, keepdim=True)
+
+    true_norm = true / true.norm(dim=-1, keepdim=True).clamp_min(1e-9)
+    pred_norm = pred / pred.norm(dim=-1, keepdim=True).clamp_min(1e-9)
+
+    cosine_sims = (true_norm * pred_norm).sum(dim=-1).mean(dim=0).cpu().numpy()
+    plot_time = np.arange(traj_length) * float(dt)
+
+    fig, ax = plt.subplots(1, 1, figsize=(7, 4), tight_layout=True)
+    colors = ["black", "red"]
+    labels = [f"{val:.1f} threshold" for val in thresholds]
+    for thresh, color, label in zip(thresholds, colors, labels):
+        ax.plot(plot_time, np.full_like(plot_time, thresh), color=color, linestyle="dashed", label=label)
+
+    ax.plot(plot_time, cosine_sims, label="Avg. cosine sim.")
+    ax.set_xlim([0, float(plot_time.max()) if plot_time.size > 0 else 1.0])
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel("Avg. cosine sim.")
+    ax.set_title("Cosine Similarity over time")
+    ax.legend(frameon=False, bbox_to_anchor=(1, 1))
+
+    if save_path is not None:
+        fig.savefig(save_path, dpi=300)
+        plt.close(fig)
+        return cosine_sims
+
+    return cosine_sims, fig
+
+
+def _compute_covariance(trajs: torch.Tensor) -> torch.Tensor:
+    """
+    Compute empirical covariance matrix for a collection of trajectories.
+    Args:
+        trajs: Tensor shaped (B, T, D) or (T, D).
+    Returns:
+        torch.Tensor: Covariance matrix of shape (D, D) in float64 on CPU.
+    """
+    trajs = torch.as_tensor(trajs, dtype=torch.float64)
+    if trajs.ndim == 2:
+        trajs = trajs.unsqueeze(0)
+    if trajs.ndim != 3:
+        raise ValueError(f"Expected trajs with 2 or 3 dims, got shape {trajs.shape}")
+
+    samples = trajs.reshape(-1, trajs.shape[-1])
+    mean = samples.mean(dim=0, keepdim=True)
+    centered = samples - mean
+    denom = samples.shape[0]
+    if denom == 0:
+        raise ValueError("Cannot compute covariance with zero samples.")
+    cov = centered.T @ centered / denom
+    return cov
+
+
+def covariance_rmse(gt_trajs, pred_trajs) -> float:
+    """
+    Compute covariance RMSE ratio between predicted and ground truth trajectories.
+    Args:
+        gt_trajs: Ground truth trajectories, shape (B, T, D).
+        pred_trajs: Predicted trajectories, shape (B, T, D).
+    Returns:
+        float: covRMSE as defined in Eq. (25) of the referenced paper.
+    """
+    cov_ref = _compute_covariance(gt_trajs)
+    cov_pred = _compute_covariance(pred_trajs)
+
+    diff_norm = torch.linalg.norm(cov_pred - cov_ref, ord='fro')
+    ref_norm = torch.linalg.norm(cov_ref, ord='fro')
+    if ref_norm.item() == 0:
+        raise ValueError("Reference covariance norm is zero; covRMSE undefined.")
+    return (diff_norm / ref_norm).item()
+
+
+def _autocorrelation_time(trajs, dt: float, positive_only: bool = True) -> torch.Tensor:
+    """
+    Compute per-pixel autocorrelation time tau given trajectories.
+    Args:
+        trajs: Tensor or array with shape (B, T, D) or (T, D).
+        dt: Physical timestep between snapshots.
+        positive_only: Sum correlations until first non-positive entry.
+    Returns:
+        torch.Tensor: Average tau per pixel across batch (shape D,) in float64.
+    """
+    data = torch.as_tensor(trajs, dtype=torch.float64)
+    if data.ndim == 2:
+        data = data.unsqueeze(0)
+    if data.ndim != 3:
+        raise ValueError(f"Expected trajectories with 2 or 3 dims, got shape {data.shape}")
+
+    B, T, D = data.shape
+    if T < 2:
+        raise ValueError("Need at least two time steps to compute autocorrelation.")
+
+    series = data.permute(0, 2, 1).reshape(-1, T)
+    series = series - series.mean(dim=1, keepdim=True)
+
+    pad_len = 2 * T
+    fft_vals = torch.fft.rfft(series, n=pad_len)
+    acf = torch.fft.irfft(fft_vals * torch.conj(fft_vals), n=pad_len)
+    acf = acf[:, :T]
+
+    normalization = torch.arange(T, 0, -1, device=acf.device, dtype=acf.dtype)
+    acf = acf / normalization
+
+    var = acf[:, 0].clone()
+    eps = torch.tensor(1e-12, dtype=acf.dtype, device=acf.device)
+    var = torch.where(var.abs() < eps, eps, var)
+
+    rho = acf[:, 1:] / var.unsqueeze(1)
+
+    if positive_only:
+        pos_mask = rho > 0
+        stop_mask = (~pos_mask).cumsum(dim=1) > 0
+        valid_mask = pos_mask & ~stop_mask
+        rho = rho * valid_mask.to(rho.dtype)
+
+    sum_rho = rho.sum(dim=1)
+    tau = dt * (1.0 + 2.0 * sum_rho)
+    tau = torch.clamp(tau, min=0.0)
+
+    tau = tau.reshape(B, D)
+    tau_mean = tau.mean(dim=0)
+    return tau_mean
+
+
+def time_correlation_metric(gt_trajs, pred_trajs, dt: float, positive_only: bool = True):
+    """
+    Compute the Time Correlation Metric (TCM) based on autocorrelation time.
+    Args:
+        gt_trajs: Ground truth trajectories, shape (B, T, D).
+        pred_trajs: Predicted trajectories, shape (B, T, D).
+        dt: Physical timestep.
+        positive_only: Whether to truncate sum at first non-positive correlation.
+    Returns:
+        tuple: (metric_value, tau_gt, tau_pred) where tau arrays are numpy.
+    """
+    tau_gt = _autocorrelation_time(gt_trajs, dt, positive_only=positive_only)
+    tau_pred = _autocorrelation_time(pred_trajs, dt, positive_only=positive_only)
+    metric = torch.mean(torch.abs(tau_pred - tau_gt)).item()
+    return metric, tau_gt.cpu().numpy(), tau_pred.cpu().numpy()
+
+def sinkhorn_div(
+    x,
+    y,
+    epsilon=0.1,
+    n_iters=100,
+    max_samples=1024,
+    seed=None,
+    stable=True,
+    p=2,
+):
+    """
+    Compute the Sinkhorn divergence between two empirical distributions.
+
+    Args:
+        x (Tensor or ndarray): Samples from distribution P, shape (N, D).
+        y (Tensor or ndarray): Samples from distribution Q, shape (M, D).
+        epsilon (float): Entropic regularization strength.
+        n_iters (int): Maximum number of Sinkhorn iterations inside POT.
+        max_samples (int): Optional cap on the number of samples from each set.
+        seed (int, optional): Random seed for subsampling.
+
+    Returns:
+        float: Estimated Sinkhorn divergence between x and y.
+
+    Raises:
+        ImportError: If Python Optimal Transport (POT) is not installed.
+    """
+    if ot is None:
+        raise ImportError(
+            "sinkhorn_div requires the POT library. Install with `pip install POT`."
+        )
+
+    with torch.no_grad():
+        x_samples = torch.as_tensor(x, dtype=torch.float64)
+        y_samples = torch.as_tensor(y, dtype=torch.float64)
+
+        if x_samples.ndim == 1:
+            x_samples = x_samples.unsqueeze(0)
+        if y_samples.ndim == 1:
+            y_samples = y_samples.unsqueeze(0)
+
+        if x_samples.ndim > 2:
+            x_samples = x_samples.reshape(x_samples.shape[0], -1)
+        if y_samples.ndim > 2:
+            y_samples = y_samples.reshape(y_samples.shape[0], -1)
+
+        # Remove any samples that contain NaNs or Infs to avoid numerical issues
+        x_mask = torch.isfinite(x_samples).all(dim=1)
+        y_mask = torch.isfinite(y_samples).all(dim=1)
+        x_samples = x_samples[x_mask]
+        y_samples = y_samples[y_mask]
+
+        if x_samples.numel() == 0 or y_samples.numel() == 0:
+            raise ValueError("Sinkhorn divergence received empty samples after filtering invalid values.")
+
+        if x_samples.shape[-1] != y_samples.shape[-1]:
+            raise ValueError(f"Sample dimensions do not match: {x_samples.shape} vs {y_samples.shape}")
+
+        if max_samples is not None:
+            max_n = min(max_samples, x_samples.shape[0])
+            max_m = min(max_samples, y_samples.shape[0])
+            if seed is not None:
+                g = torch.Generator(device=x_samples.device)
+                g.manual_seed(seed)
+            else:
+                g = None
+            x_idx = torch.randperm(x_samples.shape[0], generator=g)[:max_n]
+            y_idx = torch.randperm(y_samples.shape[0], generator=g)[:max_m]
+            x_samples = x_samples[x_idx]
+            y_samples = y_samples[y_idx]
+
+        x_samples = x_samples.cpu().numpy()
+        y_samples = y_samples.cpu().numpy()
+
+        a = np.full(x_samples.shape[0], 1.0 / x_samples.shape[0], dtype=np.float64)
+        b = np.full(y_samples.shape[0], 1.0 / y_samples.shape[0], dtype=np.float64)
+
+        if p == 1:
+            metric = "euclidean"
+            power = 1
+        elif p == 2:
+            metric = "euclidean"
+            power = 2
+        else:
+            raise ValueError("Only p=1 or p=2 supported for Sinkhorn divergence.")
+
+        def _sinkhorn_cost_pot(x_arr, y_arr, wa, wb):
+            M = ot.dist(x_arr, y_arr, metric=metric) ** power
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                warnings.simplefilter("ignore", category=UserWarning)
+                return ot.sinkhorn2(
+                    wa,
+                    wb,
+                    M,
+                    reg=epsilon,
+                    numItermax=n_iters,
+                    method="sinkhorn_log" if stable else "sinkhorn",
+                )
+
+        ot_xy = _sinkhorn_cost_pot(x_samples, y_samples, a, b)
+        ot_xx = _sinkhorn_cost_pot(x_samples, x_samples, a, a)
+        ot_yy = _sinkhorn_cost_pot(y_samples, y_samples, b, b)
+
+        divergence = float(ot_xy - 0.5 * (ot_xx + ot_yy))
+        if not np.isfinite(divergence):
+            raise FloatingPointError("Sinkhorn divergence computation returned a non-finite value.")
+        return divergence
 
 def pca_modes(w_data,w_model,figs_dir,s,device):
     U,S,V = torch.svd(w_data-torch.mean(w_data,0))
@@ -799,49 +1179,56 @@ class InferenceWrapper(torch.nn.Module):
             next_n = pred_n
         next_phys = self.norm.denorm(next_n)      # back to physical
         return next_phys
-def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def energy_time(gt_traj, pred_traj, c=100.0, model=None, figs_dir=""):
+    if torch.is_tensor(gt_traj):
+        gt = gt_traj.detach().cpu()
+    else:
+        gt = torch.as_tensor(gt_traj)
+
+    if torch.is_tensor(pred_traj):
+        pred = pred_traj.detach().cpu()
+    else:
+        pred = torch.as_tensor(pred_traj)
+
+    model_device = None
+    if model is not None:
+        model_device = next(model.parameters()).device
+
+    V_hist = torch.zeros(pred.shape[0], dtype=torch.float64)
+    V_hist_GT = torch.zeros(pred.shape[0], dtype=torch.float64)
+
+    if model is None or not getattr(model, "project", False):
+        Q_diag = torch.ones(gt.shape[-1], dtype=torch.float64)
+        w0 = torch.zeros_like(Q_diag)
+    else:
+        Q_diag = torch.diag(model.V._construct_Q()).detach().cpu().to(torch.float64)
+        w0 = model.V.x_0.detach().cpu().to(torch.float64)
+
+    with torch.no_grad():
+        for t in range(pred.shape[0]):
+            w_in = pred[t].to(torch.float64)
+            if model is not None and getattr(model, "project", False):
+                w_in_dev = w_in.to(model_device)
+                V_hist[t] = model.V(w_in_dev).detach().cpu().to(torch.float64)
+            else:
+                V_hist[t] = torch.dot(w_in, w_in)
+
+            if model is not None and getattr(model, "project", False):
+                diff = gt[t].to(torch.float64) - w0
+                V_hist_GT[t] = torch.sum(diff * diff * Q_diag)
+            else:
+                gt_vec = gt[t].to(torch.float64)
+                V_hist_GT[t] = torch.dot(gt_vec, gt_vec)
 
     plt.figure()
-    V_hist = torch.zeros(gt_traj.shape[0])
-    V_hist_GT = torch.zeros(gt_traj.shape[0])
-    with torch.no_grad():
-        for t in range(gt_traj.shape[0]):
-            w_in = pred_traj[t,...]
-            if model is None:
-                Q = torch.eye(gt_traj.shape[-1]).to(device)
+    plt.plot(V_hist.numpy(), label="model")
+    plt.plot(V_hist_GT.numpy(), label="GT")
 
-                V_hist[t] = torch.sum(w_in**2 * Q) #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
-                V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
-            elif not model.project:
-                # If no Q is provided, use the covariance
-                Q = torch.eye(gt_traj.shape[-1]).to(device)
-
-                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
-                V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
-            else:
-                # print('using model for projection...')
-                Q = torch.diag(model.V._construct_Q())
-                V_hist[t] = model.V(w_in)
-                # V_in = eval_model.V(w_in)
-                # V_out = eval_model.V(w_out)
-                w0 = model.V.x_0
-                V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
-
-
-    # plot the V_hist against time
-    plt.plot(V_hist.cpu().numpy(),label='model')
-    plt.plot(V_hist_GT.cpu().numpy(),label='GT')
-
-    # plot c as a single line
-    if model.project:
-        plt.plot(np.array([0,V_hist.shape[-1]]),np.ones(2)*model.c.detach().cpu().numpy() ** 2, label='c')
+    if model is not None and getattr(model, "project", False):
+        c_val = float(model.c.detach().cpu().item())
     else:
-        plt.plot(np.array([0,V_hist_GT.shape[-1]]),np.ones(2)*c**2, label='c')
+        c_val = c
+    plt.plot(np.array([0, V_hist.shape[-1]]), np.ones(2) * (c_val ** 2), label="c")
 
     plt.xlabel("Sample")
     plt.ylabel("V")

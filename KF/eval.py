@@ -1,14 +1,30 @@
 import torch
-from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d,energy_time
+from utils import (
+    animate_rollout,
+    one_step_animation,
+    rollout_animation,
+    pca_modes,
+    visualize_ellipsoid,
+    compare_distributions,
+    pca_histogram_eval,
+    evaluate_fourier_spectrum,
+    spatial_corr,
+    fourier_spectrum_2d,
+    energy_time,
+    rollout_trajectory_batched,
+    animate_saved_rollout,
+    plot_cos_sims,
+    sinkhorn_div,
+    covariance_rmse,
+    time_correlation_metric,
+)
 from model import ECO
 import sys
 from pathlib import Path
 import os
 import numpy as np
 
-
-
-def run_functions(params,param_path_parent,Re):
+def run_functions(params, param_path_parent, Re, test_idx=0, cosine_eval_steps=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
     m = 64
@@ -71,101 +87,239 @@ def run_functions(params,param_path_parent,Re):
         data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt')
     elif Re == '500':
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-        data = torch.load(file_dir)
-        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[:,::2,::2,:]
-        data = data[:,::2,::2,:]
+        train_data_raw = torch.load(file_dir)
+        # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[:,::2,::2,:]
+        test_data_raw = torch.load(f'data/KF_Re{Re}_M128_tsave1.0_T2000_n10/data.pt')
+        train_data = train_data_raw[:, ::2, ::2, :]
+        test_data = test_data_raw[:, ::2, ::2, :]
+        
+        print(train_data.shape)
+        print(test_data.shape)
+        
         if dt == 0.5:
-            data = data[::2,...]
+            # Fix this later
+            pass
+            # train_data = train_data[::2, ...]
+            # test_data = test_data[::2, ...]
         if dt == 1.0:
-            data = data[...,::2]
-            data_animate = data_animate[...,::2] # assuming dt = 1.0
-        print(data.shape)
-    data = data[185:,:,:,200:]
-    print(data.shape)
-    s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
+            train_data = train_data[..., ::2]
+        print(train_data.shape)
+        print(test_data.shape)
+        
+    # return None
+    # TODO: clarify why the subsampling is done this way
+    train_data = train_data[185:, :, :, 200:]
+
+    s = train_data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
 
-    # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[...,::2] # assuming dt = 1.0
-    # data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt') # assuming dt = 1.0
-    data_animate = data_animate[...,:500].permute(0,3,1,2).reshape(-1,s*s).to(device)
     grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
     grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
 
-    x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
+    if model_params['backbone'] == 'deeponet':
+        x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
+    elif model_params['backbone'] == 'fno':
+        x_trunk_input = None
 
-    gt_traj = data.permute(0,3,1,2).reshape(-1,s*s).to(device)
-    print(gt_traj.shape)
+    # lump portions of all training trajectories together for ground truth stats evaluation
+    train_gt_comb = train_data.permute(0,3,1,2).reshape(-1,s*s)
+    # keep trajectories separated for testing data
+    test_gt_multi_traj = test_data.reshape(test_data.shape[0], test_data.shape[-1], s * s)
+    
+    print(train_gt_comb.shape)
+    print(test_gt_multi_traj.shape)
 
-    ## ONE STEP COMPARISON W GROUND TRUTH
-    print('ONE STEP COMPARISON')
-    one_step_animation(model=model,
-        x_val = (data_animate[:-1,...],x_trunk_input),
-        y_val = data_animate[1:,...],
-        figs_dir=figs_dir,
-        s=s)
+    # Save Rollout trajectory (function requires torch)
+    if os.path.exists(f'{figs_dir}/rollout_traj.pt'):
+        pred_multi_traj = torch.load(f'{figs_dir}/rollout_traj.pt')
+    else:
+        print('Generating rollout trajectory')
+        pred_multi_traj = rollout_trajectory_batched(model, 
+                                    batched_initial_condition=test_gt_multi_traj[:, 0, :],
+                                    figs_dir=figs_dir,
+                                    s=s,
+                                    n_times=test_gt_multi_traj.shape[1]-1,
+                                    n_traj=test_gt_multi_traj.shape[0],
+                                    trunk_input=x_trunk_input)
+       
+    for ii in range(test_gt_multi_traj.shape[0]):
+        if torch.isnan(test_gt_multi_traj[ii]).any():
+            # check which step this happens
+            nan_steps = torch.isnan(test_gt_multi_traj[ii]).nonzero()
+            print(f'Ground truth trajectory {ii} contains NaN values at steps: {nan_steps}')
+            
+    for ii in range(pred_multi_traj.shape[0]):
+        if torch.isnan(pred_multi_traj[ii]).any():
+            # check which step this happens
+            nan_steps = torch.isnan(pred_multi_traj[ii]).nonzero()
+            print(f'Rollout {ii} contains NaN values at steps: {nan_steps}')
 
-    ## ROLLOUT COMPARISON W GROUND TRUTH
-    pred_traj = rollout_animation(model=model,
-        x_val = (data_animate[:-1,...],x_trunk_input),
-        y_val = data_animate[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-    pred_traj = pred_traj.to(device)
+    
+    test_traj_np = test_gt_multi_traj[test_idx].detach().cpu().numpy()
+    pred_traj_np = pred_multi_traj[test_idx].detach().cpu().numpy()
+    
+    ani_frame = 500
+    ani_gt_traj = test_traj_np[:ani_frame]
+    ani_pred_traj = pred_traj_np[:ani_frame]
 
-    ## FIRST TEN PCA MODES
-    print('PCA MODES (method A)')
-    pca_modes(w_data=gt_traj,w_model=pred_traj,figs_dir=figs_dir,s=s,device=device)
-
-    ## SPATIAL CORRELATION
-    print('SPATIAL CORRELATION')
-    spatial_corr(u_data=gt_traj.detach().cpu().numpy(),
-        u_model=pred_traj.detach().cpu().numpy(),
-        figs_dir=figs_dir,
-        s=s)
-
-    ## PCA PLOT
-    print('PCA PROJECTION')
-    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
-        pred_traj = pred_traj, 
-        figs_dir=figs_dir, 
-        Q=Q, 
-        c=c,
-        tag='')
-
-    ## DISTRIBUTION COMPARISON FOR DATA
-    print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
-    pred_traj_np = pred_traj.detach().cpu().numpy()
-    kl_div_traj = compare_distributions(gt_traj = gt_traj.detach().cpu().numpy().ravel(), 
-        pred_traj = pred_traj_np.ravel(), 
-        bins = 50,
-        plot=True, 
-        save_name=f'{figs_dir}/distribution_traj.png')
+    # Save animation of the rollout (NO torch)
+    if os.path.exists(f'{figs_dir}/rollout_idx{test_idx}_{ani_frame}.gif'):
+        print(f'Animation already exists: {figs_dir}/rollout_idx{test_idx}_{ani_frame}.gif')
+    else:
+        print('Saving animation of the rollout')
+        animate_rollout(
+            ani_gt_traj,
+            ani_pred_traj,
+            figs_dir,
+            s,
+            max_frames=ani_frame,
+            savename=f'rollout_idx{test_idx}_{ani_frame}',
+        )
 
 
-    # ## DISTRIBUTION COMPARISON FOR PCA MODES
-    print('DISTRIBUTION COMPARISON FOR PCA MODES')
-    pca_histogram_eval(gt_pca=pca_traj_gt, 
-        pred_pca=pca_traj_pred, 
-        bins=50, 
-        lim=[[-250.0, 250.0], [-250.0, 250.0]], 
-        save_path=f'{figs_dir}/distribution_pca.png', 
-        title_gt='Ground Truth', 
-        title_pred='Prediction')
+    # COSINE SIMILARITY OVER TIME (currently torch)
+    # print('Cosine similarity over time')
+    # cos_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
+    # if cosine_eval_steps is not None:
+    #     cos_steps = min(cos_steps, int(cosine_eval_steps))
+    # cosine_vals = None
+    # if cos_steps > 0:
+    #     if os.path.exists(f'{figs_dir}/cosine_similarity.png'):
+    #         print(f'Cosine similarity plot already exists: {figs_dir}/cosine_similarity.png')
+    #     else:
+    #         print('Generating cosine similarity plot')
+    #         gt_seq = test_gt_multi_traj[:, :cos_steps, :]
+    #         pred_seq = pred_multi_traj[:, :cos_steps, :]
+    #         cosine_vals = plot_cos_sims(
+    #             dt=dt,
+    #             trajs=gt_seq,
+    #             pred_trajs=pred_seq,
+    #             traj_length=cos_steps,
+    #             save_path=f'{figs_dir}/cosine_similarity.png',
+    #         )
+    #         print(f'Final cosine similarity: {cosine_vals[-1]:.4f}')
+    # else:
+    #     print('Insufficient samples to compute cosine similarity.')
+
+    # ## SINKHORN DIVERGENCE (uses pytorch)
+    # print('Sinkhorn divergence')
+    # sinkhorn_value = None
+    # sinkhorn_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
+    # if sinkhorn_steps > 0:
+    #     try:
+    #         sinkhorn_value = sinkhorn_div(
+    #             x=test_gt_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
+    #             y=pred_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
+    #             epsilon=0.1,
+    #             n_iters=150,
+    #             max_samples=512,
+    #             p=1,
+    #         )
+    #         print(f'Sinkhorn divergence (epsilon=0.1): {sinkhorn_value:.6f}')
+    #     except (ValueError, FloatingPointError) as exc:
+    #         print(f'Sinkhorn divergence computation failed: {exc}')
+    #         sinkhorn_value = None
+    # else:
+    #     print('Insufficient samples to compute Sinkhorn divergence.')
+
+    # ## Covariance RMSE
+    # print('covariance RMSE')
+    # cov_rmse_val = None
+    # if sinkhorn_steps > 0:
+    #     try:
+    #         cov_rmse_val = covariance_rmse(
+    #             test_gt_multi_traj[:, :sinkhorn_steps, :],
+    #             pred_multi_traj[:, :sinkhorn_steps, :],
+    #         )
+    #         print(f'covRMSE: {cov_rmse_val:.6f}')
+    #     except ValueError as exc:
+    #         print(f'covRMSE computation failed: {exc}')
+    #         cov_rmse_val = None
+    # else:
+    #     print('Insufficient samples to compute covRMSE.')
+
+    # ## Time Correlation Metric
+    # print('Time correlation metric')
+    # tcm_val = None
+    # tau_gt = tau_pred = None
+    # if sinkhorn_steps > 1:
+    #     try:
+    #         tcm_val, tau_gt, tau_pred = time_correlation_metric(
+    #             test_gt_multi_traj[:, :sinkhorn_steps, :],
+    #             pred_multi_traj[:, :sinkhorn_steps, :],
+    #             dt=dt,
+    #             positive_only=True,
+    #         )
+    #         print(f'TCM: {tcm_val:.6f}')
+    #     except ValueError as exc:
+    #         print(f'TCM computation failed: {exc}')
+    #         tcm_val = None
+    # else:
+    #     print('Insufficient samples to compute TCM.')
+
+    pred_traj_comb = pred_multi_traj.reshape(-1, s*s)
+    # ## FIRST TEN PCA MODES
+    # print('PCA MODES (method A)')
+    # pca_modes(w_data=train_gt_comb,w_model=pred_traj_comb,figs_dir=figs_dir,s=s,device=torch.device('cpu'))
+
+    # ## SPATIAL CORRELATION
+    # print('SPATIAL CORRELATION')
+    # spatial_corr(u_data=train_gt_comb.detach().cpu().numpy(),
+    #     u_model=pred_traj_comb.detach().cpu().numpy(),
+    #     figs_dir=figs_dir,
+    #     s=s)
+
+    # ## PCA PLOT
+    # print('PCA PROJECTION')
+    # pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = train_gt_comb, 
+    #     pred_traj = pred_traj_comb, 
+    #     figs_dir=figs_dir, 
+    #     Q=Q, 
+    #     c=c,
+    #     tag='')
+
+    # ## DISTRIBUTION COMPARISON FOR DATA
+    # print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
+    # pred_traj_np = pred_traj_comb.detach().cpu().numpy()
+    # kl_div_traj = compare_distributions(gt_traj = train_gt_comb.detach().cpu().numpy().ravel(), 
+    #     pred_traj = pred_traj_np.ravel(), 
+    #     bins = 50,
+    #     plot=True, 
+    #     save_name=f'{figs_dir}/distribution_traj.png')
+
+
+    # # ## DISTRIBUTION COMPARISON FOR PCA MODES
+    # print('DISTRIBUTION COMPARISON FOR PCA MODES')
+    # pca_histogram_eval(gt_pca=pca_traj_gt, 
+    #     pred_pca=pca_traj_pred, 
+    #     bins=50, 
+    #     lim=[[-250.0, 250.0], [-250.0, 250.0]], 
+    #     save_path=f'{figs_dir}/distribution_pca.png', 
+    #     title_gt='Ground Truth', 
+    #     title_pred='Prediction')
 
     ## FOURIER SPECTRUM
     print('FOURIER SPECTRUM COMPARISON')
-    print(gt_traj.shape)
-    print(pred_traj.shape)
-    fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
+    print(train_gt_comb.shape)
+    print(pred_traj_comb.shape)
+    fourier_spectrum_2d(gt_traj=train_gt_comb,pred_traj=pred_traj_comb,s=s,figs_dir=figs_dir,device=torch.device('cpu'))
 
     ## V OVER TIME
     print('Energy over time')
-    n = data_animate.shape[0]
-    energy_time(gt_traj=gt_traj[100:5100],pred_traj=pred_traj[100:5100],model=model,figs_dir=figs_dir)
+    # n = data_animate.shape[0]
+    energy_time(gt_traj=test_gt_multi_traj[test_idx],pred_traj=pred_multi_traj[test_idx],model=model,figs_dir=figs_dir)
+    return None
+    return {
+        "cosine_similarity": cosine_vals,
+        "sinkhorn_divergence": sinkhorn_value,
+        "covariance_rmse": cov_rmse_val,
+        "time_correlation_metric": tcm_val,
+        "tau_gt": tau_gt,
+        "tau_pred": tau_pred,
+    }
 
 
-
-def main(param_path_str,Re):
+def main(param_path_str, Re, cosine_eval_steps=None):
     param_path = Path(param_path_str)
     output_path = param_path.parent / "results.npz"  # Same directory as params.npz
 
@@ -173,18 +327,21 @@ def main(param_path_str,Re):
     data = np.load(param_path)
 
     # Process
-    result = run_functions(data,str(param_path.parent),Re)
+    result = run_functions(data, str(param_path.parent), Re, cosine_eval_steps=cosine_eval_steps)
 
     # # Save result
-    # np.savez(output_path, **result)
-    # print(f"Saved results to: {output_path}")
+    if result and any(v is not None for v in result.values()):
+        arrays = {k: np.asarray(v) if v is not None else np.array([]) for k, v in result.items()}
+        np.savez(output_path, **arrays)
+        print(f"Saved results to: {output_path}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python process_params.py /path/to/params.npz")
+    if len(sys.argv) < 3:
+        print("Usage: python eval.py /path/to/params.npz Re [cosine_eval_steps]")
         sys.exit(1)
 
     print(sys.argv[1])
     print(sys.argv[2])
+    cosine_eval_steps = sys.argv[3] if len(sys.argv) > 3 else None
 
-    main(sys.argv[1],sys.argv[2])
+    main(sys.argv[1], sys.argv[2], cosine_eval_steps)
