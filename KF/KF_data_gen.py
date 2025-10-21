@@ -15,10 +15,10 @@ Re = 500 # Reynolds number
 # Re = 70
 dt = 0.0005 # Integration time step
 n = 4 # forcing period 
-T = 2000 # end time
+T = 500 # end time
 M = N = 128 # x and y discretization
 t_save = 1.0 # save time step
-n_traj = 10 # number of trajectories to generate 
+n_traj = 50 # number of trajectories to generate 
 n_ani = 5 # how many trajectories to visualize
 ic_factor = 10.0
 
@@ -39,7 +39,7 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}_ic{ic_factor:.1f}'
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 

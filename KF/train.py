@@ -70,7 +70,8 @@ def train(params):
         file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
         data = torch.load(file_dir)
     elif Re == '500':
-        file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+        # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+        file_dir = f'data/KF_Re{Re}_M128_tsave1.0_T500_n{params["data_size"]}_ic10.0/data.pt'
         data = torch.load(file_dir)
         data = data[:,::2,::2,:]
         if dt == 0.5:
@@ -445,24 +446,24 @@ def train(params):
     #     y_val = gt_traj[1:,...],
     #     figs_dir=figs_dir,
     #     s=s)
-    one_step_animation(model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-
-    ## ROLLOUT COMPARISON W GROUND TRUTH
-    # pred_traj = rollout_animation(model=eval_model,
+    # one_step_animation(model,
     #     x_val = (gt_traj[:-1,...],x_trunk_input),
     #     y_val = gt_traj[1:,...],
     #     figs_dir=figs_dir,
     #     s=s)
-    one_step_animation(model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-    pred_traj = pred_traj.to(device)
+
+    # ## ROLLOUT COMPARISON W GROUND TRUTH
+    # # pred_traj = rollout_animation(model=eval_model,
+    # #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    # #     y_val = gt_traj[1:,...],
+    # #     figs_dir=figs_dir,
+    # #     s=s)
+    # one_step_animation(model,
+    #     x_val = (gt_traj[:-1,...],x_trunk_input),
+    #     y_val = gt_traj[1:,...],
+    #     figs_dir=figs_dir,
+    #     s=s)
+    # pred_traj = pred_traj.to(device)
 
     # ## FIRST TEN PCA MODES
     # print('PCA MODES (method A)')
@@ -549,6 +550,8 @@ if __name__ == "__main__":
                     help='If >0, clip grad-norm to this value')
 
 
+    parser.add_argument('--data_size', type=int, default=100,
+                        help='Size of the dataset to use for training')
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
