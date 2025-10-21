@@ -53,4 +53,3 @@ for last_act in "${last_acts[@]}"; do
 	  	done
 		done
 	done
-done
