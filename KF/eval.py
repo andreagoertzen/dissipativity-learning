@@ -178,125 +178,125 @@ def run_functions(params, param_path_parent, Re, test_idx=0, cosine_eval_steps=N
 
 
     # COSINE SIMILARITY OVER TIME (currently torch)
-    # print('Cosine similarity over time')
-    # cos_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
-    # if cosine_eval_steps is not None:
-    #     cos_steps = min(cos_steps, int(cosine_eval_steps))
-    # cosine_vals = None
-    # if cos_steps > 0:
-    #     if os.path.exists(f'{figs_dir}/cosine_similarity.png'):
-    #         print(f'Cosine similarity plot already exists: {figs_dir}/cosine_similarity.png')
-    #     else:
-    #         print('Generating cosine similarity plot')
-    #         gt_seq = test_gt_multi_traj[:, :cos_steps, :]
-    #         pred_seq = pred_multi_traj[:, :cos_steps, :]
-    #         cosine_vals = plot_cos_sims(
-    #             dt=dt,
-    #             trajs=gt_seq,
-    #             pred_trajs=pred_seq,
-    #             traj_length=cos_steps,
-    #             save_path=f'{figs_dir}/cosine_similarity.png',
-    #         )
-    #         print(f'Final cosine similarity: {cosine_vals[-1]:.4f}')
-    # else:
-    #     print('Insufficient samples to compute cosine similarity.')
+    print('Cosine similarity over time')
+    cos_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
+    if cosine_eval_steps is not None:
+        cos_steps = min(cos_steps, int(cosine_eval_steps))
+    cosine_vals = None
+    if cos_steps > 0:
+        if os.path.exists(f'{figs_dir}/cosine_similarity.png'):
+            print(f'Cosine similarity plot already exists: {figs_dir}/cosine_similarity.png')
+        else:
+            print('Generating cosine similarity plot')
+            gt_seq = test_gt_multi_traj[:, :cos_steps, :]
+            pred_seq = pred_multi_traj[:, :cos_steps, :]
+            cosine_vals = plot_cos_sims(
+                dt=dt,
+                trajs=gt_seq,
+                pred_trajs=pred_seq,
+                traj_length=cos_steps,
+                save_path=f'{figs_dir}/cosine_similarity.png',
+            )
+            print(f'Final cosine similarity: {cosine_vals[-1]:.4f}')
+    else:
+        print('Insufficient samples to compute cosine similarity.')
 
-    # ## SINKHORN DIVERGENCE (uses pytorch)
-    # print('Sinkhorn divergence')
-    # sinkhorn_value = None
-    # sinkhorn_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
-    # if sinkhorn_steps > 0:
-    #     try:
-    #         sinkhorn_value = sinkhorn_div(
-    #             x=test_gt_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
-    #             y=pred_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
-    #             epsilon=0.1,
-    #             n_iters=150,
-    #             max_samples=512,
-    #             p=1,
-    #         )
-    #         print(f'Sinkhorn divergence (epsilon=0.1): {sinkhorn_value:.6f}')
-    #     except (ValueError, FloatingPointError) as exc:
-    #         print(f'Sinkhorn divergence computation failed: {exc}')
-    #         sinkhorn_value = None
-    # else:
-    #     print('Insufficient samples to compute Sinkhorn divergence.')
+    ## SINKHORN DIVERGENCE (uses pytorch)
+    print('Sinkhorn divergence')
+    sinkhorn_value = None
+    sinkhorn_steps = min(test_gt_multi_traj.shape[1], pred_multi_traj.shape[1])
+    if sinkhorn_steps > 0:
+        try:
+            sinkhorn_value = sinkhorn_div(
+                x=test_gt_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
+                y=pred_multi_traj[:, :sinkhorn_steps, :].reshape(-1, s * s),
+                epsilon=0.1,
+                n_iters=150,
+                max_samples=512,
+                p=1,
+            )
+            print(f'Sinkhorn divergence (epsilon=0.1): {sinkhorn_value:.6f}')
+        except (ValueError, FloatingPointError) as exc:
+            print(f'Sinkhorn divergence computation failed: {exc}')
+            sinkhorn_value = None
+    else:
+        print('Insufficient samples to compute Sinkhorn divergence.')
 
-    # ## Covariance RMSE
-    # print('covariance RMSE')
-    # cov_rmse_val = None
-    # if sinkhorn_steps > 0:
-    #     try:
-    #         cov_rmse_val = covariance_rmse(
-    #             test_gt_multi_traj[:, :sinkhorn_steps, :],
-    #             pred_multi_traj[:, :sinkhorn_steps, :],
-    #         )
-    #         print(f'covRMSE: {cov_rmse_val:.6f}')
-    #     except ValueError as exc:
-    #         print(f'covRMSE computation failed: {exc}')
-    #         cov_rmse_val = None
-    # else:
-    #     print('Insufficient samples to compute covRMSE.')
+    ## Covariance RMSE
+    print('covariance RMSE')
+    cov_rmse_val = None
+    if sinkhorn_steps > 0:
+        try:
+            cov_rmse_val = covariance_rmse(
+                test_gt_multi_traj[:, :sinkhorn_steps, :],
+                pred_multi_traj[:, :sinkhorn_steps, :],
+            )
+            print(f'covRMSE: {cov_rmse_val:.6f}')
+        except ValueError as exc:
+            print(f'covRMSE computation failed: {exc}')
+            cov_rmse_val = None
+    else:
+        print('Insufficient samples to compute covRMSE.')
 
-    # ## Time Correlation Metric
-    # print('Time correlation metric')
-    # tcm_val = None
-    # tau_gt = tau_pred = None
-    # if sinkhorn_steps > 1:
-    #     try:
-    #         tcm_val, tau_gt, tau_pred = time_correlation_metric(
-    #             test_gt_multi_traj[:, :sinkhorn_steps, :],
-    #             pred_multi_traj[:, :sinkhorn_steps, :],
-    #             dt=dt,
-    #             positive_only=True,
-    #         )
-    #         print(f'TCM: {tcm_val:.6f}')
-    #     except ValueError as exc:
-    #         print(f'TCM computation failed: {exc}')
-    #         tcm_val = None
-    # else:
-    #     print('Insufficient samples to compute TCM.')
+    ## Time Correlation Metric
+    print('Time correlation metric')
+    tcm_val = None
+    tau_gt = tau_pred = None
+    if sinkhorn_steps > 1:
+        try:
+            tcm_val, tau_gt, tau_pred = time_correlation_metric(
+                test_gt_multi_traj[:, :sinkhorn_steps, :],
+                pred_multi_traj[:, :sinkhorn_steps, :],
+                dt=dt,
+                positive_only=True,
+            )
+            print(f'TCM: {tcm_val:.6f}')
+        except ValueError as exc:
+            print(f'TCM computation failed: {exc}')
+            tcm_val = None
+    else:
+        print('Insufficient samples to compute TCM.')
 
     pred_traj_comb = pred_multi_traj.reshape(-1, s*s)
-    # ## FIRST TEN PCA MODES
-    # print('PCA MODES (method A)')
-    # pca_modes(w_data=train_gt_comb,w_model=pred_traj_comb,figs_dir=figs_dir,s=s,device=torch.device('cpu'))
+    ## FIRST TEN PCA MODES
+    print('PCA MODES (method A)')
+    pca_modes(w_data=train_gt_comb,w_model=pred_traj_comb,figs_dir=figs_dir,s=s,device=torch.device('cpu'))
 
-    # ## SPATIAL CORRELATION
-    # print('SPATIAL CORRELATION')
-    # spatial_corr(u_data=train_gt_comb.detach().cpu().numpy(),
-    #     u_model=pred_traj_comb.detach().cpu().numpy(),
-    #     figs_dir=figs_dir,
-    #     s=s)
+    ## SPATIAL CORRELATION
+    print('SPATIAL CORRELATION')
+    spatial_corr(u_data=train_gt_comb.detach().cpu().numpy(),
+        u_model=pred_traj_comb.detach().cpu().numpy(),
+        figs_dir=figs_dir,
+        s=s)
 
-    # ## PCA PLOT
-    # print('PCA PROJECTION')
-    # pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = train_gt_comb, 
-    #     pred_traj = pred_traj_comb, 
-    #     figs_dir=figs_dir, 
-    #     Q=Q, 
-    #     c=c,
-    #     tag='')
+    ## PCA PLOT
+    print('PCA PROJECTION')
+    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = train_gt_comb, 
+        pred_traj = pred_traj_comb, 
+        figs_dir=figs_dir, 
+        Q=Q, 
+        c=c,
+        tag='')
 
-    # ## DISTRIBUTION COMPARISON FOR DATA
-    # print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
-    # pred_traj_np = pred_traj_comb.detach().cpu().numpy()
-    # kl_div_traj = compare_distributions(gt_traj = train_gt_comb.detach().cpu().numpy().ravel(), 
-    #     pred_traj = pred_traj_np.ravel(), 
-    #     bins = 50,
-    #     plot=True, 
-    #     save_name=f'{figs_dir}/distribution_traj.png')
+    ## DISTRIBUTION COMPARISON FOR DATA
+    print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
+    pred_traj_np = pred_traj_comb.detach().cpu().numpy()
+    kl_div_traj = compare_distributions(gt_traj = train_gt_comb.detach().cpu().numpy().ravel(), 
+        pred_traj = pred_traj_np.ravel(), 
+        bins = 50,
+        plot=True, 
+        save_name=f'{figs_dir}/distribution_traj.png')
 
 
-    # # ## DISTRIBUTION COMPARISON FOR PCA MODES
-    # print('DISTRIBUTION COMPARISON FOR PCA MODES')
-    # pca_histogram_eval(gt_pca=pca_traj_gt, 
-    #     pred_pca=pca_traj_pred, 
-    #     bins=50, 
-    #     lim=[[-250.0, 250.0], [-250.0, 250.0]], 
-    #     save_path=f'{figs_dir}/distribution_pca.png', 
-    #     title_gt='Ground Truth', 
-    #     title_pred='Prediction')
+    # ## DISTRIBUTION COMPARISON FOR PCA MODES
+    print('DISTRIBUTION COMPARISON FOR PCA MODES')
+    pca_histogram_eval(gt_pca=pca_traj_gt, 
+        pred_pca=pca_traj_pred, 
+        bins=50, 
+        lim=[[-250.0, 250.0], [-250.0, 250.0]], 
+        save_path=f'{figs_dir}/distribution_pca.png', 
+        title_gt='Ground Truth', 
+        title_pred='Prediction')
 
     ## FOURIER SPECTRUM
     print('FOURIER SPECTRUM COMPARISON')
@@ -308,7 +308,7 @@ def run_functions(params, param_path_parent, Re, test_idx=0, cosine_eval_steps=N
     print('Energy over time')
     # n = data_animate.shape[0]
     energy_time(gt_traj=test_gt_multi_traj[test_idx],pred_traj=pred_multi_traj[test_idx],model=model,figs_dir=figs_dir)
-    return None
+    # return None
     return {
         "cosine_similarity": cosine_vals,
         "sinkhorn_divergence": sinkhorn_value,

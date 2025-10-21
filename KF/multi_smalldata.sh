@@ -4,7 +4,7 @@
 # Experiments 10/21: running fno with limited data
 re=500
 epochs=200
-bsize=100
+bsize=50
 lr=5e-4
 # maxlr=1e-3
 
@@ -14,8 +14,8 @@ backs=("fno")
 for last_act in "${last_acts[@]}"; do
   for dim in 1024; do
 		for back in "${backs[@]}"; do
-	  	for train_traj in 20 50 100; do
-				for c in 500 1000; do
+	  	for train_traj in 50 100; do
+				for c in 350 400 500; do
 					project_tag="c${c}_train${train_traj}"
 
 					sbatch run.sh --epochs $epochs --bsize $bsize \
