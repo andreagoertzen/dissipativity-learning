@@ -2,7 +2,7 @@
 #SBATCH --job-name backbone_sweep
 
 re=500
-epochs=50
+epochs=200
 bsize=50
 lr=5e-4
 # maxlr=1e-3
@@ -11,13 +11,14 @@ lr=5e-4
 last_acts=(0)
 backs=("fno")
 for last_act in "${last_acts[@]}"; do
-  for dim in 1024; do
-    for c in 450 900 1000 2000; do
+  for n_traj in 5 10 20; do
+    for c in 450; do
       for back in "${backs[@]}"; do
         # tag="dim${dim}_act${last_act}"
 
         cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
           --sched multistep \
+          --n_traj $n_traj \
           --dt 1.0 --Re $re \
           --lr $lr \
           --lam_reg_vol 0.1 \

@@ -55,6 +55,7 @@ def train(params):
     Re = params['Re']
     scheduler = params['scheduler'] if 'scheduler' in params else False
     dt = params['dt']
+    n_traj = params['n_traj']
 
     model_folder = model_dir
     figs_folder = figs_dir = os.path.join(model_dir, 'eval_results')
@@ -68,10 +69,10 @@ def train(params):
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     if Re == '40':
         file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
-        data = torch.load(file_dir)
+        data = torch.load(file_dir)[:n_traj,...]
     elif Re == '500':
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-        data = torch.load(file_dir)
+        data = torch.load(file_dir)[:n_traj,...] # may need to decrease batch size/increase epochs accordingly
         data = data[:,::2,::2,:]
         if dt == 0.5:
             data = data[::2,...]
@@ -548,6 +549,9 @@ if __name__ == "__main__":
     parser.add_argument('--clip_grad', type=float, default=0.0,
                     help='If >0, clip grad-norm to this value')
 
+    parser.add_argument('--n_traj', type=int, default=200,
+                    help='number of trajectories to use in training/validation set')
+
 
 
     # Model parameters
@@ -609,7 +613,7 @@ if __name__ == "__main__":
         deeponet_string = f'TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}'
     else:
         deeponet_string = ''
-    save_name = f'E{args.epochs}_Re{args.Re}_{args.backbone}_{deeponet_string}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_Re{args.Re}_{args.backbone}_{deeponet_string}_ntraj{args.n_traj}_dt{args.dt}_lr{args.lr}_bsize{args.bsize}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 

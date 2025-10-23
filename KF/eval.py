@@ -8,14 +8,14 @@ import numpy as np
 
 
 
-def run_functions(params,param_path_parent,Re):
+def run_functions(params,param_path_parent,Re,ICscale):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
     m = 64
     n = 2
     model_folder = param_path_parent
     print(model_folder)
-    figs_dir = figs_folder = f'{model_folder}/eval_results'
+    figs_dir = figs_folder = f'{model_folder}/eval_results_ICscale{ICscale}'
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
@@ -109,7 +109,8 @@ def run_functions(params,param_path_parent,Re):
         x_val = (data_animate[:-1,...],x_trunk_input),
         y_val = data_animate[1:,...],
         figs_dir=figs_dir,
-        s=s)
+        s=s,
+        ICscale=ICscale)
     pred_traj = pred_traj.to(device)
 
     ## FIRST TEN PCA MODES
@@ -124,9 +125,13 @@ def run_functions(params,param_path_parent,Re):
         s=s)
 
     ## PCA PLOT
+    row_norms = torch.norm(pred_traj, p=2, dim=1)
+    mask = row_norms<1e10
+    print(mask.shape)
+    pred_traj_pca = pred_traj[mask,:]
     print('PCA PROJECTION')
     pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
-        pred_traj = pred_traj, 
+        pred_traj = pred_traj_pca, 
         figs_dir=figs_dir, 
         Q=Q, 
         c=c,
@@ -161,7 +166,7 @@ def run_functions(params,param_path_parent,Re):
     ## V OVER TIME
     print('Energy over time')
     n = data_animate.shape[0]
-    energy_time(gt_traj=gt_traj[100:5100],pred_traj=pred_traj[100:5100],model=model,figs_dir=figs_dir)
+    energy_time(gt_traj=gt_traj[:5000],pred_traj=pred_traj[:5000],model=model,figs_dir=figs_dir)
 
 
 
@@ -173,7 +178,9 @@ def main(param_path_str,Re):
     data = np.load(param_path)
 
     # Process
-    result = run_functions(data,str(param_path.parent),Re)
+    ICscales = [1,30,85]
+    for ICscale in ICscales:
+        result = run_functions(data,str(param_path.parent),Re,ICscale)
 
     # # Save result
     # np.savez(output_path, **result)
