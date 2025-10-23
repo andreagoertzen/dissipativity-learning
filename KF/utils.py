@@ -198,7 +198,7 @@ def one_step_animation(model,x_val,y_val,figs_dir,s):
     with tqdm(total=n_times, desc='Saving video') as progress_bar:
         ani.save(f"{figs_dir}/one_step.gif",progress_callback=update_func)
 
-def rollout_animation(model, x_val,y_val,figs_dir,s):
+def rollout_animation(model, x_val,y_val,figs_dir,s,ICscale=1):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     ims = []
     n_times = 10000
@@ -218,7 +218,7 @@ def rollout_animation(model, x_val,y_val,figs_dir,s):
     rf = Gaussian(dim = 2, var = 1, len_scale = 10)
     srf = SRF(rf,seed = 13,generator='Fourier',period = s)
     field = srf.structured([x,y],seed=900)
-    pred_traj[0,...] = torch.tensor(field).reshape(-1,s*s) *85
+    pred_traj[0,...] = torch.tensor(field).reshape(-1,s*s) *ICscale
     pred_traj = pred_traj.to(device)
 
     ## animation to compare to a single trajectory
