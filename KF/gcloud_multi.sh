@@ -5,49 +5,54 @@ mkdir -p logs
 # Experiments 10/13: running fno
 re=500
 epochs=500
-bsize=100
+bsize=50
 lr=5e-4
 # maxlr=1e-3
 
 # backs : model backbone ("fno" or "deeponet")
-last_acts=(0)
 backs=("fno")
-for last_act in "${last_acts[@]}"; do
-  for dim in 1024; do
-    for c in 900 2000; do
-      for back in "${backs[@]}"; do
-        for n_steps in 3 5; do
-          tag="c${c}_steps${n_steps}"
 
-          cmd="sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
-            --branch_conv_channels 64 128 256 512 \
-            --output_dim $dim --branch_fc_dims $dim \
-            --trunk_hidden_dims $dim $dim $dim $dim \
-            --dt 1.0 --Re $re \
-            --lr $lr \
-            --lam_reg_vol 0.1 \
-            --project \
-            --diag_Q \
-            --c_init $c \
-            --discrete_proj \
-            --tag \"$tag\" \
-            --bsize $bsize \
-            --backbone $back \
-            --sched "multistep" \
-            --multi_step --n_steps $n_steps"
+for dim in 1024; do
+  for train_portion in 0.1 0.25 0.5 1.0; do
+    for back in "${backs[@]}"; do
+      for c in 500 900; do
+        proj_tag="c${c}_train_portion${train_portion}_ic30"
+        # Projected model
+        sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
+          --branch_conv_channels 64 128 256 512 \
+          --output_dim $dim --branch_fc_dims $dim \
+          --trunk_hidden_dims $dim $dim $dim $dim \
+          --dt 1.0 --Re $re \
+          --lr $lr \
+          --lam_reg_vol 0.1 \
+          --project \
+          --diag_Q \
+          --c_init $c \
+          --discrete_proj \
+          --tag \"$proj_tag\" \
+          --bsize $bsize \
+          --backbone $back \
+          --sched "multistep" \
+          --train_data_portion $train_portion
+        done
 
-          # Conditionally add the flag
-          if [ "$last_act" -eq 1 ]; then
-            cmd="$cmd --trunk_last_act"
-          fi
+      base_tag="train_portion${train_portion}_ic30"
+      sbatch gcloud_single.sh --epochs $epochs --bsize $bsize \
+        --branch_conv_channels 64 128 256 512 \
+        --output_dim $dim --branch_fc_dims $dim \
+        --trunk_hidden_dims $dim $dim $dim $dim \
+        --dt 1.0 --Re $re \
+        --lr $lr \
+        --tag \"$base_tag\" \
+        --bsize $bsize \
+        --backbone $back \
+        --sched "multistep" \
+        --train_data_portion $train_portion
 
-          echo "$cmd"
-          eval "$cmd"
-          done
-      done
     done
   done
 done
+
 
 # re=40
 # epochs=3000

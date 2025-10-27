@@ -81,6 +81,12 @@ def train(params):
         #     data = data[...,::2]
         print('data shape')
         print(data.shape)
+        
+    if params['train_data_portion'] < 1.0:
+        n_total = data.shape[0]
+        n_train = int(n_total * params['train_data_portion'])
+        data = data[:n_train,...]
+        print(f'Using only {n_train} samples for training out of {n_total}')
 
     if params['multi_step']:
         print('Using multi-step dataset: n_steps = ', params['n_steps'], ' stride = ', params['stride'])
@@ -577,6 +583,7 @@ if __name__ == "__main__":
     parser.add_argument('--stride', type=int, help='stride for multi-step dataset', default=1)
     parser.add_argument('--n_steps', type=int, help='number of steps for multi-step dataset', default=3)
     parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='fno',help='model backbone to use (default: fno)')
+    parser.add_argument('--train_data_portion', type=float, help='Portion of training data to use (between 0 and 1)', default=1.0)
 
     args = parser.parse_args()
 
