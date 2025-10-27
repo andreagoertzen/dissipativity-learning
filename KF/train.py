@@ -71,13 +71,14 @@ def train(params):
         data = torch.load(file_dir)
     elif Re == '500':
         # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-        file_dir = f'data/KF_Re{Re}_M128_tsave1.0_T500_n{params["data_size"]}_ic10.0/data.pt'
+        file_dir = f'data/KF_Re500.0_M128_tsave1.0_T500.0_n200_ic30.0/data.pt'
         data = torch.load(file_dir)
         data = data[:,::2,::2,:]
-        if dt == 0.5:
-            data = data[::2,...]
-        if dt == 1.0:
-            data = data[...,::2]
+        # For now disable the downsampling as the dataset is 1.0 second apart
+        # if dt == 0.5:
+        #     data = data[::2,...]
+        # if dt == 1.0:
+        #     data = data[...,::2]
         print('data shape')
         print(data.shape)
 
