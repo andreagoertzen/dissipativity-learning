@@ -1,49 +1,59 @@
 #!/bin/bash
+# submit_all_evals.sh
+# Usage: ./submit_all_evals.sh <BASE_DIR> <RE_NUMBER> [COSINE_EVAL_STEPS]
 set -euo pipefail
-mkdir -p logs
 
-echo "STARTING JOB SUBMISSION SCRIPT"
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+  echo "Usage: $0 <BASE_DIR> <RE_NUMBER> [COSINE_EVAL_STEPS]"
+  exit 1
+fi
 
-# --- Configuration ---
-# Base directory to search for model parameters
-BASE_DIR="${1:-.}"
-# The sbatch script to execute for each job
-SBATCH_SCRIPT="gc_eval.sh"
-# The filename that indicates an evaluation is complete
-# Change this to match the actual output file of your eval.py script
-COMPLETION_MARKER="eval_results.npz"
+BASE_DIR="$1"
+RE_NUMBER="$2"
+COS_STEPS="${3:-}"
 
-echo "Searching in: $BASE_DIR"
+SBATCH_SCRIPT="gc_eval.sh"         # single-job script (updated above)
+PARAM_BASENAME="model_params.npz"  # what to look for
+COMPLETION_MARKER="results.npz"    # what eval.py actually writes
+LOG_DIR="logs"
+
+mkdir -p "$LOG_DIR"
+
+echo "Scanning: $BASE_DIR"
+echo "Reynolds number: $RE_NUMBER"
+[ -n "$COS_STEPS" ] && echo "Cosine eval steps: $COS_STEPS"
+echo "Submitting jobs via: $SBATCH_SCRIPT"
 echo "--------------------------------------------------"
 
 job_count=0
-# Use find with -print0 and a while loop to safely handle all filenames
+
+# find safely handles spaces via -print0
 while IFS= read -r -d '' PARAM_FILE; do
-    MODEL_DIR=$(dirname "$PARAM_FILE")
-    
-    # --- Check for Completion ---
-    if [ -f "$MODEL_DIR/$COMPLETION_MARKER" ]; then
-        echo "Skipping $MODEL_DIR (results file already exists)."
-        continue
-    fi
+  MODEL_DIR="$(dirname "$PARAM_FILE")"
+  MODEL_NAME="$(basename "$MODEL_DIR")"
 
-    # --- Extract Reynolds Number ---
-    PARENT_DIR_NAME=$(basename "$MODEL_DIR")
-    if [[ $PARENT_DIR_NAME =~ Re([0-9]+) ]]; then
-        RE_NUMBER="${BASH_REMATCH[1]}"
-    else
-        echo "Could not extract Re number from folder: $PARENT_DIR_NAME. Skipping."
-        continue
-    fi
+  # Skip if results already exist
+  if [ -f "$MODEL_DIR/$COMPLETION_MARKER" ]; then
+    echo "✔ Skipping $MODEL_NAME (found $COMPLETION_MARKER)"
+    continue
+  fi
 
-    echo "Found parameters for Re = $RE_NUMBER in $MODEL_DIR"
-    echo "   Submitting job..."
-    
-    # --- Submit the Job ---
-    sbatch "$SBATCH_SCRIPT" "$PARAM_FILE" "$RE_NUMBER"
-    ((job_count++))
-    echo "--------------------------------------------------"
+  echo "→ Submitting: $MODEL_NAME"
+  if [ -n "$COS_STEPS" ]; then
+    sbatch \
+      --job-name="eval_Re${RE_NUMBER}_${MODEL_NAME}" \
+      --output="${LOG_DIR}/eval_Re${RE_NUMBER}_${MODEL_NAME}_%j.out" \
+      "$SBATCH_SCRIPT" "$PARAM_FILE" "$RE_NUMBER" "$COS_STEPS"
+  else
+    sbatch \
+      --job-name="eval_Re${RE_NUMBER}_${MODEL_NAME}" \
+      --output="${LOG_DIR}/eval_Re${RE_NUMBER}_${MODEL_NAME}_%j.out" \
+      "$SBATCH_SCRIPT" "$PARAM_FILE" "$RE_NUMBER"
+  fi
 
-done < <(find "$BASE_DIR" -type f -name "model_params.npz" -print0)
+  ((job_count++))
+done < <(find "$BASE_DIR" -type f -name "$PARAM_BASENAME" -print0)
 
-echo "DONE. Submitted a total of $job_count jobs."
+echo "--------------------------------------------------"
+echo "DONE. Submitted $job_count job(s)."
+echo "Logs will appear under: $LOG_DIR/"
