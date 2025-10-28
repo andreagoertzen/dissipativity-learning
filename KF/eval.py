@@ -86,10 +86,17 @@ def run_functions(params, param_path_parent, Re, test_idx=0, cosine_eval_steps=N
         data = torch.load(file_dir)
         data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt')
     elif Re == '500':
-        file_dir = 'data/KF_Re500.0_M128_tsave1.0_T500.0_n200_ic30.0'
+        file_dir = 'data/KF_Re500.0_M128_tsave1.0_T500.0_n200_ic30.0/data.pt'
+        # file_dir = 'data/KF_Re500_M128_tsave0.5_T500_n200/data.pt'
         train_data_raw = torch.load(file_dir)
         # data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[:,::2,::2,:]
-        test_data_raw = torch.load(f'data/KF_Re{Re}_M128_tsave1.0_T2000_n10/data.pt')
+        # test_data_raw = torch.load(f'data/KF_Re{Re}_M128_tsave1.0_T2000_n10/data.pt')
+        
+        # temporary fix: use last 10 trajectories from train-data
+        print(train_data_raw.shape)
+        test_data_raw = train_data_raw[-10:, :, :, :]
+        print(test_data_raw.shape)
+        
         train_data = train_data_raw[:, ::2, ::2, :]
         test_data = test_data_raw[:, ::2, ::2, :]
         
