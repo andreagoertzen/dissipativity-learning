@@ -19,10 +19,23 @@ if command -v conda >/dev/null 2>&1; then
 fi
 
 # Two ic_factors — one per task
-IC_FACTORS=(30.0 100.0)
+IC_FACTORS=(30.0 30.0 30.0)
 IC="${IC_FACTORS[$SLURM_ARRAY_TASK_ID]}"
-DT_FACTORS=(0.0001 0.00004)
+DT_FACTORS=(0.0005 0.00025 0.0001)
 DT="${DT_FACTORS[$SLURM_ARRAY_TASK_ID]}"
+
+# Basic validation: ensure the array index is in range. This makes it
+# easier to run with larger arrays (e.g. sbatch --array=0-2) and gives a
+# clear error if you accidentally submit the wrong range.
+NUM_TASKS=${#IC_FACTORS[@]}
+if [ -z "${SLURM_ARRAY_TASK_ID+x}" ]; then
+  echo "[error] SLURM_ARRAY_TASK_ID not set. Submit with sbatch --array=0-$((NUM_TASKS-1)) multi_data_gen.sh"
+  exit 1
+fi
+if [ "$SLURM_ARRAY_TASK_ID" -lt 0 ] || [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_TASKS" ]; then
+  echo "[error] SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID out of range (0..$((NUM_TASKS-1)))."
+  exit 1
+fi
 
 # Your other knobs (edit if you like)
 RE=500
@@ -42,4 +55,13 @@ srun python KF_data_gen.py \
   --ic_factor "${IC}"
 
 
-# When running this, use an array: sbatch --array=0-1 multi_data_gen.sh
+# When running this, use an array whose indices match the length of
+# the IC_FACTORS/DT_FACTORS arrays above. For example, there are 3
+# entries so use 0-2:
+#   sbatch --array=0-2 multi_data_gen.sh
+# To limit concurrency (max tasks running at once) add a %N suffix,
+# for example run at most 3 simultaneously:
+#   sbatch --array=0-2%3 multi_data_gen.sh
+# You can also set the array directive inside this script (uncomment
+# and edit) to make the range permanent:
+#   #SBATCH --array=0-2%3

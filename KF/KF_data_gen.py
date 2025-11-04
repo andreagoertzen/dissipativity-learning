@@ -64,7 +64,7 @@ def main():
     dealias[ky*L>N/3-1] = 0 
     dealias[ky*L<-N/3] = 0 
 
-    folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}_ic{ic_factor:.1f}'
+    folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}_ic{ic_factor:.1f}_dt{dt}'
     if not os.path.exists(f'data/{folder}'):
         os.makedirs(f'data/{folder}')
 
