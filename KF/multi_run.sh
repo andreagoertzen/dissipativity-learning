@@ -2,7 +2,7 @@
 #SBATCH --job-name backbone_sweep
 
 re=500
-epochs=200
+epochs=50
 bsize=50
 lr=5e-4
 # maxlr=1e-3
@@ -11,8 +11,8 @@ lr=5e-4
 last_acts=(0)
 backs=("fno")
 for last_act in "${last_acts[@]}"; do
-  for n_traj in 5 10 20; do
-    for c in 450; do
+  for n_traj in 200; do
+    for c in 50 100 300 500 700; do
       for back in "${backs[@]}"; do
         # tag="dim${dim}_act${last_act}"
 
@@ -21,13 +21,15 @@ for last_act in "${last_acts[@]}"; do
           --n_traj $n_traj \
           --dt 1.0 --Re $re \
           --lr $lr \
+          --tag ICscale_1 \
           --lam_reg_vol 0.1 \
           --project \
           --diag_Q \
           --c_init $c \
           --discrete_proj \
           --bsize $bsize \
-          --backbone $back"
+          --backbone $back \
+          --nn_Q"
 
         # Conditionally add the flag
         if [ "$last_act" -eq 1 ]; then

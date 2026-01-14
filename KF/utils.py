@@ -39,11 +39,11 @@ class TrajectoryDataset(Dataset):
         # if x_data.ndim == 1:
         #     x_data = x_data.reshape(-1, 1)
 
-        print('x_data shape')
+        print('x_data shape (single step)')
         print(x_data.shape)
 
         self.trunk_input = torch.tensor(x_data, dtype=torch.float32)
-        
+        print('done 46')
         branch_inputs = []
         targets = []
         
@@ -54,10 +54,17 @@ class TrajectoryDataset(Dataset):
             for t in range(traj.shape[-1] - 1):
                 branch_inputs.append(traj[...,t].reshape(-1,s*s))
                 targets.append(traj[...,t+1].reshape(-1,s*s))
-                
+        print('done 57')        
+        
         # Convert the lists of individual steps into single large tensors for efficiency.
-        self.branch_inputs = torch.tensor(np.array(branch_inputs), dtype=torch.float32).squeeze(1)
-        self.targets = torch.tensor(np.array(targets), dtype=torch.float32).squeeze(1)
+        branch_inputs_np = np.array(branch_inputs).astype(np.float32)
+        print('done 61')
+        self.branch_inputs = torch.from_numpy(branch_inputs_np).squeeze(1)
+        print('done 63')
+        targets_np = np.array(targets).astype(np.float32)
+        print('done 65')
+        self.targets = torch.from_numpy(targets_np).squeeze(1)
+        print('done all')
         
     def __len__(self):
         """Returns the total number of (u_t, u_{t+1}) pairs."""
@@ -802,7 +809,7 @@ class InferenceWrapper(torch.nn.Module):
             next_n = pred_n
         next_phys = self.norm.denorm(next_n)      # back to physical
         return next_phys
-def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
+def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir=''):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     plt.figure()
@@ -812,7 +819,7 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
         for t in range(gt_traj.shape[0]):
             w_in = pred_traj[t,...]
             if model is None:
-                Q = torch.eye(gt_traj.shape[-1]).to(device)
+                # Q = torch.eye(gt_traj.shape[-1]).to(device)
 
                 V_hist[t] = torch.sum(w_in**2 * Q) #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
@@ -820,7 +827,7 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
                 V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
             elif not model.project:
                 # If no Q is provided, use the covariance
-                Q = torch.eye(gt_traj.shape[-1]).to(device)
+                # Q = torch.eye(gt_traj.shape[-1]).to(device)
 
                 V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
@@ -828,11 +835,12 @@ def energy_time(gt_traj,pred_traj,c=100.0,model=None,figs_dir=''):
                 V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 
             else:
                 # print('using model for projection...')
-                Q = torch.diag(model.V._construct_Q())
-                V_hist[t] = model.V(w_in)
+                # Q = torch.diag(model.V._construct_Q())
+                # V_hist[t] = model.V((w_in,torch.zeros(1,1)))
+                w0 = model.V.x_0
+                V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q) 
                 # V_in = eval_model.V(w_in)
                 # V_out = eval_model.V(w_out)
-                w0 = model.V.x_0
                 V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
 
 

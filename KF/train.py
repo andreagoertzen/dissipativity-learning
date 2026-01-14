@@ -71,7 +71,8 @@ def train(params):
         file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
         data = torch.load(file_dir)[:n_traj,...]
     elif Re == '500':
-        file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
+        file_dir = f'data/dt_newIC/KF_Re500_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
+        file_dir = f'data/KF_Re500_M128_tsave0.5_T500_n200/data.pt'
         data = torch.load(file_dir)[:n_traj,...] # may need to decrease batch size/increase epochs accordingly
         data = data[:,::2,::2,:]
         if dt == 0.5:
@@ -129,7 +130,8 @@ def train(params):
         'circular_padding': params['circular_padding'],
         'activation': params['activation'],
         'trunk_last_act': params['trunk_last_act'],
-        'backbone': params['backbone']
+        'backbone': params['backbone'],
+        'nn_Q': params['nn_Q']
     }
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
@@ -237,6 +239,10 @@ def train(params):
             # Transpose the trunk input
             
             trunk_input = trunk_batch[0]
+            # print('TRUNK INPUT SHAPE')
+            # print(trunk_input.shape)
+            # print(trunk_input)
+            # print(branch_batch)
             y_batch = y_batch.to(device)
             
             optimizer.zero_grad()
@@ -577,6 +583,7 @@ if __name__ == "__main__":
     parser.add_argument('--stride', type=int, help='stride for multi-step dataset', default=1)
     parser.add_argument('--n_steps', type=int, help='number of steps for multi-step dataset', default=3)
     parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='fno',help='model backbone to use (default: fno)')
+    parser.add_argument('--nn_Q', action='store_true', help='If true, uses a function for q rather than a fixed matrix')
 
     args = parser.parse_args()
 
@@ -602,6 +609,8 @@ if __name__ == "__main__":
         reg_name += f'_{args.activation}'
     if params['circular_padding']:
         reg_name += '_circPad'
+    if params['nn_Q']:
+        reg_name += '_nnQ'
 
     print(args.branch_conv_channels)
         

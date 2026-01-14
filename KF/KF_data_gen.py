@@ -6,19 +6,19 @@ import matplotlib.animation as animation
 import os
 from tqdm import tqdm
 
-##################################################
-## Training data generation for Kolmogorov flow ##
-#################################################
+# ##################################################
+# ## Training data generation for Kolmogorov flow ##
+# #################################################
 device = torch.device('cuda')
-Re = 250
+# Re = 250
 Re = 500 # Reynolds number
 # Re = 70
 dt = 0.0005 # Integration time step
 n = 4 # forcing period 
 T = 500 # end time
 M = N = 128 # x and y discretization
-t_save = 0.5 # save time step
-n_traj = 50 # number of trajectories to generate 
+t_save = 1 # save time step
+n_traj = 200 # number of trajectories to generate 
 n_ani = 5 # how many trajectories to visualize
 ic_factor = 1
 
@@ -39,7 +39,10 @@ dealias[kx*L<-N/3] = 0
 dealias[ky*L>N/3-1] = 0 
 dealias[ky*L<-N/3] = 0 
 
-folder = f'KF_Re{Re}_M{M}_tsave{t_save}_T{T}_n{n_traj}'
+G = -1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
+
+folder = f'dt_newIC/KF_Re{Re}_M{M}_tsave{t_save}_dt{dt}_T{T}_n{n_traj}_IC{ic_factor}'
+print(folder)
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')
 
@@ -56,7 +59,7 @@ def nonlinear_terms(omega_hat,forcing=1):
     uhat = 2j*np.pi*ky*psi_hat
     vhat = -2j*np.pi*kx*psi_hat
 
-    u,v = torch.fft.ifft2(uhat).real, torch.fft.ifft2(vhat).real
+    u,v = torch.fft.ifft2(uhat,dim=(-2,-1)).real, torch.fft.ifft2(vhat,dim=(-2,-1)).real
 
     # grad_x_hat = 2j*np.pi*kx*omega_hat
     # grad_y_hat = 2j*np.pi*ky*omega_hat
@@ -65,8 +68,8 @@ def nonlinear_terms(omega_hat,forcing=1):
     # advection = -(grad_x*u + grad_y*v)
     # advection_hat = torch.fft.fft2(advection)
 
-    omega = torch.fft.ifft2(omega_hat).real
-    advection_hat = -2j *np.pi* (kx*torch.fft.fft2(u*omega) + ky*torch.fft.fft2(v*omega))
+    omega = torch.fft.ifft2(omega_hat,dim=(-2,-1)).real
+    advection_hat = -2j *np.pi* (kx*torch.fft.fft2(u*omega,dim=(-2,-1)) + ky*torch.fft.fft2(v*omega,dim=(-2,-1)))
     advection_hat = advection_hat*dealias
 
     forcing_x = torch.sin(n * Y)
@@ -92,7 +95,7 @@ def update_step(omega_hat,nonlinear_terms,dt):
     # from https://arxiv.org/pdf/1207.4682
     ## eq 3.4
     # G = 1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
-    G = -1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
+    # G = -1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
     # (omega_tilde-omega_hat)/dt = -G/2(omega_tilde+omega_hat) + f(omega_hat)
     # omega_tilde(1/dt+G/2) = -G/2*omega_hat + omega_hat/dt + f(omega_hat)
     # omega_tilde = inv(1/dt+G/2) * (-G/2*omega_hat + omega_hat/dt + f(omega_hat) ) 
@@ -107,37 +110,46 @@ def update_step(omega_hat,nonlinear_terms,dt):
 
 x = y = range(N)
 model = Gaussian(dim = 2, var = 1, len_scale = 10)
+print('making srf')
 srf = SRF(model,seed = 13,generator='Fourier',period = N)
-field = srf.structured([x,y],seed=0)
-w0 = torch.tensor(field) 
+# field = srf.structured([x,y],seed=0)
+# w0 = torch.tensor(field) 
+print('initializing w0')
 w0 = torch.zeros(n_traj,M,N).to(device)
+print('making random fields')
 for i in range(n_traj):
     s = 1000 if n_traj==1 else i
     w0[i,...] = torch.tensor((srf.structured([x, y], seed=s))).to(device) *ic_factor
 
 
-omega_hat = torch.fft.fft2(w0)
+# omega_hat = torch.fft.fft2(w0,dim=(-2,-1))
 # omega_hat2 = torch.fft.fft2(w0.unsqueeze(0))
 # fig,axs = plt.subplots(1,2)
 
-w_save = torch.zeros(n_traj,M,N,int(T/t_save))
+w_save = torch.zeros(n_traj,M,N,int(T/t_save),device='cpu')
+n_batch = 1
+bsize = n_traj//n_batch
 with torch.no_grad():
-    for step in tqdm(range(n_steps)):
-        # omega_hat = euler_step(omega_hat, dt)
-        omega_hat = update_step(omega_hat,nonlinear_terms,dt)
-        # omega_hat2 = euler_step2(omega_hat2,dt)
-        # save every t_save seconds
-        if step % int(t_save/dt) == 0:
-            w = torch.fft.ifft2(omega_hat).real
-            # print(w.device)
-            # w2 = torch.fft.ifft2(omega_hat2).real
-            w_save[...,int(step*dt/t_save)] = w
-            # # fig.clf()
-            # axs[0].imshow(w.detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
-            # # axs[1].imshow(w2[0,...].detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
-            # plt.title(f"Time {step*dt}")
-            # # plt.colorbar(label="Vorticity")
-            # plt.pause(0.01)
+    print('beginning simulation')
+    for batch in range(n_batch):
+        print(f'batch: {batch} out of {n_batch} ')
+        omega_hat = torch.fft.fft2(w0[bsize*batch:bsize*(batch+1),...],dim=(-2,-1))
+        for step in tqdm(range(n_steps)):
+            # omega_hat = euler_step(omega_hat, dt)
+            omega_hat = update_step(omega_hat,nonlinear_terms,dt)
+            # omega_hat2 = euler_step2(omega_hat2,dt)
+            # save every t_save seconds
+            if step % int(t_save/dt) == 0:
+                w = torch.fft.ifft2(omega_hat,dim=(-2,-1)).real
+                # print(w.device)
+                # w2 = torch.fft.ifft2(omega_hat2).real
+                w_save[bsize*batch:bsize*(batch+1),:,:,int(step*dt/t_save)] = w.cpu()
+                # # fig.clf()
+                # axs[0].imshow(w.detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
+                # # axs[1].imshow(w2[0,...].detach().cpu(), cmap='RdBu', origin='lower', extent=[0, domain_size, 0, domain_size])#,vmin=-25,vmax=25)
+                # plt.title(f"Time {step*dt}")
+                # # plt.colorbar(label="Vorticity")
+                # plt.pause(0.01)
 torch.save(w_save,f'./data/{folder}/data.pt')
 
 ## pick 5 random to animate as a sanity check
@@ -152,7 +164,7 @@ with torch.no_grad():
     for t in range(w_save.shape[-1]):
         frame_artists = []
         for i in range(n_ani):
-            im = axs[i].imshow(w_save[ind[i], :, :, t].detach().cpu().numpy(),cmap='RdBu', animated=True)
+            im = axs[i].imshow(w_save[ind[i], :, :, t].numpy(),cmap='RdBu', animated=True)
             frame_artists.append(im)
 
         # Create a new text object every time
@@ -193,6 +205,77 @@ y = torch.einsum('bi,i ->b',w_data,mode2).cpu()
 
 plt.plot(x,y,'.',label='data',alpha=0.7)
 plt.savefig(f'data/{folder}/2PCA_modes.png')
+
+# folder = 'dt_testing/KF_Re5000_M256_tsave0.5_dt0.0001_T100_n1_IC10'
+# w_save = torch.load(f'data/{folder}/data.pt')
+## V over time plot
+print('V plot...')
+# energy plotting
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+fig = plt.figure(figsize=(10,5))
+points = w_save.shape[-1]
+# points = 100
+V_hist = torch.zeros(points)
+print('done w/ initialization')
+w_save = w_save.to(device)
+print('done moving to device')
+
+with torch.no_grad():
+    # Q = torch.eye(M*M).to(device)
+    # print('done making Q')
+    for t in range(points):
+        print(t)
+        w_in = w_save[0,:,:,t].reshape(M*M)
+            # If no Q is provided, use the covariance
+
+        V_hist[t] = torch.sum(w_in**2) #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+
+# plot the V_hist against time
+plt.plot(V_hist[:].cpu().numpy(),label='model traj')
+
+c = 450
+plt.plot(np.array([0,points]),np.ones(2)*c**2, label='c')
+
+plt.xlabel("Sample")
+plt.ylabel("V")
+plt.yscale("log")
+# plt.title("V over time")
+plt.legend()
+plt.savefig(f'data/{folder}/V_plot.png')
+
+## Energy spectrum plot
+s = M
+u_new = w_save.permute(0,3,1,2).reshape(-1,M,M)
+u_fft = torch.fft.fft2(u_new)
+
+k_max = u_new.shape[-1]//2
+# print(k_max)
+wavenumbers = torch.fft.fftfreq(u_new.shape[-1],1/u_new.shape[-1]).repeat(s, 1)
+
+k_x = wavenumbers.t().to(device)
+k_y = wavenumbers.to(device)
+
+# Get wavenumbers (k_x**2 + k_y**2)
+prod_k = torch.sqrt(k_x**2+k_y**2).int().detach().cpu().numpy()
+
+spectrum = np.zeros((u_fft.shape[0], s))
+for j in range(0, s):
+    # print(j)
+    ind = np.where(prod_k == j) # change index to prod_k to match bottom
+    spectrum[:, j] =  ((u_fft[:, ind[0], ind[1]]).abs()**2).sum(axis=1).detach().cpu().numpy() 
+
+spectrum = spectrum.mean(axis=0)
+fig, ax = plt.subplots(figsize=(7,5))
+ax.plot(spectrum[1:s//2],label = 'data')
+ax.plot(spectrum[1]*np.linspace(1,s//2,s//2)**(-5/3),label = 'kolmogorov cascade')
+# ax.plot(spectrum_no_proj[:s//2],label = no_proj_label)
+ax.set_yscale('log')
+ax.set_xscale('log')
+plt.xlabel('wave number')
+plt.ylabel('energy')
+plt.legend()
+plt.grid(True)
+plt.savefig(f'data/{folder}/spectrum.png')
 
 
 

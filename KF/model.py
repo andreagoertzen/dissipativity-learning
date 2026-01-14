@@ -92,14 +92,37 @@ class Trunk(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-    
+
+class Q_func(nn.Module):
+    def __init__(self): ## does it need to be non-zero?
+        super(Q_func, self).__init__()
+        print('INITIALIZING Q BASED ON A FUNCTION')
+        self.activation = nn.ReLU()
+        layers = []
+        layers.append(nn.Linear(2,128))
+        layers.append(self.activation)
+        # layers.append(nn.Linear(128,128))
+        # layers.append(self.activation)
+        # layers.append(nn.Linear(128,128))
+        # layers.append(self.activation) 
+        layers.append(nn.Linear(128,1))
+        # layers.append(self.activation) 
+        self.net = nn.Sequential(*layers)
+
+    def forward(self,x):
+        print('FORWARD QQQQQQ')
+        x = self.net(x)
+        print(x)
+        return torch.exp(x) # for non-zero (otherwise just return x and keep the last relu)
+
 class V_elliptical(nn.Module):
-    def __init__(self, m, diag_flag):
+    def __init__(self, m, diag_flag, nn_Q):
         super(V_elliptical, self).__init__()
 
         self.latent_dim = m**2
         
         self.diag_Q = diag_flag
+        self.nn_Q = nn_Q
         if self.diag_Q:
             print("V_elliptical initialized with a DIAGONAL Q.")
         else:
@@ -120,40 +143,60 @@ class V_elliptical(nn.Module):
         # Trainable vector x_0
         self.x_0 = nn.Parameter(torch.randn(1, m**2))
 
-        self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``
+        if self.nn_Q:
+            self.Q_func = Q_func()
+        else:
+            self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``            
 
-
-    def _construct_Q(self):
+    def _construct_Q(self,x=None):
         """
         Constructs the symmetric positive-definite matrix V_elliptical (Q) from L.
         """
-        if not self.diag_Q:
-            # Create an empty n x n matrix for L
-            L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
+        if self.nn_Q:
+            # nn Q requires diagonal I think
+            # print('\nSHOWING X[1]')
+            # # print(x.shape)
+            # # print(x)
+            # print(x[1])
+            # print(x[0])
+            # print(x[1].shape)
+            # print(x[0].shape)
+            Q = self.Q_func(x[1]) # make sure shape is m**2, need to check input shape
+            # print('returning Q...Shape:')
+            # print(Q)
+            
+        else: 
+            if not self.diag_Q:
+                # Create an empty n x n matrix for L
+                L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
 
-            # Set the diagonal elements using the log_diag_L parameters.
-            # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
-            L.diagonal().copy_(torch.exp(self.log_diag_L))
+                # Set the diagonal elements using the log_diag_L parameters.
+                # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
+                L.diagonal().copy_(torch.exp(self.log_diag_L))
 
-            # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
-            L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+                # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
+                L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
 
-            # Compute Q = LLᵀ
-            Q = torch.matmul(L, L.T) # shape: m**2 x m**2
-        else:
-            Q = torch.exp(2*self.log_diag_L) # shape: m**2
+                # Compute Q = LLᵀ
+                Q = torch.matmul(L, L.T) # shape: m**2 x m**2
+            else:
+                Q = torch.exp(2*self.log_diag_L) # shape: m**2
         return Q
 
         
     def forward(self, x):
-        Q = self._construct_Q()
+        if self.nn_Q:
+            Q = self._construct_Q(x=x)
+            Q = Q.reshape(1,64**2)
+        else:
+            Q = self._construct_Q()
 
         self.Q = Q
         
         # # Reshape x_0 to broadcast correctly
         # x_0 = self.x_0.squeeze(-1)
         # Calculate (x - x_0)
-        diff = x - self.x_0
+        diff = x[0] - self.x_0
         # print('printing shapes for V...')
         # print(Q.shape)
         # print(diff.shape)
@@ -163,6 +206,8 @@ class V_elliptical(nn.Module):
         else:
             # V = diff * Q * diff
             V = torch.sum(diff ** 2 * Q, dim=1)
+            # print('V SHAPE')
+            # print(V.shape)
         # print(V.shape)
         # V = V.unsqueeze(1)
         # V = torch.einsum('bi,ij,bj->b', diff, Q, diff)
@@ -181,6 +226,7 @@ class ECO(nn.Module):
         project = model_params['project']
         discrete_proj = model_params['discrete_proj']
         diag_Q = model_params['diag_Q']
+        self.nn_Q = model_params['nn_Q']
         dt = model_params['dt']
         self.backbone = model_params['backbone']
 
@@ -268,10 +314,11 @@ class ECO(nn.Module):
             else:
                 self.c.requires_grad = False
             self.eps_proj = 1e-3
-            self.V = V_elliptical(m=m, diag_flag=diag_Q)
+            self.V = V_elliptical(m=m, diag_flag=diag_Q, nn_Q=self.nn_Q)
 
     def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.99):
         w_0 = self.V.x_0
+        # print('GETTING V')
         V = self.V(w_in)
 
         # The constraint is w^T Q w \leq b, and b = (1 - gamma) * V + gamma * self.c ** 2
@@ -281,7 +328,7 @@ class ECO(nn.Module):
         # b = (1 - gamma) * V + gamma * self.c ** 2
         b = V + F.relu(-V + self.c ** 2)
         b = scale_level_set * b
-        w = w_out - w_0
+        w = w_out[0] - w_0
         
         # Assuming Q is diagonal
         # L = torch.exp(self.V.log_diag_L)
@@ -294,6 +341,7 @@ class ECO(nn.Module):
         sqrt_b = torch.sqrt(b).unsqueeze(1) # shape: [bsize,1]
         # w_proj = w_0 + sqrt_b * z * Q_inv_sqrt # element wise operation
         
+        # print('Getting V again...')
         V_out = self.V(w_out)
         sqrt_V = torch.sqrt(V_out).unsqueeze(1)
         w_proj = w_0 + sqrt_b/sqrt_V * (w)
@@ -308,10 +356,13 @@ class ECO(nn.Module):
         active_threshold = 1e-5
         active_proj_count = torch.sum(choice < active_threshold)
         
-        batch_size = w_in.shape[0]
+        batch_size = w_in[0].shape[0]
         self.active_projection_percentage = active_proj_count.item() / batch_size * 100
         
-        w_star = choice * w_out + (1 - choice) * w_proj
+        w_star = choice * w_out[0] + (1 - choice) * w_proj
+
+        # print('W_star shape')
+        # print(w_star.shape)
 
         return w_star
 
@@ -339,6 +390,7 @@ class ECO(nn.Module):
 
 
     def forward(self,x):
+        # print('step is working')
         # for deeponet
         if self.backbone == 'deeponet':
             x1 = self.Branch(x[0])
@@ -351,8 +403,11 @@ class ECO(nn.Module):
 
         # for any
         if self.project:
+            # print('PROJECTING....')
             if self.discrete_proj:
-                x_out = self.discrete_project(x[0], x_out)
+                # x_out = self.discrete_project(x[0], x_out)
+                # print('discrete projection...')
+                x_out = self.discrete_project(x, (x_out,x[1]))
             else:
                 x_out = self.f_project(x[0], x_out, dt=self.dt)
         return x_out
