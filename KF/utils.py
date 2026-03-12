@@ -426,8 +426,11 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
                 V_hist[t] = eval_model.V(w_in)
                 V_in = eval_model.V(w_in)
                 V_out = eval_model.V(w_out)
-                w0 = eval_model.V.x_0
-                V_hist_GT[t] = (test_traj[:,t,:]-w0) @ Q @ (test_traj[:,t,:]-w0).T
+                if model.nn_Q:
+                    V_hist_GT[t] = (test_traj[:,t,:]) @ Q @ (test_traj[:,t,:]).T
+                else:
+                    w0 = eval_model.V.x_0
+                    V_hist_GT[t] = (test_traj[:,t,:]-w0) @ Q @ (test_traj[:,t,:]-w0).T
 
             
             if V_in > c ** 2:
@@ -837,11 +840,17 @@ def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir=''):
                 # print('using model for projection...')
                 # Q = torch.diag(model.V._construct_Q())
                 # V_hist[t] = model.V((w_in,torch.zeros(1,1)))
-                w0 = model.V.x_0
-                V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q) 
-                # V_in = eval_model.V(w_in)
-                # V_out = eval_model.V(w_out)
-                V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
+                if model.nn_Q:
+                    V_hist[t] = torch.sum((pred_traj[t,:])**2*Q) 
+                    # V_in = eval_model.V(w_in)
+                    # V_out = eval_model.V(w_out)
+                    V_hist_GT[t] = torch.sum((gt_traj[t,:])**2*Q) 
+                else:
+                    w0 = model.V.x_0
+                    V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q) 
+                    # V_in = eval_model.V(w_in)
+                    # V_out = eval_model.V(w_out)
+                    V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
 
 
     # plot the V_hist against time

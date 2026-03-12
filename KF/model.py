@@ -110,10 +110,17 @@ class Q_func(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self,x):
-        print('FORWARD QQQQQQ')
+        # print('FORWARD QQQQQQ')
+        # print(x.shape)
+        # print(x)
+        dx = x[1,0]-x[0,0] # CURRENTLY ASSUMES X AND Y ARE EVENLY SPACED AND THE SAME
+        # dy = x[1,1]-x[0,1]
+        # print('DX and DY')
+        # print(dx)
+        # print(dy)
         x = self.net(x)
-        print(x)
-        return torch.exp(x) # for non-zero (otherwise just return x and keep the last relu)
+        # print(x)
+        return torch.exp(x)*dx*dx # for non-zero (otherwise just return x and keep the last relu)
 
 class V_elliptical(nn.Module):
     def __init__(self, m, diag_flag, nn_Q):
@@ -128,20 +135,22 @@ class V_elliptical(nn.Module):
         else:
             print("V_elliptical initialized with a FULL Q.")
         
-        # diagonal elements of the lower triangular matrix L
-        self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
 
         # 2. Learnable parameters for the strictly lower triangular (off-diagonal) elements of L.
         # Get the indices for the lower triangular part of an n x n matrix (excluding the diagonal).
         if not self.diag_Q:
+
+            # diagonal elements of the lower triangular matrix L
+            self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
+
             tril_indices = torch.tril_indices(row=self.latent_dim, col=self.latent_dim, offset=-1)
             self.off_diag_L = nn.Parameter(torch.randn(len(tril_indices[0])) * 0.1) # Initialize with small random values
 
             # We store the indices as a buffer, so they are part of the model's state but not its parameters.
             self.register_buffer('tril_indices', tril_indices)
     
-        # Trainable vector x_0
-        self.x_0 = nn.Parameter(torch.randn(1, m**2))
+            # Trainable vector x_0 - NEED TO CHANGE THIS TO NN EVENTUALLY
+            self.x_0 = nn.Parameter(torch.randn(1, m**2))
 
         if self.nn_Q:
             self.Q_func = Q_func()
@@ -162,8 +171,8 @@ class V_elliptical(nn.Module):
             # print(x[1].shape)
             # print(x[0].shape)
             Q = self.Q_func(x[1]) # make sure shape is m**2, need to check input shape
-            # print('returning Q...Shape:')
-            # print(Q)
+            print('returning Q:')
+            print(Q)
             
         else: 
             if not self.diag_Q:
@@ -187,16 +196,18 @@ class V_elliptical(nn.Module):
     def forward(self, x):
         if self.nn_Q:
             Q = self._construct_Q(x=x)
-            Q = Q.reshape(1,64**2)
+            Q = Q.reshape(1,self.latent_dim)
+            diff = x[0]
         else:
             Q = self._construct_Q()
+            diff = x[0] - self.x_0
 
         self.Q = Q
         
         # # Reshape x_0 to broadcast correctly
         # x_0 = self.x_0.squeeze(-1)
         # Calculate (x - x_0)
-        diff = x[0] - self.x_0
+        # diff = x[0] - self.x_0
         # print('printing shapes for V...')
         # print(Q.shape)
         # print(diff.shape)
@@ -317,7 +328,6 @@ class ECO(nn.Module):
             self.V = V_elliptical(m=m, diag_flag=diag_Q, nn_Q=self.nn_Q)
 
     def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.99):
-        w_0 = self.V.x_0
         # print('GETTING V')
         V = self.V(w_in)
 
@@ -328,7 +338,11 @@ class ECO(nn.Module):
         # b = (1 - gamma) * V + gamma * self.c ** 2
         b = V + F.relu(-V + self.c ** 2)
         b = scale_level_set * b
-        w = w_out[0] - w_0
+        if self.nn_Q:
+            w = w_out[0]
+        else:
+            w_0 = self.V.x_0
+            w = w_out[0] - w_0
         
         # Assuming Q is diagonal
         # L = torch.exp(self.V.log_diag_L)
@@ -344,7 +358,10 @@ class ECO(nn.Module):
         # print('Getting V again...')
         V_out = self.V(w_out)
         sqrt_V = torch.sqrt(V_out).unsqueeze(1)
-        w_proj = w_0 + sqrt_b/sqrt_V * (w)
+        if self.nn_Q:
+            w_proj = sqrt_b/sqrt_V * (w)
+        else:
+            w_proj = w_0 + sqrt_b/sqrt_V * (w)
         if smooth_choice:
             k_choice = 100.0
             choice = 1 - torch.sigmoid(k_choice * (V_out - b))
@@ -367,12 +384,15 @@ class ECO(nn.Module):
         return w_star
 
     def f_project(self,w_in,w_out,dt):
-        w0 = self.V.x_0
         V = self.V(w_in)
         # Not sure if this should be just V.Q?
         # With self.V.Q would that be an initialization or the V(w_in).Q?
         Q = self.V.Q
-        diff = w_in-w0
+        if self.nn_Q:
+            diff = w_in
+        else:
+            w0 = self.V.x_0
+            diff = w_in-w0
         dVdw = torch.einsum('ij,bj->bi',2*Q,diff)
         # dVdw = 2 * (diff @ Q)  # Gradient of V with respect to w_in
 

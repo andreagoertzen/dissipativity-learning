@@ -12,32 +12,34 @@ last_acts=(0)
 backs=("fno")
 for last_act in "${last_acts[@]}"; do
   for n_traj in 200; do
-    for c in 50 100 300 500 700; do
-      for back in "${backs[@]}"; do
-        # tag="dim${dim}_act${last_act}"
+    for lam_reg in 0 0.01; do
+      for c in 30 60 75 100; do
+        for back in "${backs[@]}"; do
+          # tag="dim${dim}_act${last_act}"
 
-        cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
-          --sched multistep \
-          --n_traj $n_traj \
-          --dt 1.0 --Re $re \
-          --lr $lr \
-          --tag ICscale_1 \
-          --lam_reg_vol 0.1 \
-          --project \
-          --diag_Q \
-          --c_init $c \
-          --discrete_proj \
-          --bsize $bsize \
-          --backbone $back \
-          --nn_Q"
+          cmd="sbatch run.sh --epochs $epochs --bsize $bsize \
+            --sched multistep \
+            --n_traj $n_traj \
+            --dt 1.0 --Re $re \
+            --lr $lr \
+            --tag ICscale_1 \
+            --lam_reg_vol $lam_reg \
+            --project \
+            --diag_Q \
+            --c_init $c \
+            --discrete_proj \
+            --bsize $bsize \
+            --backbone $back \
+            --nn_Q"
 
-        # Conditionally add the flag
-        if [ "$last_act" -eq 1 ]; then
-          cmd="$cmd --trunk_last_act"
-        fi
+          # Conditionally add the flag
+          if [ "$last_act" -eq 1 ]; then
+            cmd="$cmd --trunk_last_act"
+          fi
 
-        echo "$cmd"
-        eval "$cmd"
+          echo "$cmd"
+          eval "$cmd"
+        done
       done
     done
   done

@@ -20,13 +20,22 @@ from datetime import datetime
 from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d
 
 
-def ellip_vol(model):
-    d = model.V.log_diag_L.numel()
-    c_val = model.c ** 2
-    
-    # Compute det(Q)^(-1/2)
-    log_det_Q = 2 * torch.sum(model.V.log_diag_L)
-    det_factor = torch.exp(- 1/2 * log_det_Q)
+def ellip_vol(model,nn_Q,x_trunk_input=None):
+
+    if nn_Q:
+        Q = model.V._construct_Q((torch.zeros(1,1),x_trunk_input)) # first input is dummy
+        Q = torch.squeeze(Q)
+        d = Q.shape[0]
+        c_val = model.c ** 2
+        det_Q = torch.sum(Q) # Q is diagonal by default
+        det_factor = 1/torch.sqrt(det_Q)
+    else:
+        d = model.V.log_diag_L.numel()
+        c_val = model.c ** 2
+        
+        # Compute det(Q)^(-1/2)
+        log_det_Q = 2 * torch.sum(model.V.log_diag_L)
+        det_factor = torch.exp(- 1/2 * log_det_Q)
 
     # Final volume
     if model.trainable_c:
@@ -268,7 +277,7 @@ def train(params):
 
             # Calculate regularization loss if projection is enabled
             if project:
-                vol = ellip_vol(model)
+                vol = ellip_vol(model,params['nn_Q'],trunk_input)
                 reg_loss = lam_reg_vol * vol.squeeze()
             else:
                 reg_loss = torch.tensor(0.0, device=device)

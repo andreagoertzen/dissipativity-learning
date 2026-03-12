@@ -12,10 +12,11 @@ def run_functions(params,param_path_parent,Re,ICscale):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
     m = 64
+    m = 128
     n = 2
     model_folder = param_path_parent
     print(model_folder)
-    figs_dir = figs_folder = f'{model_folder}/eval_results_ICscale{ICscale}'
+    figs_dir = figs_folder = f'{model_folder}/eval_results_ICscale{ICscale}_M128'
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
@@ -67,8 +68,9 @@ def run_functions(params,param_path_parent,Re,ICscale):
         file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
         file_dir = f'data/dt_newIC/KF_Re{Re}_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
         data = torch.load(file_dir)
-        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')[:,::2,::2,:]
-        data = data[:,::2,::2,:]
+        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')#[:,::2,::2,:]
+        #data = data[:,::2,::2,:]
+        # data = data[:,:,:,::2]
         # if dt == 0.5:
         #     data = data[::2,...]
         # if dt == 1.0:
@@ -100,6 +102,7 @@ def run_functions(params,param_path_parent,Re,ICscale):
         Q = None
         c = 30.0
 
+    print('LEARNED Q: ')
     print(np.diag(Q))
     
     # print('Q SHAPE')
