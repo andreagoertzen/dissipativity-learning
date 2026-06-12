@@ -812,7 +812,9 @@ class InferenceWrapper(torch.nn.Module):
             next_n = pred_n
         next_phys = self.norm.denorm(next_n)      # back to physical
         return next_phys
-def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir=''):
+
+
+def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir='',x0=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     plt.figure()
@@ -840,17 +842,21 @@ def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir=''):
                 # print('using model for projection...')
                 # Q = torch.diag(model.V._construct_Q())
                 # V_hist[t] = model.V((w_in,torch.zeros(1,1)))
-                if model.nn_Q:
-                    V_hist[t] = torch.sum((pred_traj[t,:])**2*Q) 
-                    # V_in = eval_model.V(w_in)
-                    # V_out = eval_model.V(w_out)
-                    V_hist_GT[t] = torch.sum((gt_traj[t,:])**2*Q) 
-                else:
-                    w0 = model.V.x_0
-                    V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q) 
-                    # V_in = eval_model.V(w_in)
-                    # V_out = eval_model.V(w_out)
-                    V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
+                w0 = x0
+                V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q)
+                V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q)  
+
+                # if model.nn_Q:
+                #     V_hist[t] = torch.sum((pred_traj[t,:])**2*Q) 
+                #     # V_in = eval_model.V(w_in)
+                #     # V_out = eval_model.V(w_out)
+                #     V_hist_GT[t] = torch.sum((gt_traj[t,:])**2*Q) 
+                # else:
+                #     w0 = model.V.x_0
+                #     V_hist[t] = torch.sum((pred_traj[t,:]-w0)**2*Q) 
+                #     # V_in = eval_model.V(w_in)
+                #     # V_out = eval_model.V(w_out)
+                #     V_hist_GT[t] = torch.sum((gt_traj[t,:]-w0)**2*Q) 
 
 
     # plot the V_hist against time

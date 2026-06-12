@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 import matplotlib.pyplot as plt
-from model import DeepONet
+from model import ECO
 import os
 from utils import TrajectoryDataset, load_multi_traj_data, val_onestep_visual
 from torch.utils.data import DataLoader
@@ -16,19 +16,28 @@ from utils import run_model_visualization
 from utils import visualize_ellipsoid
 from utils import rollout_on_test
 from datetime import datetime
-from utils import visualize_ellipsoid, compare_distributions, rollout_on_test, pca_histogram_eval, evaluate_fourier_spectrum, run_model_visualization
+from utils import visualize_ellipsoid, compare_distributions, rollout_on_test, pca_histogram_eval, evaluate_fourier_spectrum, run_model_visualization, plot_spatial_sum
 
 ### TRAIN FILE WITHOUT UPDATES TO LEARNING RATE - CURRENTLY WORKS FOR BLOWUP WITHOUT PROJECTION, GOOD STATS WITH PROJECTION
-def ellip_vol(model):
-    d = model.V.log_diag_L.numel()
-    c_val = model.c ** 2
+def ellip_vol(model,nn_Q,x_trunk_input=None):
+    if nn_Q:
+        Q = model.V._construct_Q(x_trunk_input)
+        Q = torch.squeeze(Q)
+        d = Q.shape[0]
+        q = Q.reshape(-1)
+        log_det_Q = torch.sum(torch.log(q))
+        det_factor = torch.exp(-0.5 * log_det_Q)
     
-    # Compute det(Q)^(-1/2)
-    log_det_Q = 2 * torch.sum(model.V.log_diag_L)
-    det_factor = torch.exp(- 1/2 * log_det_Q)
+    else:
+        d = model.V.log_diag_L.numel()
+        
+        # Compute det(Q)^(-1/2)
+        log_det_Q = 2 * torch.sum(model.V.log_diag_L)
+        det_factor = torch.exp(- 1/2 * log_det_Q)
 
     # Final volume
     if model.trainable_c:
+        c_val = model.c ** 2
         vol = (c_val**(d/2)) * det_factor
     else:
         vol = det_factor
@@ -88,9 +97,14 @@ def train(params):
         'output_dim': params['output_dim'],
         'dt': params['dt'],
         'discrete_proj': params['discrete_proj'],
+        'backbone': params['backbone'],
+        'nn_Q': params['nn_Q'],
+        'nn_x0':params['nn_x0']
     }
+    # save model_params dictionary in the model location, perhaps as an npz
+    np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
-    model = DeepONet(model_params).to(device)
+    model = ECO(model_params).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     print(f'Training with Learning rate: {lr}')
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
@@ -150,7 +164,7 @@ def train(params):
 
             # Calculate regularization loss if projection is enabled
             if project:
-                vol = ellip_vol(model)
+                vol = ellip_vol(model,nn_Q=params["nn_Q"],x_trunk_input=trunk_input)
                 reg_loss = lam_reg_vol * vol.squeeze()
             else:
                 reg_loss = torch.tensor(0.0, device=device)
@@ -258,23 +272,38 @@ def train(params):
             
             tic = time.time()
 
-    # save model_params dictionary in the model location, perhaps as an npz
-    np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
     ## GET MODEL PARAMETERS
     if model.project:
-        Q = model.V._construct_Q().detach().cpu().numpy()
+        if model.V.nn_Q:
+            Q = model.V._construct_Q(trunk_input).detach().cpu().numpy()
+            Q = np.diag(np.squeeze(Q))
+        else:
+            Q = model.V._construct_Q().detach().cpu().numpy()
+            if model.V.diag_Q:
+                Q = np.diag(np.squeeze(Q))
         c = model.c.detach().cpu().numpy() ** 2
+        if model.V.nn_x0:
+            x0 = model.V._construct_x0(trunk_input).detach().cpu().numpy().reshape(1, m)
+        elif model.V.nn_Q:
+            x0 = np.zeros((1,m))
+        else:
+            x0 = model.V.x_0.detach().cpu().numpy().reshape(1, m)
     else:
         Q = None
         c = 30.0 ** 2
+        x0 = np.zeros((1, m))
+
+
+    logging.info(f'MODEL FINAL Q: {Q}')
+    logging.info(f'MODEL FINAL X0: {x0}')
 
     ### LOAD DATA
     print('LOADING TEST DATA')
-    trunk_scale = 0.05
+    trunk_scale = params['trunk_scale']
     file_dir = 'Data/KS_data_test_l100.53_grid512_M1_T2000.0_dt0.005_dt_sample0.2_amp20.0.npz/data.npz'
     data = np.load(file_dir, allow_pickle=True)
     x = torch.tensor(data['x'],dtype=torch.float32).to(device)
@@ -365,6 +394,14 @@ def train(params):
     plt.savefig(f'{figs_dir}/rollout.png')
     plt.close()
 
+    ## PLOT SUM ACROSS X FOR ALL TIME
+    plot_spatial_sum(
+    gt_traj=gt_traj,
+    pred_traj=pred_traj,
+    figs_dir=figs_dir,
+    traj_ind=0,
+    save_name='spatial_sum.png'
+    )
     return model
 
 
@@ -383,6 +420,10 @@ if __name__ == "__main__":
     parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=1e-4)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
+    parser.add_argument('--nn_Q', action='store_true', help='True for making Q a trainable network')
+    parser.add_argument('--nn_x0', action='store_true', help='True for making x0 a trainable network')
+    parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='deeponet',help='model backbone to use (default: deeponet)')
+
 
     # Model parameters
     parser.add_argument('--output_dim', type=int, default=128,
@@ -414,6 +455,12 @@ if __name__ == "__main__":
         reg_name += 'discreteProj'
     if params['warm_start']:
         reg_name += 'warmStart'
+    if params['nn_Q']:
+        reg_name += 'nn_Q'
+    if params['nn_x0']:
+        reg_name += 'nn_x0'
+    if params['backbone']=='deeponet':
+        reg_name+=f'_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}'
 
     print(args.branch_conv_channels)
         
@@ -421,7 +468,7 @@ if __name__ == "__main__":
     now = datetime.now()
     save_time_str = now.strftime("%m%d_%H")
     save_dir = 'Trained_Models/' + save_time_str
-    save_name = f'E{args.epochs}_TS{args.trunk_scale}_branchConv{len(args.branch_conv_channels)}_trunkHidden{len(args.trunk_hidden_dims)}_dt{args.dt}_{reg_name}_{args.tag}'
+    save_name = f'E{args.epochs}_TS{args.trunk_scale}_backbone{args.backbone}_dt{args.dt}_{reg_name}_{args.tag}'
     save_dir = os.path.join(save_dir, save_name)
     params['save_dir'] = save_dir
 

@@ -23,12 +23,15 @@ from utils import one_step_animation, rollout_animation, pca_modes, visualize_el
 def ellip_vol(model,nn_Q,x_trunk_input=None):
 
     if nn_Q:
-        Q = model.V._construct_Q((torch.zeros(1,1),x_trunk_input)) # first input is dummy
+        Q = model.V._construct_Q(x_trunk_input) 
         Q = torch.squeeze(Q)
         d = Q.shape[0]
         c_val = model.c ** 2
-        det_Q = torch.sum(Q) # Q is diagonal by default
-        det_factor = 1/torch.sqrt(det_Q)
+        # det_Q = torch.sum(Q) # Q is diagonal by default
+        # det_factor = 1/torch.sqrt(det_Q)
+        q = Q.reshape(-1)
+        log_det_Q = torch.sum(torch.log(q))
+        det_factor = torch.exp(-0.5 * log_det_Q)
     else:
         d = model.V.log_diag_L.numel()
         c_val = model.c ** 2
@@ -77,17 +80,20 @@ def train(params):
     # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
     # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     if Re == '40':
-        file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+        # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+        file_dir = f'data/KF_Re40_M128_tsave1_dt0.0005_T500_n220/data.pt'
         data = torch.load(file_dir)[:n_traj,...]
-    elif Re == '500':
-        file_dir = f'data/dt_newIC/KF_Re500_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
-        file_dir = f'data/KF_Re500_M128_tsave0.5_T500_n200/data.pt'
-        data = torch.load(file_dir)[:n_traj,...] # may need to decrease batch size/increase epochs accordingly
         data = data[:,::2,::2,:]
-        if dt == 0.5:
-            data = data[::2,...]
-        if dt == 1.0:
-            data = data[...,::2]
+    elif Re == '500':
+        # file_dir = f'data/dt_newIC/KF_Re500_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
+        # file_dir = f'data_archive/KF_Re500_M128_tsave0.5_T500_n200/data.pt'
+        file_dir = f'data/KF_Re500_M128_tsave1_dt0.0001_T500_n220/data.pt'
+        data = torch.load(file_dir)[:n_traj,...] 
+        data = data[:,::2,::2,:]
+        # if dt == 0.5:
+        #     data = data[::2,...]
+        # if dt == 1.0:
+        #     data = data[...,::2]
         print('data shape')
         print(data.shape)
 
@@ -140,7 +146,8 @@ def train(params):
         'activation': params['activation'],
         'trunk_last_act': params['trunk_last_act'],
         'backbone': params['backbone'],
-        'nn_Q': params['nn_Q']
+        'nn_Q': params['nn_Q'],
+        'nn_x0': params['nn_x0']
     }
     # save model_params dictionary in the model location, perhaps as an npz
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
@@ -422,6 +429,10 @@ def train(params):
     # # save model_params dictionary in the model location, perhaps as an npz
     # np.savez(f"./{model_folder}/model_params.npz", **model_params)
     
+    Q = model.V._construct_Q(trunk_input)
+    x0 = model.V._construct_x0(trunk_input)
+    logging.info(f'MODEL FINAL Q: {Q}')
+    logging.info(f'MODEL FINAL X0: {x0}')
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
@@ -593,6 +604,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_steps', type=int, help='number of steps for multi-step dataset', default=3)
     parser.add_argument('--backbone', type=str, choices=['deeponet', 'fno'],default='fno',help='model backbone to use (default: fno)')
     parser.add_argument('--nn_Q', action='store_true', help='If true, uses a function for q rather than a fixed matrix')
+    parser.add_argument('--nn_x0', action='store_true', help='If true, uses a function for q rather than a fixed matrix')
 
     args = parser.parse_args()
 
@@ -620,6 +632,8 @@ if __name__ == "__main__":
         reg_name += '_circPad'
     if params['nn_Q']:
         reg_name += '_nnQ'
+    if params['nn_x0']:
+        reg_name += '_nnx0'
 
     print(args.branch_conv_channels)
         

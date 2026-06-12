@@ -2,39 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from fno_1d import * 
 
-
-# class Branch(nn.Module):
-#     def __init__(self, m, activation=F.relu):
-#         super(Branch, self).__init__()
-#         self.m = m
-#         self.activation = activation
-
-#         # self.reshape = lambda x: x.view(-1, 1, 28, 28)
-#         self.reshape = lambda x: x.view(-1, 1, m)
-#         self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=5, stride=2)
-#         self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=5, stride=2)
-#         self.conv3 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, stride=2)
-#         self.conv4 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=5, stride=2)
-#         self.flatten = nn.Flatten()
-#         # self.fc1 = nn.Linear(128 * 4 * 4, 128) 
-#         # self.fc1 = nn.Linear(1280, 256) 
-#         # self.fc1 = nn.Linear(1664, 256) 
-#         # self.fc1 = nn.Linear(1856, 256) 
-#         # self.fc1 = nn.Linear(1984, 256) 
-#         self.fc1 = nn.Linear(m, 128)
-#         self.fc2 = nn.Linear(128, 128)
-
-#     def forward(self, x):
-#         x = self.reshape(x)
-#         # x = self.activation(self.conv1(x))
-#         # x = self.activation(self.conv2(x))
-#         # x = self.activation(self.conv3(x))
-#         # x = self.activation(self.conv4(x))
-#         x = self.flatten(x)
-#         x = self.activation(self.fc1(x))
-#         x = self.fc2(x)
-#         return x
 
 class Branch(nn.Module):
     def __init__(self, m, conv_config, fc_dims, output_dim=128, activation=nn.ReLU()):
@@ -104,67 +73,132 @@ class Trunk(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-    
+
+class Q_func(nn.Module):
+    def __init__(self): 
+        super(Q_func, self).__init__()
+        print('INITIALIZING Q BASED ON A FUNCTION')
+        self.activation = nn.ReLU()
+        layers = []
+        layers.append(nn.Linear(1,128))
+        layers.append(self.activation)
+        layers.append(nn.Linear(128,1))
+        self.net = nn.Sequential(*layers)
+        self.initialized_output = False
+
+    def forward(self,x):
+        dx = x[1,0]-x[0,0] # CURRENTLY ASSUMES EVENLY SPACED AND THE SAME
+        if not self.initialized_output:
+            with torch.no_grad():
+                nn.init.zeros_(self.net[-1].weight)
+                self.net[-1].bias.fill_(-torch.log(dx).item())
+            self.initialized_output = True
+
+        logQ = self.net(x)
+        logQ = torch.clip(logQ,min=-10) # clip so entries of Q must be nonzero
+        return torch.exp(logQ)*dx # for non-zero (otherwise just return x and keep the last relu)
+
+class x0_func(nn.Module):
+    def __init__(self): 
+        super(x0_func, self).__init__()
+        print('INITALIZING X0 BASED ON A FUNCTION')
+        self.activation = nn.ReLU()
+        layers = []
+        layers.append(nn.Linear(1,128))
+        layers.append(self.activation)
+        layers.append(nn.Linear(128,1))
+        self.net = nn.Sequential(*layers)
+        # nn.init.zeros_(layers[0].weight)
+        # nn.init.zeros_(layers[0].bias)
+        nn.init.zeros_(layers[-1].weight)
+        nn.init.zeros_(layers[-1].bias)
+    def forward(self,x):
+        x0 = self.net(x)
+        return x0   
+
+
 class V_elliptical(nn.Module):
-    def __init__(self, m, diag_flag):
+    def __init__(self, m, diag_flag, nn_Q,nn_x0):
         super(V_elliptical, self).__init__()
 
         self.latent_dim = m
         
         self.diag_Q = diag_flag
+        self.nn_x0 = nn_x0
+        self.nn_Q = nn_Q
+        if self.nn_Q:
+            self.diag_Q = True
         if self.diag_Q:
             print("V_elliptical initialized with a DIAGONAL Q.")
         else:
             print("V_elliptical initialized with a FULL Q.")
         
-        # diagonal elements of the lower triangular matrix L
-        self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
+        if self.nn_Q:
+            self.Q_func = Q_func()
+        else:
+            # lower triangular elements of L (with L^T L = Q)
+            self.log_diag_L = nn.Parameter(torch.zeros(self.latent_dim))
+            if not self.diag_Q:
+                tril_indices = torch.tril_indices(row=self.latent_dim, col=self.latent_dim, offset=-1)
+                self.off_diag_L = nn.Parameter(torch.randn(len(tril_indices[0])) * 0.1) # Initialize with small random values
 
-        # 2. Learnable parameters for the strictly lower triangular (off-diagonal) elements of L.
-        # Get the indices for the lower triangular part of an n x n matrix (excluding the diagonal).
-        tril_indices = torch.tril_indices(row=self.latent_dim, col=self.latent_dim, offset=-1)
-        self.off_diag_L = nn.Parameter(torch.randn(len(tril_indices[0])) * 0.1) # Initialize with small random values
+                # We store the indices as a buffer, so they are part of the model's state but not its parameters.
+                self.register_buffer('tril_indices', tril_indices)
 
-        # We store the indices as a buffer, so they are part of the model's state but not its parameters.
-        self.register_buffer('tril_indices', tril_indices)
-    
-        # Trainable vector x_0
-        self.x_0 = nn.Parameter(torch.randn(1, m))
+            self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``
+        
+        if self.nn_x0:
+            self.x0_func = x0_func()    
+        elif not self.nn_Q:
+            self.x_0 = nn.Parameter(torch.randn(1, m))
 
-        self.Q = None  # Placeholder for the symmetric positive-definite matrix Q``
+    def _construct_x0(self,x=None):
+        x0 = self.x0_func(x)
+        return x0
 
-
-    def _construct_Q(self):
+    def _construct_Q(self,x=None):
         """
         Constructs the symmetric positive-definite matrix V_elliptical (Q) from L.
         """
-        if not self.diag_Q:
-            # Create an empty n x n matrix for L
-            L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
-
-            # Set the diagonal elements using the log_diag_L parameters.
-            # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
-            L.diagonal().copy_(torch.exp(self.log_diag_L))
-
-            # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
-            L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
-
-            # Compute Q = LLᵀ
-            Q = torch.matmul(L, L.T) # shape: m**2 x m**2
+        if self.nn_Q:
+            Q = self.Q_func(x)
         else:
-            Q = torch.exp(2*self.log_diag_L) # shape: m**2
+            if self.diag_Q:
+                Q = torch.exp(2*self.log_diag_L)
+            else:
+                # Create an empty n x n matrix for L
+                L = torch.zeros(self.latent_dim, self.latent_dim, device=self.log_diag_L.device)
+
+                # Set the diagonal elements using the log_diag_L parameters.
+                # The exp() ensures the diagonal is always positive. **** positive diagonal means L is a unique solution to A = LLT. that way we aren't getting the same Q with different L's (redundant, probably confusing during training)
+                L.diagonal().copy_(torch.exp(self.log_diag_L))
+
+                # Set the off-diagonal elements from the learned parameters. (ONLY WHEN DIAGONAL IS FALSE)
+                L[self.tril_indices[0], self.tril_indices[1]] = self.off_diag_L
+
+                # Compute Q = LLᵀ
+                Q = torch.matmul(L, L.T) # shape: m**2 x m**2
+
         return Q
 
         
     def forward(self, x):
-        Q = self._construct_Q()
+        if self.nn_Q:
+            Q = self._construct_Q(x=x[1])
+            # print('Q SHAPE RIGHT BEFORE LATENT DIM THING')
+            # print(Q.shape)
+            Q = Q.reshape(1,self.latent_dim)
+        else:
+            Q = self._construct_Q()
 
         self.Q = Q
-        
-        # # Reshape x_0 to broadcast correctly
-        # x_0 = self.x_0.squeeze(-1)
-        # Calculate (x - x_0)
-        diff = x - self.x_0
+        if self.nn_x0:
+            x0 = self._construct_x0(x=x[1])
+            diff = x[0]-x0.reshape(1,self.latent_dim)
+        elif self.nn_Q:
+            diff = x[0]
+        else:
+            diff = x[0] - self.x_0
         
         if not self.diag_Q:
             V = torch.einsum('bi,ij,bj->b', diff, Q, diff)
@@ -175,9 +209,9 @@ class V_elliptical(nn.Module):
 
 
 
-class DeepONet(nn.Module):
+class ECO(nn.Module):
     def __init__(self,model_params):
-        super(DeepONet,self).__init__()
+        super(ECO,self).__init__()
 
         m = model_params['m']
         n = model_params['n']
@@ -186,39 +220,51 @@ class DeepONet(nn.Module):
         project = model_params['project']
         discrete_proj = model_params['discrete_proj']
         diag_Q = model_params['diag_Q']
+        self.nn_Q = model_params['nn_Q']
+        self.nn_x0 = model_params['nn_x0']
         dt = model_params['dt']
+        self.backbone = model_params['backbone']
 
-        branch_conv_channels = model_params['branch_conv_channels']
-        branch_fc_dims = model_params['branch_fc_dims']
-        
-        trunk_hidden_dims = model_params['trunk_hidden_dims']
-        
-        output_dim = model_params['output_dim']
+        if self.backbone == 'deeponet':
+            branch_conv_channels = model_params['branch_conv_channels']
+            branch_fc_dims = model_params['branch_fc_dims']
+            
+            trunk_hidden_dims = model_params['trunk_hidden_dims']
+            
+            output_dim = model_params['output_dim']
 
-        # Define a configuration for the convolutional layers
-        # Define the desired output channels for each convolutional layer
-        conv_channels = branch_conv_channels
+            # Define a configuration for the convolutional layers
+            # Define the desired output channels for each convolutional layer
+            conv_channels = branch_conv_channels
 
-        # Define the kernel and stride you want to use for all layers
-        kernel = 5
-        stride = 2
+            # Define the kernel and stride you want to use for all layers
+            kernel = 5
+            stride = 2
 
-        # Use a list comprehension to build the configuration list
-        conv_setup = [
-            {'out_channels': channels, 'kernel_size': kernel, 'stride': stride}
-            for channels in conv_channels
-        ]
+            # Use a list comprehension to build the configuration list
+            conv_setup = [
+                {'out_channels': channels, 'kernel_size': kernel, 'stride': stride}
+                for channels in conv_channels
+            ]
 
-        # Create the Branch Net
-        self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim)
-        self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim)
+            # Create the Branch Net
+            self.Branch = Branch(m, conv_config=conv_setup, fc_dims=branch_fc_dims, output_dim=output_dim)
+            self.Trunk = Trunk(n, hidden_dims=trunk_hidden_dims, output_dim=output_dim)
 
-        # Check network structure (for debugging)
-        print("--- Initialized Branch Net Structure ---")
-        print(self.Branch)
-        print("\n--- Initialized Trunk Net Structure ---")
-        print(self.Trunk)
-        print("-" * 40)
+            # Check network structure (for debugging)
+            print("--- Initialized Branch Net Structure ---")
+            print(self.Branch)
+            print("\n--- Initialized Trunk Net Structure ---")
+            print(self.Trunk)
+            print("-" * 40)
+            self.b = nn.Parameter(torch.tensor(0.0))
+
+
+        elif self.backbone=='fno':
+            modes = 16
+            width = 64
+            self.FNO = FNO1d(modes,width)
+            print("\n--- Initialized FNO Backbone ---")
         
         self.project = project
         self.discrete_proj = discrete_proj
@@ -228,8 +274,6 @@ class DeepONet(nn.Module):
         self.dt = dt
 
         self.trainable_c = trainable_c
-
-        self.b = nn.Parameter(torch.tensor(0.0))
         if self.project:
             print('Projection layer included')
             
@@ -242,10 +286,9 @@ class DeepONet(nn.Module):
             else:
                 self.c.requires_grad = False
             self.eps_proj = 1e-3
-            self.V = V_elliptical(m=m, diag_flag=diag_Q)
+            self.V = V_elliptical(m=m, diag_flag=diag_Q,nn_Q=self.nn_Q,nn_x0=self.nn_x0)
 
     def discrete_project(self, w_in, w_out, smooth_choice=True, scale_level_set=0.99):
-        w_0 = self.V.x_0
         V = self.V(w_in)
 
         # The constraint is w^T Q w \leq b, and b = (1 - gamma) * V + gamma * self.c ** 2
@@ -255,7 +298,14 @@ class DeepONet(nn.Module):
         # b = (1 - gamma) * V + gamma * self.c ** 2
         b = V + F.relu(-V + self.c ** 2)
         b = scale_level_set * b
-        w = w_out - w_0
+        if self.nn_x0:
+            w0 = self.V._construct_x0(x=w_out[1]).reshape(1, self.V.latent_dim)
+            w = w_out[0] - w0
+        elif self.nn_Q:
+            w = w_out[0]
+        else:
+            w0 = self.V.x_0
+            w = w_out[0] - w0
         
         # Assuming Q is diagonal
         # L = torch.exp(self.V.log_diag_L)
@@ -269,8 +319,10 @@ class DeepONet(nn.Module):
         
         V_out = self.V(w_out)
         sqrt_V = torch.sqrt(V_out).unsqueeze(1)
-        w_proj = w_0 + sqrt_b/sqrt_V * (w)
-
+        if self.nn_x0 or not self.nn_Q:
+            w_proj = w0 + sqrt_b / sqrt_V * w
+        else:
+            w_proj = sqrt_b / sqrt_V * w
         if smooth_choice:
             k_choice = 100.0
             choice = 1 - torch.sigmoid(k_choice * (V_out - b))
@@ -282,10 +334,10 @@ class DeepONet(nn.Module):
         active_threshold = 1e-5
         active_proj_count = torch.sum(choice < active_threshold)
         
-        batch_size = w_in.shape[0]
+        batch_size = w_in[0].shape[0]
         self.active_projection_percentage = active_proj_count.item() / batch_size * 100
         
-        w_star = choice * w_out + (1 - choice) * w_proj
+        w_star = choice * w_out[0] + (1 - choice) * w_proj
 
         return w_star
 
@@ -313,13 +365,16 @@ class DeepONet(nn.Module):
 
 
     def forward(self,x):
-        x1 = self.Branch(x[0])
-        x2 = self.Trunk(x[1])
-        x_out = torch.einsum("bi,ai->ba",x1,x2)
-        x_out += self.b
+        if self.backbone == "deeponet":
+            x1 = self.Branch(x[0])
+            x2 = self.Trunk(x[1])
+            x_out = torch.einsum("bi,ai->ba",x1,x2)
+            x_out += self.b
+        elif self.backbone == "fno":
+            x_out = self.FNO((x[0].unsqueeze(-1),x[1])).squeeze(-1) 
         if self.project:
             if self.discrete_proj:
-                x_out = self.discrete_project(x[0], x_out)
+                x_out = self.discrete_project(x, (x_out,x[1]))
             else:
                 x_out = self.f_project(x[0], x_out, dt=self.dt)
         return x_out

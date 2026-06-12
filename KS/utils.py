@@ -362,11 +362,23 @@ def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir
                 V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
                 V_hist_GT[t] = test_traj[:,t,:] @ Q @ test_traj[:,t,:].T
             else:
-                Q = eval_model.V._construct_Q()
-                V_hist[t] = eval_model.V(w_in)
-                V_in = eval_model.V(w_in)
-                V_out = eval_model.V(w_out)
-                w0 = eval_model.V.x_0
+                V_hist[t] = eval_model.V((w_in,trunk_input))
+                V_in = eval_model.V((w_in,trunk_input))
+                V_out = eval_model.V((w_out,trunk_input))
+                if eval_model.nn_Q:
+                    Q = eval_model.V._construct_Q(x=trunk_input)
+                else:
+                    Q = eval_model.V._construct_Q()
+                if eval_model.nn_x0:
+                    w0 = eval_model.V._construct_x0(x=trunk_input).reshape(1, eval_model.V.latent_dim)
+                else:
+                    if eval_model.nn_Q:
+                        w0 = torch.zeros(1, eval_model.V.latent_dim, device=device)
+                    else:
+                        w0 = eval_model.V.x_0
+                
+                if eval_model.V.diag_Q:
+                    Q = torch.diag(Q.reshape(-1))
                 V_hist_GT[t] = (test_traj[:,t,:]-w0) @ Q @ (test_traj[:,t,:]-w0).T
 
             
@@ -595,3 +607,35 @@ def evaluate_fourier_spectrum(gt_traj, star_traj, save_path=None):
         print(f"Saved Fourier spectrum plot to {save_path}")
 
     return final_error_star
+
+def plot_spatial_sum(gt_traj, pred_traj, figs_dir, traj_ind=0, save_name='spatial_sum.png'):
+    if torch.is_tensor(gt_traj):
+        gt = gt_traj.detach().cpu()
+    else:
+        gt = torch.tensor(gt_traj, dtype=torch.float32)
+
+    if torch.is_tensor(pred_traj):
+        pred = pred_traj.detach().cpu()
+    else:
+        pred = torch.tensor(pred_traj, dtype=torch.float32)
+
+    if gt.ndim == 3:
+        gt = gt[traj_ind]
+    if pred.ndim == 3:
+        pred = pred[traj_ind]
+
+    gt_sum = gt.sum(dim=-1).numpy()
+    pred_sum = pred.sum(dim=-1).numpy()
+    time_steps = np.arange(min(len(gt_sum), len(pred_sum)))
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(time_steps, gt_sum[:len(time_steps)], label='Ground Truth')
+    plt.plot(time_steps, pred_sum[:len(time_steps)], label='Model')
+    plt.xlabel('Time step')
+    plt.ylabel('Sum across x')
+    plt.title('Spatial sum over time')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{figs_dir}/{save_name}')
+    plt.close()

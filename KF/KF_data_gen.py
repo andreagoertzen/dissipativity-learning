@@ -13,13 +13,13 @@ device = torch.device('cuda')
 # Re = 250
 Re = 500 # Reynolds number
 # Re = 70
-dt = 0.0005 # Integration time step
+dt = 0.0005 # Integration time step (0.0001 for Re500, 0.0005 for Re40)
 n = 4 # forcing period 
-T = 500 # end time
+T = 4000 # end time
 M = N = 128 # x and y discretization
 t_save = 1 # save time step
-n_traj = 200 # number of trajectories to generate 
-n_ani = 5 # how many trajectories to visualize
+n_traj = 1 # number of trajectories to generate 
+n_ani = 1 # how many trajectories to visualize
 ic_factor = 1
 
 domain_size = L = 2 * np.pi
@@ -41,7 +41,7 @@ dealias[ky*L<-N/3] = 0
 
 G = -1/Re * (2j *np.pi)**2 * (kx**2 + ky**2)
 
-folder = f'dt_newIC/KF_Re{Re}_M{M}_tsave{t_save}_dt{dt}_T{T}_n{n_traj}_IC{ic_factor}'
+folder = f'KF_Re{Re}_M{M}_tsave{t_save}_dt{dt}_T{T}_n{n_traj}'
 print(folder)
 if not os.path.exists(f'data/{folder}'):
     os.makedirs(f'data/{folder}')

@@ -8,15 +8,14 @@ import numpy as np
 
 
 
-def run_functions(params,param_path_parent,Re,ICscale):
+def run_functions(params,param_path_parent,Re,ICscale,m):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trunk_scale = 1
-    m = 64
-    m = 128
+    # m = 64
     n = 2
     model_folder = param_path_parent
     print(model_folder)
-    figs_dir = figs_folder = f'{model_folder}/eval_results_ICscale{ICscale}_M128'
+    figs_dir = figs_folder = f'{model_folder}/eval_results_ICscale{ICscale}_M{m}'
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
@@ -39,11 +38,15 @@ def run_functions(params,param_path_parent,Re,ICscale):
         'circular_padding': params['circular_padding'],
         'trunk_last_act': params['trunk_last_act'],
         'backbone': params['backbone'],
-        'nn_Q': params['nn_Q']
+        'nn_Q': params['nn_Q'],
+        'nn_x0': params.get('nn_x0',False)
         # 'backbone': 'deeponet',
     }
 
+    print(f'NN X0: {model_params["nn_x0"]}')
     model = ECO(model_params).to(device)
+    if model.project and model.V.nn_Q:
+        model.V.Q_func.initialized_output = True
     print(next(model.parameters()).is_cuda)
     num_params = sum(v.numel() for v in model.parameters() if v.requires_grad)
     print(f'model params: {num_params}')
@@ -52,24 +55,25 @@ def run_functions(params,param_path_parent,Re,ICscale):
     model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
     model.eval()
 
+    print(f'MODEL PROJECT: {model.project}')
+    print(f'MODEL DISCRETE: {model.discrete_proj}')
+
 
     ### LOAD DATA
     print('LOADING TEST DATA')
-    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt'
-    # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
-    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
-    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     dt = 1.0
     if Re == '40':
-        file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
+        file_dir = f'data/KF_Re40_M128_tsave1_dt0.0005_T500_n220/data.pt'
         data = torch.load(file_dir)
-        data_animate = torch.load(f'data/KF_Re{Re}_M64_tsave1_T5000_n1/data.pt')
+        data_animate = torch.load(f'data/KF_Re40_M128_tsave1_dt0.0005_T2000_n1/data.pt')
     elif Re == '500':
-        file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
-        file_dir = f'data/dt_newIC/KF_Re{Re}_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
+        file_dir = f'data/KF_Re500_M128_tsave1_dt0.0001_T500_n220/data.pt'
+        # file_dir = f'data_archive/KF_Re500_M128_tsave1_T500_n200/data.pt'
         data = torch.load(file_dir)
-        data_animate = torch.load(f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt')#[:,::2,::2,:]
-        #data = data[:,::2,::2,:]
+        data_animate = torch.load(f'data/KF_Re500_M128_tsave1_dt0.0001_T2000_n1/data.pt')#[:,::2,::2,:]
+    if m==64:
+        data = data[:,::2,::2,:]
+        data_animate = data_animate[:,::2,::2,:]
         # data = data[:,:,:,::2]
         # if dt == 0.5:
         #     data = data[::2,...]
@@ -77,7 +81,8 @@ def run_functions(params,param_path_parent,Re,ICscale):
         #     # data = data[...,::2]
         #     data_animate = data_animate[...,::2] # assuming dt = 1.0
         print(data.shape)
-    data = data[185:,:,:,200:]
+    data = data[205:,:,:,200:]
+    # data = data[185:,:,:,200:]
     print(data.shape)
     s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
     grids = []
@@ -93,17 +98,28 @@ def run_functions(params,param_path_parent,Re,ICscale):
     ## GET MODEL PARAMETERS
     if model.project:
         if model.V.nn_Q:
-            Q = model.V._construct_Q((torch.zeros(1,1),x_trunk_input)).detach().cpu().numpy() # first input is dummy
+            Q = model.V._construct_Q(x_trunk_input).detach().cpu().numpy() # first input is dummy
             Q = np.diag(np.squeeze(Q))
+            if model.V.nn_x0:
+                x0 = model.V._construct_x0(x_trunk_input).detach().cpu().numpy()
+                x0 = x0.reshape(1,m**2)
+            else:
+                x0 = np.zeros((1,m**2))
         else:
             Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
+            x0 = model.V.x_0.detach().detach().cpu().numpy()
+            x0.reshape(1,m**2)
         c = model.c.detach().cpu().numpy()
     else:
         Q = None
         c = 30.0
+        x0 = np.zeros((1,m**2))
 
+    # x0 = np.zeros((1,m**2))
     print('LEARNED Q: ')
     print(np.diag(Q))
+    print('X0:')
+    print(x0)
     
     # print('Q SHAPE')
     # print(Q.shape)
@@ -134,7 +150,10 @@ def run_functions(params,param_path_parent,Re,ICscale):
     
     ## FIRST TEN PCA MODES
     print('PCA MODES (method A)')
-    pca_modes(w_data=gt_traj,w_model=pred_traj,figs_dir=figs_dir,s=s,device=device)
+    x0_torch = torch.tensor(x0,device=device)
+    print(gt_traj.shape)
+    print((gt_traj-x0_torch).shape)
+    pca_modes(w_data=gt_traj-x0_torch,w_model=pred_traj-x0_torch,figs_dir=figs_dir,s=s,device=device)
 
     ## SPATIAL CORRELATION
     print('SPATIAL CORRELATION')
@@ -147,9 +166,9 @@ def run_functions(params,param_path_parent,Re,ICscale):
     row_norms = torch.norm(pred_traj, p=2, dim=1)
     mask = row_norms<1e10
     print(mask.shape)
-    pred_traj_pca = pred_traj[mask,:]
+    pred_traj_pca = pred_traj[mask,:]-x0_torch
     print('PCA PROJECTION')
-    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
+    pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj-x0_torch, 
         pred_traj = pred_traj_pca, 
         figs_dir=figs_dir, 
         Q=Q, 
@@ -171,7 +190,8 @@ def run_functions(params,param_path_parent,Re,ICscale):
     pca_histogram_eval(gt_pca=pca_traj_gt, 
         pred_pca=pca_traj_pred, 
         bins=50, 
-        lim=[[-250.0, 250.0], [-250.0, 250.0]], 
+        # lim=[[-250.0, 250.0], [-250.0, 250.0]], 
+        lim = None,
         save_path=f'{figs_dir}/distribution_pca.png', 
         title_gt='Ground Truth', 
         title_pred='Prediction')
@@ -181,11 +201,11 @@ def run_functions(params,param_path_parent,Re,ICscale):
     print(gt_traj.shape)
     print(pred_traj.shape)
     fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
-    
+
     ## V OVER TIME
     print('Energy over time')
     n = data_animate.shape[0]
-    energy_time(gt_traj=gt_traj[:5000],pred_traj=pred_traj[:5000],Q=torch.tensor(np.diag(Q),device=device),model=model,figs_dir=figs_dir)
+    energy_time(gt_traj=gt_traj[:5000],pred_traj=pred_traj[:5000],Q=torch.tensor(np.diag(Q),device=device),model=model,figs_dir=figs_dir,x0=x0_torch)
 
 
 
@@ -197,9 +217,11 @@ def main(param_path_str,Re):
     data = np.load(param_path)
 
     # Process
-    ICscales = [1]
+    ICscales = [1,30]
+    ms = [64,128]
     for ICscale in ICscales:
-        result = run_functions(data,str(param_path.parent),Re,ICscale)
+        for m in ms:
+            result = run_functions(data,str(param_path.parent),Re,ICscale,m)
 
     # # Save result
     # np.savez(output_path, **result)
