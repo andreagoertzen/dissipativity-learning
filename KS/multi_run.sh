@@ -2,8 +2,8 @@
 #SBATCH --job-name Multistep_ellip_train_submit
 
 
-# sbatch run.sh --epoch 40000 --branch_conv_channels 32 64 128 --trunk_scale 0.05 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --tag "dim256_train2" --dt 1.0
-for c in 30 60 100 500
+# # sbatch run.sh --epoch 40000 --branch_conv_channels 32 64 128 --trunk_scale 0.05 --output_dim 256 --branch_fc_dims 256  --trunk_hidden_dims 256 256 256 --tag "dim256_train2" --dt 1.0
+for c in 70 90 100
 do
     cmd="sbatch run.sh \
     --epoch 50000 \
@@ -36,23 +36,22 @@ done
 # echo "$cmd"
 # eval "$cmd"
 
-cmd="sbatch run.sh \
---epoch 40000 \
---backbone deeponet \
---branch_conv_channels 32 64 128 \
---trunk_scale 0.05 \
---output_dim 256 \
---branch_fc_dims 256 \
---trunk_hidden_dims 256 256 256 \
---tag "dim256" \
---trunk_scale 1.0 \
---dt 1.0 "
+# cmd="sbatch run.sh \
+# --epoch 40000 \
+# --backbone deeponet \
+# --branch_conv_channels 32 64 128 \
+# --trunk_scale 0.05 \
+# --output_dim 256 \
+# --branch_fc_dims 256 \
+# --trunk_hidden_dims 256 256 256 \
+# --tag "dim256" \
+# --dt 1.0 "
 
-echo "$cmd"
-eval "$cmd"
+# echo "$cmd"
+# eval "$cmd"
 
 
-# for c in 160 175 190 
+# for c in 60 70 80 
 # do
 #     cmd="sbatch run.sh \
 #     --epoch 40000 \

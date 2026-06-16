@@ -25,7 +25,6 @@ def run_functions(params,param_path_parent,Re,ICscale,m):
     model_params = {
         'm': m,
         'n': n,
-        'trainable_c': params['trainable_c'],
         'c0': params['c0'],
         'project': params['project'],
         'diag_Q': params['diag_Q'],
@@ -34,13 +33,9 @@ def run_functions(params,param_path_parent,Re,ICscale,m):
         'trunk_hidden_dims': params['trunk_hidden_dims'].tolist(),
         'output_dim': params['output_dim'],
         'dt': params['dt'],
-        'discrete_proj': params['discrete_proj'],
-        'circular_padding': params['circular_padding'],
-        'trunk_last_act': params['trunk_last_act'],
-        'backbone': params['backbone'],
-        'nn_Q': params['nn_Q'],
+        'backbone': params.get('backbone','deeponet'),
+        'nn_Q': params.get('nn_Q',False),
         'nn_x0': params.get('nn_x0',False)
-        # 'backbone': 'deeponet',
     }
 
     print(f'NN X0: {model_params["nn_x0"]}')
@@ -56,8 +51,6 @@ def run_functions(params,param_path_parent,Re,ICscale,m):
     model.eval()
 
     print(f'MODEL PROJECT: {model.project}')
-    print(f'MODEL DISCRETE: {model.discrete_proj}')
-
 
     ### LOAD DATA
     print('LOADING TEST DATA')
@@ -111,15 +104,16 @@ def run_functions(params,param_path_parent,Re,ICscale,m):
             x0.reshape(1,m**2)
         c = model.c.detach().cpu().numpy()
     else:
-        Q = None
+        Q = np.eye(m**2,dtype=np.float64)
         c = 30.0
         x0 = np.zeros((1,m**2))
 
     # x0 = np.zeros((1,m**2))
-    print('LEARNED Q: ')
-    print(np.diag(Q))
-    print('X0:')
-    print(x0)
+    if params['project']:
+        print('LEARNED Q: ')
+        print(np.diag(Q))
+        print('LEARNED X0:')
+        print(x0)
     
     # print('Q SHAPE')
     # print(Q.shape)
@@ -205,7 +199,7 @@ def run_functions(params,param_path_parent,Re,ICscale,m):
     ## V OVER TIME
     print('Energy over time')
     n = data_animate.shape[0]
-    energy_time(gt_traj=gt_traj[:5000],pred_traj=pred_traj[:5000],Q=torch.tensor(np.diag(Q),device=device),model=model,figs_dir=figs_dir,x0=x0_torch)
+    energy_time(gt_traj=gt_traj[:5000],pred_traj=pred_traj[:5000],Q=torch.tensor(np.diag(Q),device=device,dtype=torch.float32),model=model,figs_dir=figs_dir,x0=x0_torch)
 
 
 
@@ -217,8 +211,8 @@ def main(param_path_str,Re):
     data = np.load(param_path)
 
     # Process
-    ICscales = [1,30]
-    ms = [64,128]
+    ICscales = [30,1]
+    ms = [64]
     for ICscale in ICscales:
         for m in ms:
             result = run_functions(data,str(param_path.parent),Re,ICscale,m)

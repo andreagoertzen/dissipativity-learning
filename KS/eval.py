@@ -65,6 +65,8 @@ def resample_grid_data(data, grid_size):
 def resample_state_to_size(state, target_size):
     if state.shape[-1] == target_size:
         return state
+    if state.shape[-1] == 2 * target_size:
+        return 0.5 * (state[..., ::2] + state[..., 1::2])
     return F.interpolate(
         state.unsqueeze(1),
         size=target_size,
@@ -260,6 +262,7 @@ def plot_random_rollout(model, grid_size, eval_grid, train_grid, train_s, use_pr
     plt.ylabel("Position")
     plt.savefig(os.path.join(figs_dir, f"rollout_randomIC_mag{random_IC_mag}.png"))
     plt.close()
+    torch.save(rollout,f'./{figs_dir}/rollout_traj_IC{random_IC_mag}.pt')
 
 
 def select_data_for_grid(data_512, data_1024, grid_size):
@@ -304,6 +307,7 @@ def run_eval_for_grid(model, model_params, data_512, data_1024, model_dir, grid_
         use_projection=use_projection,
     )
     print(f"Prediction shape for grid {grid_size}: {tuple(pred_traj.shape)}")
+    torch.save(pred_traj,f'./{figs_dir}/rollout_traj.pt')
 
     Q, c, x0 = get_diag_Q_and_x0(model, eval_grid, grid_size)
     plot_v_history(model, gt_traj, pred_traj, eval_grid, figs_dir, c, x0)
@@ -373,7 +377,7 @@ def main():
 
     data_512 = np.load(args.data_path, allow_pickle=True)
     data_1024 = np.load(args.data_path_1024, allow_pickle=True)
-    for grid_size in (512, 1024):
+    for grid_size in (512,1024):
         run_eval_for_grid(model, model_params, data_512, data_1024, args.model_dir, grid_size, args)
 
 

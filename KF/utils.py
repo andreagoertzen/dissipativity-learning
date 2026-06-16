@@ -369,100 +369,6 @@ def visualize_ellipsoid(gt_traj, pred_traj, figs_dir, Q=None, c=1.0,tag=''):
     plt.close()
     return pca_traj_1[:,:2], pca_traj_pred[:,:2]
 
-def rollout_on_test(eval_model, data_x, trunk_scale, test_traj, device, figs_dir, project,c):
-    ## CURRENTLY UNUSED, NEED TO MAKE CHANGES BEFORE USING FOR KF
-    eval_model.eval()
-    trunk_input = torch.tensor(data_x, dtype=torch.float32).to(device) * trunk_scale
-    # make trunk input 512 by 1, now it's 512
-    trunk_input = trunk_input.view(512, 1)
-
-    # print("trunk_input shape:", trunk_input.shape)
-    test_traj = torch.tensor(test_traj, dtype=torch.float32).to(device)
-    pred_traj = torch.zeros_like(test_traj).to(device)
-    pred_traj[:, 0, :] = test_traj[:, 0, :].to(device)
-
-    dt = 1
-    # Q = eval_model.V._construct_Q().to(device)
-    V_hist = torch.zeros(test_traj.shape[1]-1).to(device)
-    V_hist_GT = torch.zeros(test_traj.shape[1]-1).to(device)
-
-    if not project:
-        c = c
-    else:
-        c = eval_model.c 
-
-    for t in tqdm(range(test_traj.shape[1]-1)):
-    # for t in tqdm(range(150)):
-        with torch.no_grad():
-        # Forward pass through the model
-            input_t = (pred_traj[:, t, :], trunk_input)
-            pred_traj[:, t+1, :] = eval_model(input_t)
-
-            w_in = pred_traj[0, t, :]
-            w_out = pred_traj[0, t+1, :]
-            # w_diff = w_in - eval_model.V.x_0
-
-            # dVdw = 2 * (w_diff @ Q)
-            # # cond = (dVdw * w_out).sum(dim=1) - (dVdw * w_in).sum(dim=1) + dt * (eval_model.V(w_in) - eval_model.c ** 2)
-            # A = dVdw
-            # bx = eval_model.V(w_in)-(1/dt) * torch.einsum('bi,bi->b',dVdw, w_in) - eval_model.c**2
-            # cond = torch.einsum('bi,bi->b',A,w_out) + bx
-            # # print((dVdw ** 2).sum(dim=1))
-
-            # if cond > 0:
-            # 	print(f"Condition violated at timestep {t}: {cond.item()}")
-            # # print(cond)
-
-            if not project:
-                # If no Q is provided, use the covariance
-                Q = torch.eye(trunk_input.shape[0]).to(device)
-
-                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
-                V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
-                V_hist_GT[t] = test_traj[:,t,:] @ Q @ test_traj[:,t,:].T
-            else:
-                Q = eval_model.V._construct_Q()
-                V_hist[t] = eval_model.V(w_in)
-                V_in = eval_model.V(w_in)
-                V_out = eval_model.V(w_out)
-                if model.nn_Q:
-                    V_hist_GT[t] = (test_traj[:,t,:]) @ Q @ (test_traj[:,t,:]).T
-                else:
-                    w0 = eval_model.V.x_0
-                    V_hist_GT[t] = (test_traj[:,t,:]-w0) @ Q @ (test_traj[:,t,:]-w0).T
-
-            
-            if V_in > c ** 2:
-                cond = V_out - V_in
-                if cond > 0:
-                    print(f"Condition violated at timestep {t} OUTSIDE: {cond.item()}")
-            else:
-                cond = V_out - c ** 2
-                if cond > 0:
-                    print(f"Condition violated at timestep {t} INSIDE: {cond.item()}")
-
-    # plot the V_hist against time
-    plt.plot(V_hist.cpu().numpy(),label='model')
-    plt.plot(V_hist_GT.cpu().numpy(),label='GT')
-
-    # plot c as a single line
-    # plt.plot(eval_model.c.detach().cpu().numpy() ** 2, label='c')
-    plt.xlabel("Time step")
-    plt.ylabel("V")
-    plt.yscale("log")
-    plt.title("V over time")
-    plt.legend()
-    plt.savefig(f'{figs_dir}/V_plot.png')
-    plt.close()
-
-    # plt.figure()
-    # plt.imshow(pred_traj[0,...].T.cpu().numpy(),aspect="auto")
-    # plt.savefig(f'{figs_dir}/traj_forPCA.png')
-
-    return pred_traj
-
-
 
 def compare_distributions(gt_traj, pred_traj, bins=50, plot=True, save_name='distribution.png'):
     """
@@ -756,62 +662,62 @@ def spatial_corr(u_data,u_model,figs_dir,s):
     plt.savefig(f'{figs_dir}/spatialcorr.png')
 
 
-# Training KF normalizing and de-normalizing util functions
-class Normalizer:
-    """Scalar (global) z-score normalizer for fields."""
-    def __init__(self, mu=None, sigma=None, eps=1e-6):
-        self.mu = None if mu is None else float(mu)
-        self.sigma = None if sigma is None else float(sigma)
-        self.eps = eps
+# # Training KF normalizing and de-normalizing util functions
+# class Normalizer:
+#     """Scalar (global) z-score normalizer for fields."""
+#     def __init__(self, mu=None, sigma=None, eps=1e-6):
+#         self.mu = None if mu is None else float(mu)
+#         self.sigma = None if sigma is None else float(sigma)
+#         self.eps = eps
 
-    def fit(self, t: torch.Tensor):
-        mu = t.mean()
-        sigma = t.std().clamp_min(self.eps)
-        self.mu = float(mu)
-        self.sigma = float(sigma)
-        return self
+#     def fit(self, t: torch.Tensor):
+#         mu = t.mean()
+#         sigma = t.std().clamp_min(self.eps)
+#         self.mu = float(mu)
+#         self.sigma = float(sigma)
+#         return self
 
-    def _like(self, t: torch.Tensor):
-        return (torch.tensor(self.mu, dtype=t.dtype, device=t.device),
-                torch.tensor(self.sigma, dtype=t.dtype, device=t.device))
+#     def _like(self, t: torch.Tensor):
+#         return (torch.tensor(self.mu, dtype=t.dtype, device=t.device),
+#                 torch.tensor(self.sigma, dtype=t.dtype, device=t.device))
 
-    def norm(self, t: torch.Tensor):
-        if self.mu is None:  # identity if not fitted / disabled
-            return t
-        mu_t, sigma_t = self._like(t)
-        return (t - mu_t) / sigma_t
+#     def norm(self, t: torch.Tensor):
+#         if self.mu is None:  # identity if not fitted / disabled
+#             return t
+#         mu_t, sigma_t = self._like(t)
+#         return (t - mu_t) / sigma_t
 
-    def denorm(self, t: torch.Tensor):
-        if self.mu is None:
-            return t
-        mu_t, sigma_t = self._like(t)
-        return t * sigma_t + mu_t
+#     def denorm(self, t: torch.Tensor):
+#         if self.mu is None:
+#             return t
+#         mu_t, sigma_t = self._like(t)
+#         return t * sigma_t + mu_t
 
 
-class InferenceWrapper(torch.nn.Module):
-    """
-    Wraps the trained model so you can call it with PHYSICAL inputs and
-    get PHYSICAL outputs, even if the model was trained in normalized space.
-    Handles residual mode too.
-    """
-    def __init__(self, base_model: torch.nn.Module, normalizer: Normalizer, residual: bool):
-        super().__init__()
-        self.base = base_model
-        self.norm = normalizer
-        self.residual = residual
+# class InferenceWrapper(torch.nn.Module):
+#     """
+#     Wraps the trained model so you can call it with PHYSICAL inputs and
+#     get PHYSICAL outputs, even if the model was trained in normalized space.
+#     Handles residual mode too.
+#     """
+#     def __init__(self, base_model: torch.nn.Module, normalizer: Normalizer, residual: bool):
+#         super().__init__()
+#         self.base = base_model
+#         self.norm = normalizer
+#         self.residual = residual
 
-    @torch.no_grad()
-    def forward(self, x):
-        # x = (u_t_phys, trunk)
-        u_t_phys, trunk = x
-        u_t_n = self.norm.norm(u_t_phys)          # normalize input
-        pred_n = self.base((u_t_n, trunk))        # model in normalized space
-        if self.residual:
-            next_n = u_t_n + pred_n               # delta -> next (still normalized)
-        else:
-            next_n = pred_n
-        next_phys = self.norm.denorm(next_n)      # back to physical
-        return next_phys
+#     @torch.no_grad()
+#     def forward(self, x):
+#         # x = (u_t_phys, trunk)
+#         u_t_phys, trunk = x
+#         u_t_n = self.norm.norm(u_t_phys)          # normalize input
+#         pred_n = self.base((u_t_n, trunk))        # model in normalized space
+#         if self.residual:
+#             next_n = u_t_n + pred_n               # delta -> next (still normalized)
+#         else:
+#             next_n = pred_n
+#         next_phys = self.norm.denorm(next_n)      # back to physical
+#         return next_phys
 
 
 def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir='',x0=None):
@@ -834,7 +740,7 @@ def energy_time(gt_traj,pred_traj,Q,c=100.0,model=None,figs_dir='',x0=None):
                 # If no Q is provided, use the covariance
                 # Q = torch.eye(gt_traj.shape[-1]).to(device)
 
-                V_hist[t] = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
+                V_hist[t] = torch.sum(w_in**2 * Q) #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_in = w_in @ Q @ w_in.T #torch.einsum('bi,ij,bj->b', w_in, Q, w_in)
                 # V_out = w_out @ Q @ w_out.T #torch.einsum('bi,ij,bj->b', w_out, Q, w_out)
                 V_hist_GT[t] = torch.sum(gt_traj[t,:]**2*Q) 

@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
 import logging
-from utils import Normalizer, InferenceWrapper
+# from utils import Normalizer, InferenceWrapper
 from datetime import datetime
-from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d
+# from utils import one_step_animation, rollout_animation, pca_modes, visualize_ellipsoid, compare_distributions, pca_histogram_eval, evaluate_fourier_spectrum, spatial_corr, fourier_spectrum_2d
 
 
 def ellip_vol(model,nn_Q,x_trunk_input=None):
@@ -27,8 +27,6 @@ def ellip_vol(model,nn_Q,x_trunk_input=None):
         Q = torch.squeeze(Q)
         d = Q.shape[0]
         c_val = model.c ** 2
-        # det_Q = torch.sum(Q) # Q is diagonal by default
-        # det_factor = 1/torch.sqrt(det_Q)
         q = Q.reshape(-1)
         log_det_Q = torch.sum(torch.log(q))
         det_factor = torch.exp(-0.5 * log_det_Q)
@@ -41,13 +39,10 @@ def ellip_vol(model,nn_Q,x_trunk_input=None):
         det_factor = torch.exp(- 1/2 * log_det_Q)
 
     # Final volume
-    if model.trainable_c:
-        vol = (c_val**(d/2)) * det_factor
-    else:
-        vol = det_factor
+    vol = det_factor
     return vol
 
-# choose whether to use GPU or CPU
+# device and seed
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(0)
 np.random.seed(0)
@@ -77,62 +72,31 @@ def train(params):
     if not os.path.exists(figs_folder):
         os.makedirs(figs_folder)
 
-    # file_dir = 'Data/KS_data_batched_l100.53_grid512_M8_T200.0_dt0.005_dt_sample0.2_amp20.0/data.npz'
-    # file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T500_n200/data.pt'
     if Re == '40':
-        # file_dir = f'data/KF_Re{Re}_M64_tsave1_T500_n200/data.pt'
         file_dir = f'data/KF_Re40_M128_tsave1_dt0.0005_T500_n220/data.pt'
         data = torch.load(file_dir)[:n_traj,...]
         data = data[:,::2,::2,:]
     elif Re == '500':
-        # file_dir = f'data/dt_newIC/KF_Re500_M128_tsave1_dt0.0001_T500_n200_IC1/data.pt'
-        # file_dir = f'data_archive/KF_Re500_M128_tsave0.5_T500_n200/data.pt'
         file_dir = f'data/KF_Re500_M128_tsave1_dt0.0001_T500_n220/data.pt'
         data = torch.load(file_dir)[:n_traj,...] 
         data = data[:,::2,::2,:]
-        # if dt == 0.5:
-        #     data = data[::2,...]
-        # if dt == 1.0:
-        #     data = data[...,::2]
-        print('data shape')
-        print(data.shape)
 
     if params['multi_step']:
         print('Using multi-step dataset: n_steps = ', params['n_steps'], ' stride = ', params['stride'])
         train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale, multi_step=True, stride=params['stride'], n_steps=params['n_steps'])
     else:
         train_dataset, val_dataset = load_multi_traj_data(data, trunk_scale)
-
-    # print(train_dataset.branch_inputs.shape)
-    # print(val_dataset.branch_inputs.shape)
-
-    # # Normalization of training data
-    # normalizer = Normalizer(eps=params.get('norm_eps', 1e-6))
-    # if params.get('normalize', False):
-    #     normalizer.fit(train_dataset.branch_inputs)
-    #     # train (use TRAIN mu/sigma)
-    #     train_dataset.branch_inputs = normalizer.norm(train_dataset.branch_inputs)
-    #     train_dataset.targets       = normalizer.norm(train_dataset.targets)
-    #     # val (use TRAIN mu/sigma)
-    #     val_dataset.branch_inputs = normalizer.norm(val_dataset.branch_inputs)
-    #     val_dataset.targets       = normalizer.norm(val_dataset.targets)
-    # else:
-    #     # identity normalizer
-    #     normalizer.fit(train_dataset.branch_inputs)  # still store stats for convenience
-
     
     train_loader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, pin_memory=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=bsize, shuffle=False)
     logging.info(f"Created DataLoaders with {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
 
-    # Model Optimizer Initialization
     m = s = data.shape[1]  # Assuming u_batch is of shape (num_traj, dim1, dim2, n_time)
     n = 2
 
     model_params = {
         'm': m,
         'n': n,
-        'trainable_c': params['trainable_c'],
         'c0': params['c_init'],
         'project': params['project'],
         'diag_Q': params['diag_Q'],
@@ -141,7 +105,6 @@ def train(params):
         'trunk_hidden_dims': params['trunk_hidden_dims'],
         'output_dim': params['output_dim'],
         'dt': params['dt'],
-        'discrete_proj': params['discrete_proj'],
         'circular_padding': params['circular_padding'],
         'activation': params['activation'],
         'trunk_last_act': params['trunk_last_act'],
@@ -149,11 +112,10 @@ def train(params):
         'nn_Q': params['nn_Q'],
         'nn_x0': params['nn_x0']
     }
-    # save model_params dictionary in the model location, perhaps as an npz
+    # save model_params dictionary in the model location
     np.savez(f"./{model_folder}/model_params.npz", **model_params)
 
     model = ECO(model_params).to(device)
-    # Adding weight_decay and lr sceduler
     
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     
@@ -193,18 +155,6 @@ def train(params):
             return None
         
     main_sched = build_main_scheduler()
-
-    # Optional linear warmup for the first warmup_epochs (only for scheds that don't need val loss)
-    # if warmup_epochs > 0 and sched_type in {'cosine','step','multistep','exp'}:
-    #     warmup = torch.optim.lr_scheduler.LambdaLR(
-    #         optimizer, lr_lambda=lambda e: min(1.0, (e+1)/max(1, warmup_epochs))
-    #     )
-    #     scheduler = torch.optim.lr_scheduler.SequentialLR(
-    #         optimizer, schedulers=[warmup, main_sched], milestones=[warmup_epochs]
-    #     )
-    # else:
-    #     scheduler = main_sched
-    # Currently disabled above
     
     scheduler = main_sched
 
@@ -255,10 +205,6 @@ def train(params):
             # Transpose the trunk input
             
             trunk_input = trunk_batch[0]
-            # print('TRUNK INPUT SHAPE')
-            # print(trunk_input.shape)
-            # print(trunk_input)
-            # print(branch_batch)
             y_batch = y_batch.to(device)
             
             optimizer.zero_grad()
@@ -277,7 +223,7 @@ def train(params):
                 # The model expects a tuple of (branch_input, trunk_input)
                 u_pred = model((branch_batch, trunk_input))
 
-                if project and model_params['discrete_proj']:
+                if project:
                     epoch_active_projection_percentage += model.active_projection_percentage
 
                 dynamic_loss = loss_func(u_pred, y_batch)
@@ -408,7 +354,7 @@ def train(params):
             plt.close('all')
             
             log_string = (f"Epoch: {epoch}/{epochs} | Train Loss: {avg_train_loss:.3e} | Dynamic Loss: {avg_dynamic_loss:.3e} | Regularization Loss: {avg_reg_loss:.3e} | Val Loss: {avg_val_loss:.3e}")
-            if project and model_params['discrete_proj']:
+            if project:
                 log_string += f" | Active Proj %: {avg_projection_percentage:.2f}"
                 
             log_string += f" | Time: {total_time:.2f}s"
@@ -422,120 +368,11 @@ def train(params):
                 best_ind = epoch
             
             tic = time.time()
-
-    # after you already save model_params.npz
-    # np.savez(f"./{model_folder}/norm_stats.npz", mu=normalizer.mu, sigma=normalizer.sigma)
-
-    # # save model_params dictionary in the model location, perhaps as an npz
-    # np.savez(f"./{model_folder}/model_params.npz", **model_params)
     
     Q = model.V._construct_Q(trunk_input)
     x0 = model.V._construct_x0(trunk_input)
     logging.info(f'MODEL FINAL Q: {Q}')
     logging.info(f'MODEL FINAL X0: {x0}')
-    model.load_state_dict(torch.load(f'{model_folder}/model_epoch_best.pt',map_location=device))
-    model.eval()
-
-    # eval_model = InferenceWrapper(
-    #     base_model=model,
-    #     normalizer=normalizer,                  # knows mu/sigma
-    #     residual=params.get('residual', False)
-    # )
-
-
-    # ## GET MODEL PARAMETERS
-    # if model.project:
-    #     Q = torch.diag(model.V._construct_Q()).detach().cpu().numpy()
-    #     c = model.c.detach().cpu().numpy()
-    # else:
-    #     Q = None
-    #     c = 30.0
-
-    ### LOAD DATA
-    print('LOADING TEST DATA')
-    file_dir = f'data/KF_Re{Re}_M128_tsave0.5_T5000_n1/data.pt'
-    data = torch.load(file_dir)
-    s = data.shape[1] # assuming data has shape n_traj, dim1, dim2, n_time and dim1 = dim2
-    grids = []
-    grids.append(np.linspace(0, 2*np.pi, s, dtype=np.float32) * trunk_scale)
-    grids.append(np.linspace(2*np.pi, 0, s, dtype=np.float32) * trunk_scale) # position (0,0) of matrix is point (0,1) on plot (top left)
-
-    # x_trunk_input = torch.tensor(np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T).to(device)
-
-    # gt_traj = data.permute(0,3,1,2).reshape(-1,s*s).to(device)
-    # print(gt_traj.shape)
-
-    ## ONE STEP COMPARISON W GROUND TRUTH
-    print('ONE STEP COMPARISON')
-    # one_step_animation(model=eval_model,
-    #     x_val = (gt_traj[:-1,...],x_trunk_input),
-    #     y_val = gt_traj[1:,...],
-    #     figs_dir=figs_dir,
-    #     s=s)
-    one_step_animation(model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-
-    ## ROLLOUT COMPARISON W GROUND TRUTH
-    # pred_traj = rollout_animation(model=eval_model,
-    #     x_val = (gt_traj[:-1,...],x_trunk_input),
-    #     y_val = gt_traj[1:,...],
-    #     figs_dir=figs_dir,
-    #     s=s)
-    one_step_animation(model,
-        x_val = (gt_traj[:-1,...],x_trunk_input),
-        y_val = gt_traj[1:,...],
-        figs_dir=figs_dir,
-        s=s)
-    pred_traj = pred_traj.to(device)
-
-    # ## FIRST TEN PCA MODES
-    # print('PCA MODES (method A)')
-    # pca_modes(w_data=gt_traj,w_model=pred_traj,figs_dir=figs_dir,s=s,device=device)
-
-    # ## SPATIAL CORRELATION
-    # print('SPATIAL CORRELATION')
-    # spatial_corr(u_data=gt_traj.detach().cpu().numpy(),
-    #     u_model=pred_traj.detach().cpu().numpy(),
-    #     figs_dir=figs_dir,
-    #     s=s)
-
-    # ## PCA PLOT
-    # print('PCA PROJECTION')
-    # pca_traj_gt, pca_traj_pred = visualize_ellipsoid(gt_traj = gt_traj, 
-    #     pred_traj = pred_traj, 
-    #     figs_dir=figs_dir, 
-    #     Q=Q, 
-    #     c=c,
-    #     tag='')
-
-    # ## DISTRIBUTION COMPARISON FOR DATA
-    # print('DISTRIBUTION COMPARISON FOR TRAJECTORY')
-    # pred_traj_np = pred_traj.detach().cpu().numpy()
-    # kl_div_traj = compare_distributions(gt_traj = gt_traj.detach().cpu().numpy().ravel(), 
-    #     pred_traj = pred_traj_np.ravel(), 
-    #     bins = 50,
-    #     plot=True, 
-    #     save_name=f'{figs_dir}/distribution_traj.png')
-
-
-    # # ## DISTRIBUTION COMPARISON FOR PCA MODES
-    # print('DISTRIBUTION COMPARISON FOR PCA MODES')
-    # pca_histogram_eval(gt_pca=pca_traj_gt, 
-    #     pred_pca=pca_traj_pred, 
-    #     bins=50, 
-    #     lim=[[-200.0, 200.0], [-200.0, 200.0]], 
-    #     save_path=f'{figs_dir}/distribution_pca.png', 
-    #     title_gt='Ground Truth', 
-    #     title_pred='Prediction')
-
-    # ## FOURIER SPECTRUM
-    # print('FOURIER SPECTRUM COMPARISON')
-    # print(gt_traj.shape)
-    # print(pred_traj.shape)
-    # fourier_spectrum_2d(gt_traj=gt_traj,pred_traj=pred_traj,s=s,figs_dir=figs_dir,device=device)
     
     return model
 
@@ -548,11 +385,9 @@ if __name__ == "__main__":
     parser.add_argument('--project', action='store_true', help='True for including projection layer', default=False)
     parser.add_argument('--tag', type=str, help='tag for file names', default='')
     parser.add_argument('--c_init', type=float, help='set initial c', default=1.0)
-    parser.add_argument('--trainable_c', action='store_true', help='specify whether c is trainable')
     parser.add_argument('--trunk_scale', type=float, help='scale factor for trunk net input', default=1.0)
     parser.add_argument('--diag_Q', action='store_true', help='True for including diagonal Q')
     parser.add_argument('--dt', type=float, help='time step between two consecutive states in the trajectory', default=1.0)
-    parser.add_argument('--discrete_proj', action='store_true', help='True for using discrete projection')
     parser.add_argument('--lr', type=float, help='learning rate', default=2e-5)
     parser.add_argument('--warm_start', action='store_true', help='True for adding the projection layer after training')
     parser.add_argument('--Re', help='Reynolds number of training data',default=40)
@@ -611,19 +446,14 @@ if __name__ == "__main__":
     params = vars(args)
 
     reg_name = ''
-    if params['trainable_c']:
-        reg_name += 'cTrain'
     if params['project']:
         reg_name += '_proj'
         reg_name += f'_LamRegVol{args.lam_reg_vol}'
         reg_name += f'_C0{args.c_init}'
     if params['diag_Q']:
         reg_name += '_diagQ'
-    if params['discrete_proj']:
-        reg_name += 'discreteProj'
     if params['warm_start']:
         reg_name += 'warmStart'
-    # before building save_dir / save_name, fix reg_name
     if params['sched'] and params['sched'] != 'none':
         reg_name += f"sched_{params['sched']}"
     if args.activation != 'ReLU':
@@ -652,7 +482,6 @@ if __name__ == "__main__":
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    # # logging.basicConfig(filename=save_dir + '/' + f"loss_info_{save_name}.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
     logging.basicConfig(filename=save_dir + '/' + f"loss_info.log", level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
     
     model = train(params)
